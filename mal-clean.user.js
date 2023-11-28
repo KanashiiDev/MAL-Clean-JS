@@ -1,12 +1,14 @@
 // ==UserScript==
-// @name        MyAnimeListClean - Helper
+// @name        MAL-Clean-JS
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
 // @version     1.0
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
+// @license     GPL-3.0-or-later
 // @icon        https://myanimelist.net/favicon.ico
+// @supportURL  https://github.com/KanashiiDev/MAL-Clean-JS/issues
 // @run-at      document-end
 // ==/UserScript==
 
