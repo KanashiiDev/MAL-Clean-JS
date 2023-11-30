@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.0
+// @version     1.01
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -451,6 +451,9 @@ function Settings() {
     closeDiv();
   }
 }
+let v = false;
+let lv = 0;
+function loadspin(val){let d=document.querySelector("#fancybox-loading > div"); v=val; function l(){lv=lv-40;if(lv < -440){lv =0}if(d){d.style.top = lv+"px";}}if(v){setTimeout(l(),100);return;}else{return;}}
 
 //Main
 (function () {
@@ -461,6 +464,7 @@ function Settings() {
   document.head.appendChild(styleSheet);
   ////Profile Section//-Start-////
   if (/\/(profile)\/.?([\w-]+)?\/?/.test(current)) {
+    if(alstyle){document.querySelector("#contentWrapper").setAttribute("style", "opacity:0");}
     let username = current.split("/")[2];
     let banner = create("div", {class: "banner",id: "banner"});
     let shadow = create("div", {class: "banner",id: "shadow"});
@@ -470,11 +474,13 @@ function Settings() {
     banner.append(shadow);
     findbg();
     async function findbg(){
+      if(document.querySelector("#fancybox-loading")){document.querySelector("#fancybox-loading").style.setProperty('display', 'block', 'important');loadspin(true);};
       let regex = /(custombg)\/([^"]+)/gm;
       let regex2 = /(custompf)\/([^"]+)/gm;
       let about = document.querySelector(".user-profile-about.js-truncate-outer");
+      if(document.querySelector(".user-image.mb8 > img")){
+      if(!document.querySelector(".user-image.mb8 > img").src){setTimeout(findbg,100);return;}}
       if(about){
-        if(!document.querySelector(".user-image.mb8 > img").src){setTimeout(findbg,100);return;}
         let m = about.innerHTML.match(regex);
         let m2 = about.innerHTML.match(regex2);
             if(m){
@@ -514,6 +520,7 @@ function Settings() {
     async function applyAl(){
       if (alstyle) {
         let fixstyle = `
+@keyframes spin {from {transform:rotate(0deg);}to {transform:rotate(360deg);}}
 .profile-about-user.js-truncate-inner img,.user-comments .comment .text .comment-text .userimg{box-shadow:none!important}
 .user-profile .user-friends {display: flex;justify-content: space-between}
 .user-profile .user-friends .icon-friend {margin: 5px!important;}
@@ -558,18 +565,18 @@ function Settings() {
           let timestamp = new Date(entry[i].date).getTime();
           const timestampSeconds = Math.floor(timestamp / 1000);
           let date = create("div", {class: "historydate",title: entry[i].date}, nativeTimeElement(timestampSeconds));
-          let apiUrl = `https://api.jikan.moe/v4/anime/${animeid}/pictures`;
+          let apiUrl = `https://api.jikan.moe/v4/anime/${animeid}`;
           if (entry[i].entry.type === "anime") {
             name.innerHTML = "Watched  episode " + entry[i].increment + " of " + '<a href="' + entry[i].entry.url + '">' + entry[i].entry.name + '</a>';
           } else {
-            apiUrl = `https://api.jikan.moe/v4/manga/${animeid}/pictures`;
+            apiUrl = `https://api.jikan.moe/v4/manga/${animeid}`;
             name.innerHTML = "Read chapter " + entry[i].increment + " of " + '<a href="' + entry[i].entry.url + '">' + entry[i].entry.name + '</a>';
           }
           if (i < last  && i > 0  &&  entry[i].entry.mal_id !== entry[i - 1].entry.mal_id) {
             getimg();
           } else {
             if (i < last && i > 0) {
-              wait = 300;
+              wait = 100;
               let historyimg = create("a", {
                 class: "historyimg",
                 href: entry[i].entry.url,
@@ -586,8 +593,9 @@ function Settings() {
           if(i === 0){getimg();}
           async function getimg() {
             lock=1;
+
             await fetch(apiUrl).then(response => response.json()).then(data => {
-              imgdata = data.data[0].jpg.large_image_url;
+              imgdata = data.data.images.jpg.image_url;
               if (imgdata) {
                 let historyimg = create("a", {
                   class: "historyimg",
@@ -619,11 +627,10 @@ function Settings() {
     document.querySelector("#contentWrapper").insertAdjacentElement('beforebegin', banner);
     banner.append(container);
     container.append(avatar);
-    document.querySelector("#contentWrapper").setAttribute("style", "width: 1375px;min-width:500px; margin: auto;top: -40px;");
     if (set(0,about,{sa:{0:"margin-bottom: 20px;width: auto;background: var(--color-foreground);padding: 10px;border-radius: var(--br)"}})) {
       document.querySelector("#content > div > div.container-left > div > ul.user-status.border-top.pb8.mb4").insertAdjacentElement('beforebegin', about);
     }
-    if (set(0,modernabout,{sa:{0:"margin-bottom: 20px;width: auto;background: var(--color-foreground);padding: 10px;border-radius: var(--br);max-height:1500px"}})) {
+    if (set(0,modernabout,{sa:{0:"margin-bottom: 20px;width: auto;background: var(--color-foreground);padding: 10px;border-radius: var(--br);max-height:2000px"}})) {
       document.querySelector("#content > div > div.container-left > div > ul.user-status.border-top.pb8.mb4").insertAdjacentElement('beforebegin', modernabout);
       let l = document.querySelectorAll(".l-listitem");
       let a = "max-width:492px;max-height:492px";
@@ -676,11 +683,13 @@ function Settings() {
     }
         set(1,"#content > table > tbody > tr > td.pl8 > #horiznav_nav",{r:{0:0}});
         set(1,".container-right #horiznav_nav",{r:{0:0}});
+        document.querySelector("#contentWrapper").setAttribute("style", "width: 1375px;min-width:500px; margin: auto;top: -40px;transition:.6s");
+        if( document.querySelector("#fancybox-loading")){document.querySelector("#fancybox-loading").style.setProperty('display', '');};
         let s = document.querySelector("#statistics");
         if (s) {
           s.setAttribute("style", "width: 813px");
           s.children[1].append(document.querySelector("#statistics .stats.manga"));
-          s.children[2].append(document.querySelector("#statistics .updates.anime"));
+          s.children[2].prepend(document.querySelector("#statistics .updates.anime"));
           s.prepend(document.querySelector("#statistics > div:nth-child(2)"));
           document.querySelector(".container-right").prepend(s);
           $('h2:contains("Statistics"):last').remove();
@@ -871,12 +880,14 @@ if (/\/(anime|manga)\/.?([\w-]+)?\/?/.test(current) && !/(.*anime|manga)\/.*\/.*
     }
   });
   //Left Side
-  $('h2:contains("Alternative Titles"):last').addClass("AlternativeTitlesDiv");
+  if($('h2:contains("Alternative Titles"):last')){
+   $('h2:contains("Alternative Titles"):last').addClass("AlternativeTitlesDiv");
   document.querySelector(".AlternativeTitlesDiv").nextElementSibling.setAttribute("style", "border-radius:var(--br);margin-bottom:2px");
   $('span:contains("Synonyms")').parent().next().css({
     'borderRadius': 'var(--br)',
     'marginBottom': '2px'
   });
+ }
   if (document.querySelector(".js-alternative-titles.hide")) {
     document.querySelector(".js-alternative-titles.hide").setAttribute("style", "border-radius:var(--br);overflow:hidden");
   }
@@ -886,9 +897,10 @@ if (/\/(anime|manga)\/.?([\w-]+)?\/?/.test(current) && !/(.*anime|manga)\/.*\/.*
   $('h2:contains("Statistics"):last').addClass("StatisticsDiv");
   document.querySelector(".StatisticsDiv").nextElementSibling.setAttribute("style", "border-top-left-radius:var(--br);border-top-right-radius:var(--br)");
   document.querySelector(".StatisticsDiv").previousElementSibling.previousElementSibling.setAttribute("style", "border-bottom-left-radius:var(--br);border-bottom-right-radius:var(--br)");
+  if($('h2:contains("Resources"):last').length > 0){
   $('h2:contains("Resources"):last').addClass("ResourcesDiv");
   document.querySelector(".ResourcesDiv").previousElementSibling.previousElementSibling.setAttribute("style", "border-bottom-left-radius:var(--br);border-bottom-right-radius:var(--br)");
-  document.querySelector(".ResourcesDiv").nextElementSibling.style.borderRadius = "var(--br)";
+  document.querySelector(".ResourcesDiv").nextElementSibling.style.borderRadius = "var(--br)";}
   if ($('h2:contains("Streaming Platforms")').length > 0) {
     $('h2:contains("Streaming Platforms"):last').addClass("StreamingAtDiv");
     document.querySelector(".StreamingAtDiv").nextElementSibling.style.borderRadius = "var(--br)";
