@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.05
+// @version     1.06
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -240,14 +240,12 @@ var styles2 = `
 .anisongs .theme-songs.js-theme-songs {
     margin-bottom:5px
     }
-.anisongs .theme-songs.js-theme-songs.has-video {
-    cursor: pointer
-    }
 .anisongs video {
     width: 379px;
     margin-top: 10px
     }
 .anisongs .oped-preview-button.oped-preview-button-gray {
+    cursor: pointer;
     display: inline-block;
     height: 8px;
     margin-bottom: -3px;
@@ -1714,9 +1712,6 @@ function loadspin(val) {
           this.el.remove();
         } else {
           this.parent.append(this.el);
-          //auto load and play
-          this.el.children[0].preload = true;
-          this.el.children[0].autoplay = true;
         }
       }
       make() {
@@ -1724,13 +1719,13 @@ function loadspin(val) {
           vid = document.createElement('video');
         vid.src = this.url;
         vid.controls = true;
-        vid.preload = 'none';
-        vid.volume = 0.4;
+        vid.preload = true;
+        vid.volume = 0.5;
         box.append(vid);
         this.el = box;
       }
     }
-    
+
     class Videos {
       constructor(id) {
         this.id = id;
@@ -1784,23 +1779,38 @@ function loadspin(val) {
           return entries.map((e, i) => {
             //try to fix video order
             let u = null;
-            for (let x = 0; x < videos.length; ) {
+            let m = 0;
+            for (let x = 0; x < videos.length;) {
               if (videos[x].sequence) {
                 if (i + 1 === videos[x].sequence) {
                   u = videos[x].animethemeentries[0].videos[0].link;
+                  m = 1;
                 }
-              } else if (videos[x].song.artists.length > 0) {
+              }
+              if (m === 0 && videos[x].song.title !== null) {
+                if (cleanTitle(e).match(videos[x].song.title)) {
+                  u = videos[x].animethemeentries[0].videos[0].link;
+                  m=1;
+                }
+                else {
+                  let reg = /\(|\)/g;
+                  if(cleanTitle(e).match(reg)){
+                  let r1 = cleanTitle(e).replace(reg,'');
+                  let r2 = videos[x].song.title.replace(reg,'');
+                  if(r1.match(r2)){
+                  u = videos[x].animethemeentries[0].videos[0].link;
+                  m = 1;
+                  }
+                  }
+                }
+              }
+              if (m === 0 && videos[x].song.artists.length > 0) {
                 if (cleanTitle(e).match(videos[x].song.artists[0].name)) {
                   if (cleanTitle(e).match(videos[x].song.title)) {
                     u = videos[x].animethemeentries[0].videos[0].link;
+                    m = 1;
                   }
                 }
-              } else if (videos[x].song.title !== null) {
-                if (cleanTitle(e).match(videos[x].song.title)) {
-                  u = videos[x].animethemeentries[0].videos[0].link;
-                }
-              } else {
-                u = findUrl(i);
               }
               x++;
             }
@@ -1845,7 +1855,7 @@ function loadspin(val) {
             let play = create('div', {class: 'oped-preview-button oped-preview-button-gray'});
             node.prepend(play);
             const vid = new VideoElement(node, song.url);
-            node.addEventListener('click', () => vid.toggle());
+            play.addEventListener('click', () => vid.toggle());
             node.classList.add('has-video');
           }
         });
@@ -1865,6 +1875,7 @@ function loadspin(val) {
       if (!target) return;
       let el = target.querySelectorAll(`.${options.class}`);
       el.forEach((e) => target.removeChild(e));
+
       $('.rightside.js-scrollfix-bottom-rel > table > tbody > tr:nth-child(3) > td > div.di-t > .di-tc.va-t').remove();
       set(1, '.rightside.js-scrollfix-bottom-rel > table > tbody > tr:nth-child(3) > td > div.di-t', {
         sa: {
@@ -1875,14 +1886,30 @@ function loadspin(val) {
     }
 
     function placeData(data) {
+      let nt = create(
+        'div',
+        {
+          class: 'theme-songs js-theme-songs',
+        });
+      let nt2 = nt.cloneNode(true);
       cleaner(anisongs_temp.target);
       let op = createTargetDiv('Openings', anisongs_temp.target, 0);
       if (data.opening_themes.length === 1) {
         op.children[0].innerText = 'Openings';
       }
+      if (data.opening_themes.length === 0) {
+        op.append(nt);
+        nt.innerHTML = 'No opening themes have been added to this title. Help improve our database by adding an opening theme '+
+          "<a class='embedLink' href=\"" +`https://myanimelist.net/dbchanges.php?aid=${currentid}&t=theme` + '">' + 'here' + '</a>';
+      }
       let ed = createTargetDiv('Endings', anisongs_temp.target, 1);
       if (data.ending_themes.length === 1) {
         ed.children[0].innerText = 'Endings';
+      }
+      if (data.ending_themes.length === 0) {
+        ed.append(nt2);
+        nt2.innerHTML = 'No ending themes have been added to this title. Help improve our database by adding an ending theme '+
+          "<a class='embedLink' href=\"" +`https://myanimelist.net/dbchanges.php?aid=${currentid}&t=theme` + '">' + 'here' + '</a>';
       }
       insert(data.opening_themes, op);
       insert(data.ending_themes, ed);
@@ -1901,7 +1928,7 @@ function loadspin(val) {
           .then((data) => {
             status = data.data.status;
           });
-        if (mal_id) {
+        if (mal_id && ['Finished Airing', 'Currently Airing'].includes(status)) {
           const {data} = await API.getSongs(mal_id);
           let {openings: opening_themes, endings: ending_themes} = data;
           // add songs to cache if they're not empty and query videos
