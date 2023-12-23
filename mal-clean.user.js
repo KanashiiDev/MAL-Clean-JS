@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.06
+// @version     1.07
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -856,18 +856,19 @@ function loadspin(val) {
         //CSS Fix for Anilist Style
         let fixstyle = `
         .profile .btn-truncate.js-btn-truncate.open {padding-bottom:0!important}
-        .profile-about-user.js-truncate-inner img,.user-comments .comment .text .comment-text .userimg{box-shadow:none!important}
-        .user-profile .user-friends {display: flex;justify-content: start}
+        .profile-about-user.js-truncate-inner img,.user-comments .comment .text .comment-text .userimg{-webkit-box-shadow:none!important;box-shadow:none!important}
+        .user-profile .user-friends {display: -webkit-box;display: -webkit-flex;display: -ms-flexbox;display: flex;-webkit-box-pack: start;-webkit-justify-content: start;-ms-flex-pack: start;justify-content: start}
         .user-profile .user-friends .icon-friend {margin: 5px!important;}
-        .favs{box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;display: -ms-grid!important;background-color: var(--color-foreground);padding:5px;display: grid!important;grid-gap: 5px 5px!important;grid-template-columns: repeat(auto-fill, 76px)!important;-webkit-box-pack: space-evenly!important;-ms-flex-pack: space-evenly!important;justify-content: space-evenly!important;margin-bottom: 12px!important;border-radius: var(--br);}
-        .profile .user-profile-about .userimg {max-width: 420px;}
-        #modern-about-me-inner{overflow:hidden}
-         #modern-about-me-inner > *, #modern-about-me-inner .l-mainvisual  {max-width:420px!important}
-        .l-listitem-list-item {flex-basis: 64px;-ms-flex-preferred-size: 64px;}
-        .l-listitem-5_5_items {margin-right: -25px;}.historyname{width: 80%;align-self: center;}
+        .favs{-webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;display: -ms-grid!important;background-color: var(--color-foreground);padding:5px;display: grid!important;grid-gap: 5px 5px!important;grid-template-columns: repeat(auto-fill, 76px)!important;-webkit-box-pack: space-evenly!important;-ms-flex-pack: space-evenly!important;-webkit-justify-content: space-evenly!important;justify-content: space-evenly!important;margin-bottom: 12px!important;-webkit-border-radius: var(--br);border-radius: var(--br);}
+        .word-break img, .dark-mode .profile .user-profile-about .userimg, .profile .user-profile-about .userimg, .profile .user-profile-about a .userimg,.profile .user-profile-about .userimg.img-a-r {max-width: 420px;-webkit-box-shadow: none!important;box-shadow: none!important;}
+        .profile .user-profile-about input.button {white-space: break-spaces;}
+        #modern-about-me-inner {overflow:hidden}
+         #modern-about-me-inner > *, #modern-about-me-inner .l-mainvisual {max-width:420px!important}
+        .l-listitem-list-item {-webkit-flex-basis: 64px;flex-basis: 64px;-ms-flex-preferred-size: 64px;}
+        .l-listitem-5_5_items {margin-right: -25px;}.historyname{width: 80%;-webkit-align-self: center;-ms-flex-item-align: center;-ms-grid-row-align: center;align-self: center;}
         .historydate{width:25%;text-align: right;}
         .historyimg{background-size:cover;margin-left: -10px;height: 69px;width:50px;margin-top: -9px;margin-right: 10px;padding-right: 5px;}
-        .historydiv {height: 50px;background-color: var(--color-foreground);margin: 10px 5px;padding: 10px;border-radius: var(--br);display: flex;justify-content: space-between;overflow: hidden;}
+        .historydiv {height: 50px;background-color: var(--color-foreground);margin: 10px 5px;padding: 10px;-webkit-border-radius: var(--br);border-radius: var(--br);display: -webkit-box;display: -webkit-flex;display: -ms-flexbox;display: flex;-webkit-box-pack: justify;-webkit-justify-content: space-between;-ms-flex-pack: justify;justify-content: space-between;overflow: hidden;}
         #horiznav_nav .navactive {color: var(--color-text)!important;background: var(--color-foreground2)!important;padding: 5px!important;}`;
         var fixstylesheet = document.createElement('style');
         fixstylesheet.innerText = fixstyle;
