@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.07
+// @version     1.08
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -14,6 +14,7 @@
 // @require     https://cdn.jsdelivr.net/npm/colorthief@2.4.0/dist/color-thief.min.js
 // @require     https://cdn.jsdelivr.net/npm/tinycolor2@1.6.0/cjs/tinycolor.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js
+// @require     https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js
 // ==/UserScript==
 
 //Create Element Shorthand Function
@@ -112,6 +113,8 @@ let svar = {
   profileHeader: true,
   customcss: true,
   alstyle: true,
+  animeinfo:true,
+  embed:true,
 };
 
 svar.save = function () {
@@ -128,6 +131,65 @@ if (svar) {
 
 //Settings CSS
 var styles = `
+.embedLink {
+    width:max-content;
+    line-height: 1.16rem;
+    margin: 5px 0px;
+}
+.embedname{
+    font-weight:bold;
+    display:block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 500px;
+    -webkit-align-self: center;
+    -ms-flex-item-align: center;
+    -ms-grid-row-align: center;
+    align-self: center;
+}
+
+.embedimg{
+    background-size: cover;
+    height: 72px;
+    width: 51px;
+    margin-right: 10px;
+    margin-left: -10px;
+}
+
+.embeddiv{
+    align-items: center;
+    text-align:center;
+    width:max-content;
+    min-height: 55px;
+    background-color: var(--color-foreground2);
+    padding: 0px 10px;
+    -webkit-border-radius: var(--br);
+    border-radius: var(--br);
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-pack: justify;
+    -webkit-justify-content: space-between;
+    -ms-flex-pack: justify;
+    justify-content: space-between;
+    overflow: hidden;
+}
+.forum .replied.show .embeddiv,
+.quotetext .embeddiv {
+ background-color: var(--color-foreground);
+}
+
+.tooltipBody {
+    display: none;
+    background-color: var(--color-foreground);
+    border-radius: 5px;
+    color: #fff;
+    }
+.tooptipBody main{
+margin-top:0!important
+}
 .maindiv {
     right: 0;
     width: 500px;
@@ -234,9 +296,7 @@ input#pfinput{
 .maindiv .childdiv h3 {
     font-weight:500
     }`;
-
-//CSS fix for TinyColor
-var styles2 = `
+var styles1 = `
 .anisongs .theme-songs.js-theme-songs {
     margin-bottom:5px
     }
@@ -250,9 +310,10 @@ var styles2 = `
     height: 8px;
     margin-bottom: -3px;
     width: 15px;
-    -webkit-filter: invert(100%) hue-rotate(180deg) brightness(75%);
-    filter: invert(100%) hue-rotate(180deg) brightness(75%);
-    }
+    -webkit-filter: invert(100%) hue-rotate(180deg) brightness(75%)!important;
+    filter: invert(100%) hue-rotate(180deg) brightness(75%)!important;
+    }`;
+var styles2 = `
 footer {
     z-index: 0;
     margin-top: 65px!important;
@@ -318,6 +379,7 @@ var styles3 = ` body,
     --color-link-hover: #cee7ff!important;
     }`;
 var styleSheet = document.createElement('style');
+var styleSheet1 = document.createElement('style');
 var styleSheet2 = document.createElement('style');
 var styleSheet3 = document.createElement('style');
 var stButton = create('li', {});
@@ -357,7 +419,7 @@ var button1 = create(
     class: 'mainbtns',
     id: 'animebgbtn',
   },
-  '<b>' + 'Anime/Manga' + '</b><hr>' + 'Background Color from Image',
+  '<b>' + 'Anime/Manga' + '</b><hr>' + 'Image Based Background Color',
 );
 button1.onclick = () => {
   svar.animebg = !svar.animebg;
@@ -387,7 +449,7 @@ var button3 = create(
     class: 'mainbtns',
     id: 'charbgbtn',
   },
-  '<b>' + 'Character' + '</b><hr>' + 'Background Color from Image',
+  '<b>' + 'Character' + '</b><hr>' + 'Image Based Background Color',
 );
 button3.onclick = () => {
   svar.charbg = !svar.charbg;
@@ -477,10 +539,38 @@ var button10 = create(
     class: 'mainbtns',
     id: 'alstylebtn',
   },
-  '<b>' + 'Profile' + '</b><hr>' + 'Anilist Style',
+  '<b>' + 'Profile' + '</b><hr>' + 'Make Profile Like Anilist',
 );
 button10.onclick = () => {
   svar.alstyle = !svar.alstyle;
+  svar.save();
+  getSettings();
+  reloadset();
+};
+var button13 = create(
+  'button',
+  {
+    class: 'mainbtns',
+    id: 'animeinfobtn',
+  },
+  '<b>' + 'Home' + '</b><hr>' + 'Seasonal Anime Info',
+);
+button13.onclick = () => {
+  svar.animeinfo = !svar.animeinfo;
+  svar.save();
+  getSettings();
+  reloadset();
+};
+var button14 = create(
+  'button',
+  {
+    class: 'mainbtns',
+    id: 'embedbtn',
+  },
+  '<b>' + 'Forum' + '</b><hr>' + 'Make Anime/Manga Links Like Anilist',
+);
+button14.onclick = () => {
+  svar.embed = !svar.embed;
   svar.save();
   getSettings();
   reloadset();
@@ -630,6 +720,8 @@ function getSettings() {
   customcssbtn.classList.toggle('btn-active', svar.customcss);
   profileheaderbtn.classList.toggle('btn-active', svar.profileHeader);
   alstylebtn.classList.toggle('btn-active', svar.alstyle);
+  animeinfobtn.classList.toggle('btn-active', svar.animeinfo);
+  embedbtn.classList.toggle('btn-active', svar.embed);
 }
 
 //Create Settings Div
@@ -655,7 +747,7 @@ function createDiv() {
       id: 'profileDiv',
     },
     '<div class="profileHeader"><h2>' +
-      'Al Style - Custom Background Image' +
+      'Anilist Style - Custom Background Image' +
       '</h2><h3>' +
       'Add custom Background Image to your profile. This will be visible to others with the script.' +
       '</h3></div>',
@@ -668,7 +760,7 @@ function createDiv() {
       id: 'profileDiv',
     },
     '<div class="profileHeader"><h2>' +
-      'Al Style - Custom Avatar' +
+      'Anilist Style - Custom Avatar' +
       '</h2><h3>' +
       'Add custom Avatar to your profile. This will be visible to others with the script.' +
       '</h3></div>',
@@ -689,7 +781,7 @@ function createDiv() {
   });
 
   listDiv.querySelector('.maindivheader').append(buttonreload, buttonclose);
-  buttonsDiv.append(button1, button2, button3, button4, button5, button6, button7, button9, button10);
+  buttonsDiv.append(button13, button1, button2, button3, button4, button5, button6, button7, button9, button10, button14);
   listDiv.append(buttonsDiv);
   if (svar.alstyle) {
     listDiv.append(custombgDiv, custompfDiv);
@@ -737,7 +829,9 @@ function Settings() {
 //Anilist Style - Loading Loop
 let v = false;
 let lv = 0;
-
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 function loadspin(val) {
   let d = document.querySelector('#fancybox-loading > div');
   v = val;
@@ -768,7 +862,136 @@ function loadspin(val) {
   styleSheet.innerText = styles;
   document.head.appendChild(styleSheet);
 
-  ////Profile Section //--START--//
+  //Seasonal Info //--START--//
+  if (svar.animeinfo && location.pathname === '/') {
+    let act = 0;
+    const i = document.querySelectorAll(".widget.seasonal.left .btn-anime .link");
+    i.forEach((info) => {
+      let ib = create('i', { class: 'fa fa-info-circle', style: { fontFamily: '"Font Awesome 6 Pro"', position: 'absolute', right: '5px', top: '5px', }, });
+      info.prepend(ib);
+    });
+    $('.widget.seasonal.left i').hover(async function () {
+      if (act === 0) {
+        let info;
+        if (!$(this).closest('.btn-anime')[0].getAttribute('details')) {
+          async function getinfo(id) {
+            const apiUrl = `https://api.jikan.moe/v4/anime/${id}`;
+            await fetch(apiUrl)
+              .then((response) => response.json())
+              .then((data) => { info = data.data });
+          }
+          let id = $(this).closest('.link')[0].href.split('/')[4];
+          await getinfo(id);
+
+          info = '<div class="main">' +
+            (info.title ? '<div class="text"><h2>' + info.title + '</h2><br></div>' : "") +
+            (info.synopsis ? '<div class="text"><b>Synopsis </b><br>' + info.synopsis + '</div><br>' : "") +
+            (info.genres ? '<div class="text"><b>Genres </b><br>' + info.genres.map((node) => node.name).toString().split(",").join(", ") + '</div><br>' : "") +
+            (info.studios ? '<div class="text"><b>Studios </b><br>' + info.studios.map((node) => node.name).toString().split(",").join(", ") + '</div><br>' : "") +
+            (info.themes ? '<div class="text"><b>Themes </b><br>' + info.themes.map((node) => node.name).toString().split(",").join(", ") + '</div><br>' : "") +
+            (info.rating ? '<div class="text"><b>Rating </b><br>' + info.rating + '</div><br>' : "") +
+            (info.demographics ? '<div class="text"><b>Demographic </b><br>' + info.themes.map((node) => node.name).toString().split(",").join(", ") + '</div><br>' : "") +
+            (info.broadcast ? '<div class="text"><b>Broadcast </b><br>' + info.broadcast.string + '</div>' : "") +
+            '</div>';
+          $(this).closest('.btn-anime')[0].setAttribute('details', 'true');
+          $('<div class="tooltipDetails"></div>').html(info).appendTo($(this).closest('.btn-anime'));
+        };
+        var title = await $(this).attr('alt');
+        $(this).data('tooltipTitle', title);
+
+        $('<div class="tooltipBody">' + ($(this).closest('.btn-anime')[0].children[1] ? $(this).closest('.btn-anime')[0].children[1].innerHTML : "") + '</div>').appendTo(".widget.seasonal.left").slideDown(400); act = 1;
+      }
+    }, async function () {
+      // Hover out code
+      $(this).attr('alt', $(this).data('tooltipTitle'));
+      $('.tooltipBody').slideUp(400, function () { $(this).remove() });
+      await delay(350);
+      act = 0;
+    });
+  }
+  //Seasonal Info //--END--//
+
+  //Forum Anime-Manga Embed //--START--//
+  if (svar.embed && /\/(forum)\/.?topicid([\w-]+)?\/?/.test(location.href)) {
+    let acttextfix;
+    let id, type, embed;
+    async function getimgf(id, type) {
+      let apiUrl = `https://api.jikan.moe/v4/anime/${id}`;
+      if (type === 'manga') {
+        apiUrl = `https://api.jikan.moe/v4/manga/${id}`;
+      }
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        const imgdata = data.data.images.jpg.image_url;
+        if (imgdata) {
+          const genres = document.createElement('div');
+          genres.innerHTML = (data.data.genres ? data.data.genres.map((node) => node.name).toString().split(",").join(", ") : "") + '<br>' +
+            (data.data.type ? data.data.type : "") +
+            (data.data.season ? " · " + data.data.season : "") + " " + (data.data.year ? data.data.year : "") +
+            (data.data.status ? " · " + data.data.status : "") +
+            (data.data.score ? " · " + data.data.score : "");
+          const dat = document.createElement('div');
+          dat.classList.add('embeddiv');
+          const namediv = document.createElement('div');
+          const name = document.createElement('a');
+          name.innerText = data.data.title;
+          name.classList.add('embedname');
+          name.href = data.data.url;
+          const historyimg = document.createElement('a');
+          historyimg.classList.add('embedimg');
+          historyimg.style.backgroundImage = `url(${imgdata})`;
+          historyimg.href = data.data.url;
+          dat.appendChild(historyimg);
+          dat.appendChild(namediv);
+          namediv.append(name, genres);
+          return dat
+        }
+      } catch (error) {
+        console.error('error:', error);
+      }
+    }
+    async function htmlfix(text) {
+      let m = text.match(/(?<!>)\b(https:\/\/)(myanimelist\.net\/(anime|manga)\/)([0-9]+)([^"'<]+)(?=" rel="nofollow">\w)/gm);
+      if (!m) {
+        return text;
+      }
+      for (let x = 0; x < m.length; x++) {
+        if (m.length > 6) {
+          await delay(666);
+        } else {
+          await delay(333);
+        }
+        const reg = new RegExp("(" + '<a href="' + m[x].replace(/\./g, '\\.').replace(/\//g, '\\/').replace(/\?/g, '\.*?') + '".*?>.*?<\/a>)', "gm");
+        const id = m[x].split('/')[4];
+        const type = m[x].split('/')[3];
+        let link = create('a', {
+          href: m[x],
+        });
+        let cont = create('div', {
+          class: 'embedLink',
+          id: id,
+          type: type,
+        });
+        cont.appendChild(await getimgf(id, type));
+        link.appendChild(cont);
+        text = text.replace(reg, await DOMPurify.sanitize(link));
+        await delay(333);
+      }
+      return text;
+    }
+    async function embedload() {
+      const c = document.querySelectorAll(".message-wrapper > div.content");
+      for (let x = 0; x < c.length; x++) {
+        c[x].innerHTML = await htmlfix(c[x].innerHTML);
+        await delay(333);
+      }
+    }
+    embedload();
+  }
+  //Forum Anime-Manga Embed //--END--//
+
+  //Profile Section //--START--//
   if (/\/(profile)\/.?([\w-]+)?\/?/.test(current)) {
     if (svar.alstyle) {
       document.querySelector('#contentWrapper').setAttribute('style', 'opacity:0');
@@ -810,7 +1033,7 @@ function loadspin(val) {
           custombg = JSON.parse(LZString.decompressFromBase64(dat));
           banner.setAttribute(
             'style',
-            'background:url(' + custombg + ');background-position: 50% 35%; background-repeat: no-repeat;background-size: cover;height: 330px;position: relative;',
+            'background-color: var(--color-foreground);background:url(' + custombg + ');background-position: 50% 35%; background-repeat: no-repeat;background-size: cover;height: 330px;position: relative;',
           );
           svar.alstyle = true;
         }
@@ -835,7 +1058,7 @@ function loadspin(val) {
                 custombg = JSON.parse(LZString.decompressFromBase64(dat));
                 banner.setAttribute(
                   'style',
-                  'background:url(' + custombg + ');background-position: 50% 35%; background-repeat: no-repeat;background-size: cover;height: 330px;position: relative;',
+                  'background-color: var(--color-foreground);background:url(' + custombg + ');background-position: 50% 35%; background-repeat: no-repeat;background-size: cover;height: 330px;position: relative;',
                 );
                 svar.alstyle = true;
               }
@@ -865,7 +1088,8 @@ function loadspin(val) {
         #modern-about-me-inner {overflow:hidden}
          #modern-about-me-inner > *, #modern-about-me-inner .l-mainvisual {max-width:420px!important}
         .l-listitem-list-item {-webkit-flex-basis: 64px;flex-basis: 64px;-ms-flex-preferred-size: 64px;}
-        .l-listitem-5_5_items {margin-right: -25px;}.historyname{width: 80%;-webkit-align-self: center;-ms-flex-item-align: center;-ms-grid-row-align: center;align-self: center;}
+        .l-listitem-5_5_items {margin-right: -25px;}
+        .historyname{width: 80%;-webkit-align-self: center;-ms-flex-item-align: center;-ms-grid-row-align: center;align-self: center;}
         .historydate{width:25%;text-align: right;}
         .historyimg{background-size:cover;margin-left: -10px;height: 69px;width:50px;margin-top: -9px;margin-right: 10px;padding-right: 5px;}
         .historydiv {height: 50px;background-color: var(--color-foreground);margin: 10px 5px;padding: 10px;-webkit-border-radius: var(--br);border-radius: var(--br);display: -webkit-box;display: -webkit-flex;display: -ms-flexbox;display: flex;-webkit-box-pack: justify;-webkit-justify-content: space-between;-ms-flex-pack: justify;justify-content: space-between;overflow: hidden;}
@@ -1007,7 +1231,7 @@ function loadspin(val) {
         });
         container.setAttribute('style', 'margin: 0 auto;min-width: 320px;max-width: 1240px;left: -40px;position: relative;height: 100%;');
         if (!custombg) {
-          banner.setAttribute('style', 'background-position: 50% 35%; background-repeat: no-repeat;background-size: cover;height: 330px;position: relative;');
+          banner.setAttribute('style', 'background-color: var(--color-foreground);background-position: 50% 35%; background-repeat: no-repeat;background-size: cover;height: 330px;position: relative;');
         }
         document.querySelector('#myanimelist').setAttribute('style', 'min-width: 1240px;width:100%');
         set(1, '#myanimelist .wrapper', {
@@ -1193,7 +1417,7 @@ function loadspin(val) {
         if (
           set(1, '#lastcomment', {
             sa: {
-              0: 'padding-top:0!important;',
+              0: 'padding-top:auto',
             },
           })
         ) {
@@ -1597,15 +1821,17 @@ function loadspin(val) {
 
   //Anime-Manga Background Color from Cover Image //--START--//
   if (/myanimelist.net\/(anime|manga|character|people)\/?([\w-]+)?\/?/.test(location.href)) {
+
     if (/\/(people)\/?([\w-]+)?\/?/.test(current) || /\/(anime|manga)\/producer|season\/.?([\w-]+)?\/?/.test(current) || /\/(anime.php|manga.php).?([\w-]+)?\/?/.test(current)) {
       return;
     }
     if (/\/(character)\/?([\w-]+)?\/?/.test(current) && !svar.charbg) {
       return;
     }
-    if (/\/(anime|manga)\/?([\w-]+)?\/?/.test(current) && !svar.animebg) {
+    if (/\/(character.php)\/?([\w-]+)?/.test(current)) {
       return;
     }
+    if (/\/(anime|manga)\/?([\w-]+)?\/?/.test(current) && svar.animebg) {
     styleSheet2.innerText = styles2;
     document.head.appendChild(styleSheet2);
     let img = document.querySelector('div:nth-child(1) > a > img');
@@ -1614,13 +1840,14 @@ function loadspin(val) {
       img.setAttribute('crossorigin', 'anonymous');
       $(img).load(function () {
         var dominantColor = colorThief.getColor(img);
-        var Palette = colorThief.getPalette(img, 10, true);
+        var Palette = colorThief.getPalette(img, 10, 5);
         //Single Color
         // document.querySelector("body").style.setProperty("background-color", "rgba("+dominantColor[0]+","+dominantColor[1]+","+dominantColor[2]+")", "important");
         //Linear Color
         let color0 = tinycolor('rgba (' + Palette[2][0] + ', ' + Palette[2][1] + ', ' + Palette[2][2] + ', .8)');
         let color1 = tinycolor('rgba (' + Palette[1][0] + ', ' + Palette[1][1] + ', ' + Palette[1][2] + ', .8)');
         let color2 = tinycolor('rgba (' + Palette[0][0] + ', ' + Palette[0][1] + ', ' + Palette[0][2] + ', .8)');
+        //Color Brightness Adjustment Loop
         for (let x = 0; x < 25; x++) {
           if (color0.getLuminance() > 0.08) {
             color0 = tinycolor('rgb (' + color0.darken(2) + ')');
@@ -1644,8 +1871,8 @@ function loadspin(val) {
         img.removeAttribute('crossorigin');
       });
     });
-  }
-  ////Anime-Manga Background Color from Cover Image //--END--//
+  }}
+  //Anime-Manga Background Color from Cover Image //--END--//
 
   //Anisongs for MAL //--START--//
   //fork of anisongs by morimasa
@@ -1664,6 +1891,8 @@ function loadspin(val) {
     let currentid;
     let location;
     if (currentpath && currentpath[1] === 'anime') {
+              styleSheet1.innerText = styles1;
+    document.head.appendChild(styleSheet1);
       currentid = currentpath[2];
       location = currentpath[3];
       if (location !== '') {
@@ -1689,6 +1918,8 @@ function loadspin(val) {
       // Update Weekly
       class: 'anisongs',
     };
+    let anisongdata = 0;
+
     const API = {
       //Get Songs from JikanAPI
       async getSongs(mal_id) {
@@ -1782,10 +2013,18 @@ function loadspin(val) {
             let u = null;
             let m = 0;
             for (let x = 0; x < videos.length;) {
-              if (videos[x].sequence) {
-                if (i + 1 === videos[x].sequence) {
+              if (!videos[x].sequence && videos[x].slug) {
+                if(anisongdata && anisongdata.openings.length === 1){
+                  if (videos[x].slug === "OP" || videos[x].slug === "OP1") {
                   u = videos[x].animethemeentries[0].videos[0].link;
                   m = 1;
+                  }
+                }
+                if(anisongdata && anisongdata.endings.length === 1){
+                  if (videos[x].slug === "ED"  || videos[x].slug === "ED1") {
+                  u = videos[x].animethemeentries[0].videos[0].link;
+                  m = 1;
+                  }
                 }
               }
               if (m === 0 && videos[x].song.title !== null) {
@@ -1796,13 +2035,30 @@ function loadspin(val) {
                 else {
                   let reg = /\(|\)/g;
                   if(cleanTitle(e).match(reg)){
+
                   let r1 = cleanTitle(e).replace(reg,'');
                   let r2 = videos[x].song.title.replace(reg,'');
+
                   if(r1.match(r2)){
                   u = videos[x].animethemeentries[0].videos[0].link;
                   m = 1;
                   }
+                    else{
+                      reg = /\(\W.*\)|by.*/g;
+                      r1 = cleanTitle(e).replace(reg,'').trim();
+                      r2 = videos[x].song.title.replace(reg,'').trim();
+                      if(r1.match(r2)){
+                        u = videos[x].animethemeentries[0].videos[0].link;
+                        m = 1;
+                      }
+                    }
                   }
+                }
+              }
+              if (m === 0 && videos[x].sequence) {
+                if (x === videos[x].sequence) {
+                  u = videos[x].animethemeentries[0].videos[0].link;
+                  m = 1;
                 }
               }
               if (m === 0 && videos[x].song.artists.length > 0) {
@@ -1936,6 +2192,7 @@ function loadspin(val) {
           if (opening_themes.length || ending_themes.length) {
             if (['Finished Airing', 'Currently Airing'].includes(status)) {
               try {
+              anisongdata = data;
                 const _videos = await new Videos(currentid).get();
                 opening_themes = Videos.merge(opening_themes, _videos.OP);
                 ending_themes = Videos.merge(ending_themes, _videos.ED);
