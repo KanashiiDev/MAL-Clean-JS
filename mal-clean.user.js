@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.08
+// @version     1.09
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -135,7 +135,7 @@ var styles = `
     width:max-content;
     line-height: 1.16rem;
     margin: 5px 0px;
-}
+    }
 .embedname{
     font-weight:bold;
     display:block;
@@ -147,7 +147,7 @@ var styles = `
     -ms-flex-item-align: center;
     -ms-grid-row-align: center;
     align-self: center;
-}
+    }
 
 .embedimg{
     background-size: cover;
@@ -155,7 +155,7 @@ var styles = `
     width: 51px;
     margin-right: 10px;
     margin-left: -10px;
-}
+    }
 
 .embeddiv{
     align-items: center;
@@ -175,21 +175,22 @@ var styles = `
     -ms-flex-pack: justify;
     justify-content: space-between;
     overflow: hidden;
-}
+    }
 .forum .replied.show .embeddiv,
 .quotetext .embeddiv {
- background-color: var(--color-foreground);
-}
+    background-color: var(--color-foreground);
+    }
 
 .tooltipBody {
     display: none;
     background-color: var(--color-foreground);
     border-radius: 5px;
     color: #fff;
+    margin-top:5px
     }
-.tooptipBody main{
-margin-top:0!important
-}
+.tooltipBody .main {
+    margin:0!important
+    }
 .maindiv {
     right: 0;
     width: 500px;
@@ -259,7 +260,7 @@ margin-top:0!important
     }
 .mainbtns hr{
     width:100%
-}
+    }
 .btn-active {
     background-color: var(--color-foreground4)!important;
     color: rgb(159, 173, 189)
@@ -864,14 +865,14 @@ function loadspin(val) {
 
   //Seasonal Info //--START--//
   if (svar.animeinfo && location.pathname === '/') {
-    let act = 0;
     const i = document.querySelectorAll(".widget.seasonal.left .btn-anime .link");
     i.forEach((info) => {
       let ib = create('i', { class: 'fa fa-info-circle', style: { fontFamily: '"Font Awesome 6 Pro"', position: 'absolute', right: '5px', top: '5px', }, });
       info.prepend(ib);
     });
     $('.widget.seasonal.left i').hover(async function () {
-      if (act === 0) {
+      await delay(50);
+      if ($('.tooltipBody').length === 0) {
         let info;
         if (!$(this).closest('.btn-anime')[0].getAttribute('details')) {
           async function getinfo(id) {
@@ -899,38 +900,59 @@ function loadspin(val) {
         var title = await $(this).attr('alt');
         $(this).data('tooltipTitle', title);
 
-        $('<div class="tooltipBody">' + ($(this).closest('.btn-anime')[0].children[1] ? $(this).closest('.btn-anime')[0].children[1].innerHTML : "") + '</div>').appendTo(".widget.seasonal.left").slideDown(400); act = 1;
+        $('<div class="tooltipBody">' + ($('.tooltipBody').length  === 0 && $(this).closest('.btn-anime')[0].children[1] ? $(this).closest('.btn-anime')[0].children[1].innerHTML : "") + '</div>').appendTo(".widget.seasonal.left").slideDown(400);
       }
     }, async function () {
       // Hover out code
       $(this).attr('alt', $(this).data('tooltipTitle'));
       $('.tooltipBody').slideUp(400, function () { $(this).remove() });
-      await delay(350);
-      act = 0;
+      await delay(400);
     });
   }
   //Seasonal Info //--END--//
 
   //Forum Anime-Manga Embed //--START--//
   if (svar.embed && /\/(forum)\/.?topicid([\w-]+)?\/?/.test(location.href)) {
+    const embedCache = localforage.createInstance({ name: 'MalJS', storeName: 'embed', });
+    const options = { cacheTTL: 262974383, class: 'embed', };
     let acttextfix;
-    let id, type, embed;
+    let id, type, embed,imgdata,data,cached;
     async function getimgf(id, type) {
+
       let apiUrl = `https://api.jikan.moe/v4/anime/${id}`;
       if (type === 'manga') {
         apiUrl = `https://api.jikan.moe/v4/manga/${id}`;
       }
       try {
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-        const imgdata = data.data.images.jpg.image_url;
+        const cache = (await embedCache.getItem(id)) || { time: 0, };if (cache.time + options.cacheTTL < +new Date()) {
+          const response = await fetch(apiUrl);
+          data = await response.json();
+        await embedCache.setItem(id, {
+            data:{
+              status: data.data.status,
+              title: data.data.title,
+              type: data.data.type,
+              genres: data.data.genres,
+              season : data.data.season,
+              images: data.data.images,
+              year: data.data.year,
+              url:data.data.url,
+            }, time: +new Date(), });
+        imgdata = data.data.images.jpg.image_url;
+        cached = false;
+        }
+        else {
+          cached = true;
+          data = await cache;
+          imgdata = data.data.images.jpg.image_url;
+        }
         if (imgdata) {
           const genres = document.createElement('div');
-          genres.innerHTML = (data.data.genres ? data.data.genres.map((node) => node.name).toString().split(",").join(", ") : "") + '<br>' +
+          genres.innerHTML = (data.data.genres ? data.data.genres.map((node) => node.name === "Award Winning" ? "" : node.name).toString().split(",").join(", ").split(", , ").join(", ") : "") + '<br>' +
             (data.data.type ? data.data.type : "") +
-            (data.data.season ? " · " + data.data.season : "") + " " + (data.data.year ? data.data.year : "") +
-            (data.data.status ? " · " + data.data.status : "") +
-            (data.data.score ? " · " + data.data.score : "");
+            (data.data.status ? " · " + data.data.status.split("Airing").join("") : "")+
+            (data.data.season ? " · " + data.data.season.charAt(0).toUpperCase() + data.data.season.slice(1) : "") + " " + (data.data.year ? data.data.year : "");
+            //+(data.data.score ? " · " + data.data.score : "");
           const dat = document.createElement('div');
           dat.classList.add('embeddiv');
           const namediv = document.createElement('div');
@@ -958,9 +980,9 @@ function loadspin(val) {
       }
       for (let x = 0; x < m.length; x++) {
         if (m.length > 6) {
-          await delay(666);
+          cached ? await delay(33) : await delay(666);
         } else {
-          await delay(333);
+          cached ? await delay(33) : await delay(333);
         }
         const reg = new RegExp("(" + '<a href="' + m[x].replace(/\./g, '\\.').replace(/\//g, '\\/').replace(/\?/g, '\.*?') + '".*?>.*?<\/a>)', "gm");
         const id = m[x].split('/')[4];
@@ -976,7 +998,7 @@ function loadspin(val) {
         cont.appendChild(await getimgf(id, type));
         link.appendChild(cont);
         text = text.replace(reg, await DOMPurify.sanitize(link));
-        await delay(333);
+        cached ? await delay(33) : await delay(333);
       }
       return text;
     }
@@ -984,7 +1006,6 @@ function loadspin(val) {
       const c = document.querySelectorAll(".message-wrapper > div.content");
       for (let x = 0; x < c.length; x++) {
         c[x].innerHTML = await htmlfix(c[x].innerHTML);
-        await delay(333);
       }
     }
     embedload();
@@ -1821,24 +1842,25 @@ function loadspin(val) {
 
   //Anime-Manga Background Color from Cover Image //--START--//
   if (/myanimelist.net\/(anime|manga|character|people)\/?([\w-]+)?\/?/.test(location.href)) {
-
-    if (/\/(people)\/?([\w-]+)?\/?/.test(current) || /\/(anime|manga)\/producer|season\/.?([\w-]+)?\/?/.test(current) || /\/(anime.php|manga.php).?([\w-]+)?\/?/.test(current)) {
+    if (/\/(character.php)\/?([\w-]+)?/.test(current) ||
+        /\/(people)\/?([\w-]+)?\/?/.test(current) ||
+        /\/(anime|manga)\/producer|season\/.?([\w-]+)?\/?/.test(current) ||
+        /\/(anime.php|manga.php).?([\w-]+)?\/?/.test(current)) {
       return;
     }
     if (/\/(character)\/?([\w-]+)?\/?/.test(current) && !svar.charbg) {
       return;
     }
-    if (/\/(character.php)\/?([\w-]+)?/.test(current)) {
-      return;
+    if (/\/(anime|manga)\/?([\w-]+)?\/?/.test(current) && !svar.animebg) {
+    return;
     }
-    if (/\/(anime|manga)\/?([\w-]+)?\/?/.test(current) && svar.animebg) {
     styleSheet2.innerText = styles2;
     document.head.appendChild(styleSheet2);
     let img = document.querySelector('div:nth-child(1) > a > img');
     var colorThief = new ColorThief();
-    $(document).ready(function ($) {
+    $(document).ready( async function ($) {
       img.setAttribute('crossorigin', 'anonymous');
-      $(img).load(function () {
+      $(img).load(async function () {
         var dominantColor = colorThief.getColor(img);
         var Palette = colorThief.getPalette(img, 10, 5);
         //Single Color
@@ -1868,10 +1890,11 @@ function loadspin(val) {
         document
           .querySelector('body')
           .style.setProperty('background', 'linear-gradient(180deg, ' + color0.toString() + ' 0%,' + color1.toString() + ' 50%, ' + color2.toString() + ' 100%)', 'important');
+        await delay(200);
         img.removeAttribute('crossorigin');
       });
     });
-  }}
+  }
   //Anime-Manga Background Color from Cover Image //--END--//
 
   //Anisongs for MAL //--START--//
