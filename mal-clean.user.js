@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.10
+// @version     1.11
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -140,17 +140,20 @@ var styles = `
     -ms-user-select: none;
     user-select: none;
     }
-.embeddiv div{
+.embeddiv.no-genre .genres{
+   display:none
+    }
+.embeddiv:not(.no-genre) div{
     transition: opacity 0.3s ease-in-out;
     }
-.embeddiv .genres{
-    margin-bottom:-18px;
+.embeddiv:not(.no-genre) .genres{
+    margin-bottom:-18.5px;
     opacity:0
     }
-    .embeddiv:hover .genres {
+    .embeddiv:not(.no-genre):hover .genres {
     opacity:1
     }
-    .embeddiv:hover .details {
+    .embeddiv:not(.no-genre):hover .details {
     opacity:0
     }
 .embedname{
@@ -967,7 +970,7 @@ function loadspin(val) {
         }
         if (imgdata) {
           const genres = document.createElement('div');
-           genres.classList.add('genres');
+          genres.classList.add('genres');
           genres.innerHTML = (data.data.genres ? data.data.genres.filter((node) => node.name !=="Award Winning").map((node) => node.name).toString().split(",").join(", ") : "");
           const details = document.createElement('div');
           details.classList.add('details');
@@ -978,7 +981,7 @@ function loadspin(val) {
              : data.data.type !== "Anime" && data.data.published && data.data.published.prop && data.data.published.prop.from && data.data.published.prop.from.year ? data.data.published.prop.from.year
              : data.data.aired && data.data.aired.prop && data.data.aired.prop.from && data.data.aired.prop.from.year ? data.data.aired.prop.from.year
              : data.data.type === "Anime" && data.data.aired && data.data.aired.prop && data.data.aired.prop.from && data.data.aired.prop.from.year ? data.data.aired.prop.from.year
-             : "") +'<span class="embedscore">'+(data.data.score ? " · " + Math.floor(data.data.score * 10) + "%" : "")+'</span>';
+             : "") + (data.data.score ? '<span class="embedscore">' + " · " + Math.floor(data.data.score * 10) + "%" + '</span>' : "");
           const dat = document.createElement('div');
           dat.classList.add('embeddiv');
           const namediv = document.createElement('div');
@@ -991,6 +994,7 @@ function loadspin(val) {
           historyimg.classList.add('embedimg');
           historyimg.style.backgroundImage = `url(${imgdata})`;
           historyimg.href = data.data.url;
+          data.data.genres.length > 0 ? genres.style.display="block" : dat.classList.add('no-genre');
           dat.appendChild(historyimg);
           dat.appendChild(namediv);
           namediv.append(name, genres, details);
@@ -1630,7 +1634,8 @@ function loadspin(val) {
   //Profile Section //--END--//
 
   //Character Section //-START-//
-  if (/\/(character)\/.?([\w-]+)?\/?/.test(current)) {
+  if (/\/(character)\/.?([\w-]+)?\/?/.test(current) && !(/\/(clubs)/.test(current)) && !(/\/(pics)/.test(current))) {
+
     let regex = /(Member Favorites).*/g;
     let match = document.createElement('p');
     let fav = document.querySelector('#content > table > tbody > tr > td.borderClass');
@@ -1706,8 +1711,8 @@ function loadspin(val) {
       doc = document.querySelector('#content > table > tbody > tr > td.characterDiv > br:nth-child(6)');
     }
     doc.before(text);
-    $.trim($('.characterDiv').contents().not($('.description')).not($('.VoiceActorsDiv')).not($('h2')).not($('table')).remove());
-    $('.description').children().not($('input')).not($('span.spoiler_content')).remove();
+    $.trim($('.characterDiv').contents().not($('.description')).not($('.VoiceActorsDiv')).not($('#horiznav_nav')).not($('.breadcrumb')).not($('h2')).not($('table')).remove());
+    $('.description').children().not($('li')).not($('input')).not($('span.spoiler_content')).remove();
     let spofix = document.querySelectorAll('.spoiler_content > input');
     $('.spoiler_content').css({
       background: 'var(--color-foreground4)',
@@ -1845,7 +1850,7 @@ function loadspin(val) {
     document.querySelector('#content').style.paddingTop = '20px';
     let table = document.querySelector('#content > table > tbody > tr > td:nth-child(2)');
     table.prepend(name);
-    if (/\/(character)\/.?([\w-]+)?\/?/.test(current) && svar.characterHeader) {
+    if (/\/(character)\/.?([\w-]+)?\/?/.test(current) && !(/\/(clubs)/.test(current)) && !(/\/(pics)/.test(current)) && svar.characterHeader) {
       if (!svar.characterNameAlt) {
         name.setAttribute('style', 'line-height:25px');
       }
