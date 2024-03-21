@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.09
+// @version     1.10
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -135,6 +135,23 @@ var styles = `
     width:max-content;
     line-height: 1.16rem;
     margin: 5px 0px;
+    display: inline-block;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    }
+.embeddiv div{
+    transition: opacity 0.3s ease-in-out;
+    }
+.embeddiv .genres{
+    margin-bottom:-18px;
+    opacity:0
+    }
+    .embeddiv:hover .genres {
+    opacity:1
+    }
+    .embeddiv:hover .details {
+    opacity:0
     }
 .embedname{
     font-weight:bold;
@@ -148,15 +165,13 @@ var styles = `
     -ms-grid-row-align: center;
     align-self: center;
     }
-
 .embedimg{
     background-size: cover;
-    height: 72px;
-    width: 51px;
+    height: 58px;
+    width: 41px;
     margin-right: 10px;
     margin-left: -10px;
     }
-
 .embeddiv{
     align-items: center;
     text-align:center;
@@ -930,12 +945,16 @@ function loadspin(val) {
         await embedCache.setItem(id, {
             data:{
               status: data.data.status,
+              score: data.data.score,
               title: data.data.title,
               type: data.data.type,
               genres: data.data.genres,
               season : data.data.season,
               images: data.data.images,
-              year: data.data.year,
+              year: (data.data.type !== "Anime" && data.data.published && data.data.published.prop && data.data.published.prop.from && data.data.published.prop.from.year ? data.data.published.prop.from.year
+                     : data.data.aired && data.data.aired.prop && data.data.aired.prop.from && data.data.aired.prop.from.year ? data.data.aired.prop.from.year
+                     : data.data.type === "Anime" && data.data.aired && data.data.aired.prop && data.data.aired.prop.from && data.data.aired.prop.from.year ? data.data.aired.prop.from.year
+                     : ""),
               url:data.data.url,
             }, time: +new Date(), });
         imgdata = data.data.images.jpg.image_url;
@@ -948,14 +967,22 @@ function loadspin(val) {
         }
         if (imgdata) {
           const genres = document.createElement('div');
-          genres.innerHTML = (data.data.genres ? data.data.genres.map((node) => node.name === "Award Winning" ? "" : node.name).toString().split(",").join(", ").split(", , ").join(", ") : "") + '<br>' +
-            (data.data.type ? data.data.type : "") +
-            (data.data.status ? " · " + data.data.status.split("Airing").join("") : "")+
-            (data.data.season ? " · " + data.data.season.charAt(0).toUpperCase() + data.data.season.slice(1) : "") + " " + (data.data.year ? data.data.year : "");
-            //+(data.data.score ? " · " + data.data.score : "");
+           genres.classList.add('genres');
+          genres.innerHTML = (data.data.genres ? data.data.genres.filter((node) => node.name !=="Award Winning").map((node) => node.name).toString().split(",").join(", ") : "");
+          const details = document.createElement('div');
+          details.classList.add('details');
+          details.innerHTML = (data.data.type ? data.data.type + " · " : "") +
+            (data.data.status ? data.data.status.split("Airing").join("")  + " · " : "")+
+            (data.data.season ? data.data.season.charAt(0).toUpperCase() + data.data.season.slice(1) : "") + " " +
+            (cached && data.data.year ? data.data.year
+             : data.data.type !== "Anime" && data.data.published && data.data.published.prop && data.data.published.prop.from && data.data.published.prop.from.year ? data.data.published.prop.from.year
+             : data.data.aired && data.data.aired.prop && data.data.aired.prop.from && data.data.aired.prop.from.year ? data.data.aired.prop.from.year
+             : data.data.type === "Anime" && data.data.aired && data.data.aired.prop && data.data.aired.prop.from && data.data.aired.prop.from.year ? data.data.aired.prop.from.year
+             : "") +'<span class="embedscore">'+(data.data.score ? " · " + Math.floor(data.data.score * 10) + "%" : "")+'</span>';
           const dat = document.createElement('div');
           dat.classList.add('embeddiv');
           const namediv = document.createElement('div');
+          namediv.classList.add('detailsDiv');
           const name = document.createElement('a');
           name.innerText = data.data.title;
           name.classList.add('embedname');
@@ -966,7 +993,7 @@ function loadspin(val) {
           historyimg.href = data.data.url;
           dat.appendChild(historyimg);
           dat.appendChild(namediv);
-          namediv.append(name, genres);
+          namediv.append(name, genres, details);
           return dat
         }
       } catch (error) {
