@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.11
+// @version     1.12
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -115,6 +115,7 @@ let svar = {
   alstyle: true,
   animeinfo:true,
   embed:true,
+  currentlywatching:true,
 };
 
 svar.save = function () {
@@ -131,6 +132,46 @@ if (svar) {
 
 //Settings CSS
 var styles = `
+#currently-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    background-color: var(--color-foreground2);
+    padding: 15px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+    -webkit-border-radius: var(--br);
+    border-radius: var(--br);
+    }
+#currently-popup iframe {
+    width: 680px;
+    height: 422px;
+    -webkit-border-radius: var(--br);
+    border-radius: var(--br);
+    border:1px solid;
+    }
+#currently-watching span{
+width:95%
+}
+#currently-closePopup {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    cursor: pointer;
+    background: var(--color-foreground);
+    padding: 5px;
+    border-radius: 5px;
+    -webkit-border-radius: 5px;
+    }
+.widget-slide-block:hover #current-left{
+    left:0!important;
+    opacity:1!important
+    }
+.widget-slide-block:hover #current-right{
+    right:0!important;
+    opacity:1!important
+    }
 .embedLink {
     width:max-content;
     line-height: 1.16rem;
@@ -594,7 +635,20 @@ button14.onclick = () => {
   getSettings();
   reloadset();
 };
-
+var button15 = create(
+  'button',
+  {
+    class: 'mainbtns',
+    id: 'currentlybtn',
+  },
+  '<b>' + 'Home' + '</b><hr>' + 'Show Currently Watching Anime',
+);
+button15.onclick = () => {
+  svar.currentlywatching = !svar.currentlywatching;
+  svar.save();
+  getSettings();
+  reloadset();
+};
 //alstyle - BG Elements
 let bginput = create('input', {
   class: 'bginput',
@@ -741,6 +795,7 @@ function getSettings() {
   alstylebtn.classList.toggle('btn-active', svar.alstyle);
   animeinfobtn.classList.toggle('btn-active', svar.animeinfo);
   embedbtn.classList.toggle('btn-active', svar.embed);
+  currentlybtn.classList.toggle('btn-active', svar.currentlywatching);
 }
 
 //Create Settings Div
@@ -800,7 +855,7 @@ function createDiv() {
   });
 
   listDiv.querySelector('.maindivheader').append(buttonreload, buttonclose);
-  buttonsDiv.append(button13, button1, button2, button3, button4, button5, button6, button7, button9, button10, button14);
+  buttonsDiv.append(button13, button15, button14, button1, button2, button3, button4, button5, button6, button7, button9, button10);
   listDiv.append(buttonsDiv);
   if (svar.alstyle) {
     listDiv.append(custombgDiv, custompfDiv);
@@ -881,129 +936,307 @@ function loadspin(val) {
   styleSheet.innerText = styles;
   document.head.appendChild(styleSheet);
 
-  //Seasonal Info //--START--//
-  if (svar.animeinfo && location.pathname === '/') {
+  //Currently Watching //--START--//
+  if (svar.currentlywatching && location.pathname === '/') {
+  //Create Currently Watching Div
+  getWatching();
+  async function getWatching() {
+    let user = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit.link-bg.pl8.pr8 > a").innerText;
+    const watchdiv = create("article", { class: "widget-container left", id: "currently-watching" });
+    watchdiv.innerHTML =
+      '<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span><h2 class="index_h2_seo"><a href="https://myanimelist.net/animelist/' + user + '?status=1">Currently Watching</a></h2></div><div class="widget-content"><div class="mt4"><div class="widget-slide-block" id="widget-currently-watching"><div id="current-left" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div><div id="current-right" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;"><span class="btn-inner" style="display: none;"></span></div><div class="widget-slide-outer"><ul class="widget-slide js-widget-slide" data-slide="4" style="width: 3984px; margin-left: 0px;"></ul></div></div></div></div></div>';
+    document.querySelector("#content > div.left-column").prepend(watchdiv);
+    const html = await fetch("https://myanimelist.net/animelist/-Yowai-?status=1")
+      .then((response) => response.text())
+      .then((data) => {
+        var newDocument = new DOMParser().parseFromString(data, "text/html");
+        let list = JSON.parse(newDocument.querySelector("#list-container > div.list-block > div > table").getAttribute("data-items"));
+        list.forEach((item) => {
+          let ib = create("i", {
+            class: "fa fa-pen",
+            id: item.anime_id,
+            style: { fontFamily: '"Font Awesome 6 Pro"', position: 'absolute', right: '3px', top: '3px', background: 'var(--color-foreground2)', padding: '4px', borderRadius: '5px'},
+          });
+          let wDiv = create("li", { class: "btn-anime" });
+          wDiv.innerHTML =
+            '<a class="link" href=' +
+            item.anime_url +
+            ">" +
+            '<img width="124" height="170" class="lazyloaded" src=' +
+            item.anime_image_path +
+            ">" +
+            '<span class="title js-color-pc-constant color-pc-constant">' +
+            item.anime_title +
+            "</span></a>";
+          wDiv.append(ib);
+          document.querySelector("#widget-currently-watching ul").append(wDiv);
+          ib.onclick = () => {
+            editpopup(ib.id);
+          };
+        });
+        //Open Edit Popup Menu
+        function editpopup(id) {
+          const popupmask = create("div", {
+            class: "fancybox-overlay",
+            style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0" },
+          });
+          const popup = create("div", { id: "currently-popup" });
+          const popupclose = create("div", { id: "currently-closePopup", class: "fa fa-x" });
+          const iframe = create("iframe", { src: "/ownlist/anime/" + id + "/edit?hideLayout=1" });
+          popup.append(popupclose, iframe);
+          document.body.append(popup, popupmask);
+          document.body.style.overflow = "hidden";
+          popupclose.onclick = () => {
+            popup.remove();
+            popupmask.remove();
+            document.body.style.removeProperty("overflow");
+          };
+        }
+      });
+    //Watching Slider Left
+    document.querySelector("#current-left").addEventListener("click", function () {
+      const slider = document.querySelector(".widget-slide");
+      const slideWidth = slider.children[0].offsetWidth + 12;
+      slider.style.transition = "margin-left 0.4s ease-in-out";
+      if (parseInt(slider.style.marginLeft) < 0) {
+        slider.style.marginLeft = parseInt(slider.style.marginLeft) + slideWidth + "px";
+      }
+      if (parseInt(slider.style.marginLeft) > 0) {
+        slider.style.marginLeft = -slideWidth + "px";
+        setTimeout(function () {
+          slider.style.transition = "margin-left 0.4s ease-in-out";
+        }, 50);
+      }
+    });
+    //Watching Slider Right
+    document.querySelector("#current-right").addEventListener("click", function () {
+      const slider = document.querySelector(".widget-slide");
+      const slideWidth = slider.children[0].offsetWidth + 12;
+      slider.style.transition = "margin-left 0.4s ease-in-out";
+      slider.style.marginLeft = parseInt(slider.style.marginLeft) - slideWidth + "px";
+      if (parseInt(slider.style.marginLeft) < -slideWidth * (slider.children.length - 5)) {
+        slider.style.marginLeft = 0;
+        setTimeout(function () {
+          slider.style.transition = "margin-left 0.4s ease-in-out";
+        }, 50);
+      }
+    });
+  }
+  }
+    //Currently Watching //--END--//
+
+    //Seasonal Info //--START--//
+  if (svar.animeinfo && location.pathname === "/") {
+    //Get Seasonal Anime and add info button
     const i = document.querySelectorAll(".widget.seasonal.left .btn-anime .link");
     i.forEach((info) => {
-      let ib = create('i', { class: 'fa fa-info-circle', style: { fontFamily: '"Font Awesome 6 Pro"', position: 'absolute', right: '5px', top: '5px', }, });
+      let ib = create("i", {
+        class: "fa fa-info-circle",
+        style: { fontFamily: '"Font Awesome 6 Pro"', position: 'absolute', right: '3px', top: '3px', padding: '4px' },
+      });
       info.prepend(ib);
     });
-    $('.widget.seasonal.left i').hover(async function () {
-      await delay(50);
-      if ($('.tooltipBody').length === 0) {
-        let info;
-        if (!$(this).closest('.btn-anime')[0].getAttribute('details')) {
-          async function getinfo(id) {
-            const apiUrl = `https://api.jikan.moe/v4/anime/${id}`;
-            await fetch(apiUrl)
-              .then((response) => response.json())
-              .then((data) => { info = data.data });
+    //info button hover event
+    $(".widget.seasonal.left i").hover(
+      async function () {
+        await delay(50);
+        if ($(".tooltipBody").length === 0) {
+          let info;
+          if (!$(this).closest(".btn-anime")[0].getAttribute("details")) {
+            async function getinfo(id) {
+              const apiUrl = `https://api.jikan.moe/v4/anime/${id}`;
+              await fetch(apiUrl)
+                .then((response) => response.json())
+                .then((data) => {
+                  info = data.data;
+                });
+            }
+            let id = $(this).closest(".link")[0].href.split("/")[4];
+            await getinfo(id);
+            info =
+              '<div class="main">' +
+              (info.title ? '<div class="text"><h2>' + info.title + "</h2><br></div>" : "") +
+              (info.synopsis ? '<div class="text"><b>Synopsis </b><br>' + info.synopsis + "</div><br>" : "") +
+              (info.genres
+                ? '<div class="text"><b>Genres </b><br>' +
+                  info.genres
+                    .map((node) => node.name)
+                    .toString()
+                    .split(",")
+                    .join(", ") +
+                  "</div><br>"
+                : "") +
+              (info.studios
+                ? '<div class="text"><b>Studios </b><br>' +
+                  info.studios
+                    .map((node) => node.name)
+                    .toString()
+                    .split(",")
+                    .join(", ") +
+                  "</div><br>"
+                : "") +
+              (info.themes
+                ? '<div class="text"><b>Themes </b><br>' +
+                  info.themes
+                    .map((node) => node.name)
+                    .toString()
+                    .split(",")
+                    .join(", ") +
+                  "</div><br>"
+                : "") +
+              (info.rating ? '<div class="text"><b>Rating </b><br>' + info.rating + "</div><br>" : "") +
+              (info.demographics
+                ? '<div class="text"><b>Demographic </b><br>' +
+                  info.themes
+                    .map((node) => node.name)
+                    .toString()
+                    .split(",")
+                    .join(", ") +
+                  "</div><br>"
+                : "") +
+              (info.broadcast ? '<div class="text"><b>Broadcast </b><br>' + info.broadcast.string + "</div>" : "") +
+              "</div>";
+            $(this).closest(".btn-anime")[0].setAttribute("details", "true");
+            $('<div class="tooltipDetails"></div>').html(info).appendTo($(this).closest(".btn-anime"));
           }
-          let id = $(this).closest('.link')[0].href.split('/')[4];
-          await getinfo(id);
+          var title = await $(this).attr("alt");
+          $(this).data("tooltipTitle", title);
 
-          info = '<div class="main">' +
-            (info.title ? '<div class="text"><h2>' + info.title + '</h2><br></div>' : "") +
-            (info.synopsis ? '<div class="text"><b>Synopsis </b><br>' + info.synopsis + '</div><br>' : "") +
-            (info.genres ? '<div class="text"><b>Genres </b><br>' + info.genres.map((node) => node.name).toString().split(",").join(", ") + '</div><br>' : "") +
-            (info.studios ? '<div class="text"><b>Studios </b><br>' + info.studios.map((node) => node.name).toString().split(",").join(", ") + '</div><br>' : "") +
-            (info.themes ? '<div class="text"><b>Themes </b><br>' + info.themes.map((node) => node.name).toString().split(",").join(", ") + '</div><br>' : "") +
-            (info.rating ? '<div class="text"><b>Rating </b><br>' + info.rating + '</div><br>' : "") +
-            (info.demographics ? '<div class="text"><b>Demographic </b><br>' + info.themes.map((node) => node.name).toString().split(",").join(", ") + '</div><br>' : "") +
-            (info.broadcast ? '<div class="text"><b>Broadcast </b><br>' + info.broadcast.string + '</div>' : "") +
-            '</div>';
-          $(this).closest('.btn-anime')[0].setAttribute('details', 'true');
-          $('<div class="tooltipDetails"></div>').html(info).appendTo($(this).closest('.btn-anime'));
-        };
-        var title = await $(this).attr('alt');
-        $(this).data('tooltipTitle', title);
-
-        $('<div class="tooltipBody">' + ($('.tooltipBody').length  === 0 && $(this).closest('.btn-anime')[0].children[1] ? $(this).closest('.btn-anime')[0].children[1].innerHTML : "") + '</div>').appendTo(".widget.seasonal.left").slideDown(400);
-      }
-    }, async function () {
-      // Hover out code
-      $(this).attr('alt', $(this).data('tooltipTitle'));
-      $('.tooltipBody').slideUp(400, function () { $(this).remove() });
-      await delay(400);
-    });
+          $(
+            '<div class="tooltipBody">' +
+              ($(".tooltipBody").length === 0 && $(this).closest(".btn-anime")[0].children[1]
+                ? $(this).closest(".btn-anime")[0].children[1].innerHTML
+                : "") +
+              "</div>",
+          )
+            .appendTo(".widget.seasonal.left")
+            .slideDown(400);
+        }
+      },
+      async function () {
+        //info button hover out
+        $(this).attr("alt", $(this).data("tooltipTitle"));
+        $(".tooltipBody").slideUp(400, function () {
+          $(this).remove();
+        });
+        await delay(400);
+      },
+    );
   }
   //Seasonal Info //--END--//
 
   //Forum Anime-Manga Embed //--START--//
   if (svar.embed && /\/(forum)\/.?topicid([\w-]+)?\/?/.test(location.href)) {
-    const embedCache = localforage.createInstance({ name: 'MalJS', storeName: 'embed', });
-    const options = { cacheTTL: 262974383, class: 'embed', };
+    const embedCache = localforage.createInstance({ name: "MalJS", storeName: "embed" });
+    const options = { cacheTTL: 262974383, class: "embed" };
     let acttextfix;
-    let id, type, embed,imgdata,data,cached;
+    let id, type, embed, imgdata, data, cached;
+    //API Request
     async function getimgf(id, type) {
-
       let apiUrl = `https://api.jikan.moe/v4/anime/${id}`;
-      if (type === 'manga') {
+      if (type === "manga") {
         apiUrl = `https://api.jikan.moe/v4/manga/${id}`;
       }
       try {
-        const cache = (await embedCache.getItem(id)) || { time: 0, };if (cache.time + options.cacheTTL < +new Date()) {
+        const cache = (await embedCache.getItem(id)) || { time: 0 };
+        if (cache.time + options.cacheTTL < +new Date()) {
           const response = await fetch(apiUrl);
           data = await response.json();
-        await embedCache.setItem(id, {
-            data:{
+          await embedCache.setItem(id, {
+            data: {
               status: data.data.status,
               score: data.data.score,
               title: data.data.title,
               type: data.data.type,
               genres: data.data.genres,
-              season : data.data.season,
+              season: data.data.season,
               images: data.data.images,
-              year: (data.data.type !== "Anime" && data.data.published && data.data.published.prop && data.data.published.prop.from && data.data.published.prop.from.year ? data.data.published.prop.from.year
-                     : data.data.aired && data.data.aired.prop && data.data.aired.prop.from && data.data.aired.prop.from.year ? data.data.aired.prop.from.year
-                     : data.data.type === "Anime" && data.data.aired && data.data.aired.prop && data.data.aired.prop.from && data.data.aired.prop.from.year ? data.data.aired.prop.from.year
-                     : ""),
-              url:data.data.url,
-            }, time: +new Date(), });
-        imgdata = data.data.images.jpg.image_url;
-        cached = false;
-        }
-        else {
+              year:
+                data.data.type !== "Anime" &&
+                data.data.published &&
+                data.data.published.prop &&
+                data.data.published.prop.from &&
+                data.data.published.prop.from.year
+                  ? data.data.published.prop.from.year
+                  : data.data.aired && data.data.aired.prop && data.data.aired.prop.from && data.data.aired.prop.from.year
+                    ? data.data.aired.prop.from.year
+                    : data.data.type === "Anime" &&
+                        data.data.aired &&
+                        data.data.aired.prop &&
+                        data.data.aired.prop.from &&
+                        data.data.aired.prop.from.year
+                      ? data.data.aired.prop.from.year
+                      : "",
+              url: data.data.url,
+            },
+            time: +new Date(),
+          });
+          imgdata = data.data.images.jpg.image_url;
+          cached = false;
+        } else {
           cached = true;
           data = await cache;
           imgdata = data.data.images.jpg.image_url;
         }
         if (imgdata) {
-          const genres = document.createElement('div');
-          genres.classList.add('genres');
-          genres.innerHTML = (data.data.genres ? data.data.genres.filter((node) => node.name !=="Award Winning").map((node) => node.name).toString().split(",").join(", ") : "");
-          const details = document.createElement('div');
-          details.classList.add('details');
-          details.innerHTML = (data.data.type ? data.data.type + " · " : "") +
-            (data.data.status ? data.data.status.split("Airing").join("")  + " · " : "")+
-            (data.data.season ? data.data.season.charAt(0).toUpperCase() + data.data.season.slice(1) : "") + " " +
-            (cached && data.data.year ? data.data.year
-             : data.data.type !== "Anime" && data.data.published && data.data.published.prop && data.data.published.prop.from && data.data.published.prop.from.year ? data.data.published.prop.from.year
-             : data.data.aired && data.data.aired.prop && data.data.aired.prop.from && data.data.aired.prop.from.year ? data.data.aired.prop.from.year
-             : data.data.type === "Anime" && data.data.aired && data.data.aired.prop && data.data.aired.prop.from && data.data.aired.prop.from.year ? data.data.aired.prop.from.year
-             : "") + (data.data.score ? '<span class="embedscore">' + " · " + Math.floor(data.data.score * 10) + "%" + '</span>' : "");
-          const dat = document.createElement('div');
-          dat.classList.add('embeddiv');
-          const namediv = document.createElement('div');
-          namediv.classList.add('detailsDiv');
-          const name = document.createElement('a');
+          const genres = document.createElement("div");
+          genres.classList.add("genres");
+          genres.innerHTML = data.data.genres
+            ? data.data.genres
+                .filter((node) => node.name !== "Award Winning")
+                .map((node) => node.name)
+                .toString()
+                .split(",")
+                .join(", ")
+            : "";
+          const details = document.createElement("div");
+          details.classList.add("details");
+          details.innerHTML =
+            (data.data.type ? data.data.type + " · " : "") +
+            (data.data.status ? data.data.status.split("Airing").join("") + " · " : "") +
+            (data.data.season ? data.data.season.charAt(0).toUpperCase() + data.data.season.slice(1) : "") +
+            " " +
+            (cached && data.data.year
+              ? data.data.year
+              : data.data.type !== "Anime" &&
+                  data.data.published &&
+                  data.data.published.prop &&
+                  data.data.published.prop.from &&
+                  data.data.published.prop.from.year
+                ? data.data.published.prop.from.year
+                : data.data.aired && data.data.aired.prop && data.data.aired.prop.from && data.data.aired.prop.from.year
+                  ? data.data.aired.prop.from.year
+                  : data.data.type === "Anime" &&
+                      data.data.aired &&
+                      data.data.aired.prop &&
+                      data.data.aired.prop.from &&
+                      data.data.aired.prop.from.year
+                    ? data.data.aired.prop.from.year
+                    : "") +
+            (data.data.score ? '<span class="embedscore">' + " · " + Math.floor(data.data.score * 10) + "%" + "</span>" : "");
+          const dat = document.createElement("div");
+          dat.classList.add("embeddiv");
+          const namediv = document.createElement("div");
+          namediv.classList.add("detailsDiv");
+          const name = document.createElement("a");
           name.innerText = data.data.title;
-          name.classList.add('embedname');
+          name.classList.add("embedname");
           name.href = data.data.url;
-          const historyimg = document.createElement('a');
-          historyimg.classList.add('embedimg');
+          const historyimg = document.createElement("a");
+          historyimg.classList.add("embedimg");
           historyimg.style.backgroundImage = `url(${imgdata})`;
           historyimg.href = data.data.url;
-          data.data.genres.length > 0 ? genres.style.display="block" : dat.classList.add('no-genre');
+          data.data.genres.length > 0 ? (genres.style.display = "block") : dat.classList.add("no-genre");
           dat.appendChild(historyimg);
           dat.appendChild(namediv);
           namediv.append(name, genres, details);
-          return dat
+          return dat;
         }
       } catch (error) {
-        console.error('error:', error);
+        console.error("error:", error);
       }
     }
+    //Replace links
     async function htmlfix(text) {
       let m = text.match(/(?<!>)\b(https:\/\/)(myanimelist\.net\/(anime|manga)\/)([0-9]+)([^"'<]+)(?=" rel="nofollow">\w)/gm);
       if (!m) {
@@ -1015,14 +1248,14 @@ function loadspin(val) {
         } else {
           cached ? await delay(33) : await delay(333);
         }
-        const reg = new RegExp("(" + '<a href="' + m[x].replace(/\./g, '\\.').replace(/\//g, '\\/').replace(/\?/g, '\.*?') + '".*?>.*?<\/a>)', "gm");
-        const id = m[x].split('/')[4];
-        const type = m[x].split('/')[3];
-        let link = create('a', {
+        const reg = new RegExp("(" + '<a href="' + m[x].replace(/\./g, "\\.").replace(/\//g, "\\/").replace(/\?/g, ".*?") + '".*?>.*?</a>)', "gm");
+        const id = m[x].split("/")[4];
+        const type = m[x].split("/")[3];
+        let link = create("a", {
           href: m[x],
         });
-        let cont = create('div', {
-          class: 'embedLink',
+        let cont = create("div", {
+          class: "embedLink",
           id: id,
           type: type,
         });
@@ -1033,6 +1266,7 @@ function loadspin(val) {
       }
       return text;
     }
+    //Load Embed
     async function embedload() {
       const c = document.querySelectorAll(".message-wrapper > div.content");
       for (let x = 0; x < c.length; x++) {
@@ -1727,7 +1961,7 @@ function loadspin(val) {
   //Character Section //--END--//
 
   //Anime/Manga Section//--START--//
-  if (/\/(anime|manga)\/.?([\w-]+)?\/?/.test(current) && !/\/(anime|manga)\/producer\/.?([\w-]+)?\/?/.test(current)) {
+  if (/\/(anime|manga)\/.?([\w-]+)?\/?/.test(current) && !/\/(anime|manga)\/producer\/.?([\w-]+)?\/?/.test(current) &&!/\/(ownlist)/.test(current)) {
     let text = create('div', {
       class: 'description',
       itemprop: 'description',
