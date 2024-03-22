@@ -4,7 +4,8 @@ Extra customizations and fixes for <a href="https://userstyles.world/style/10678
 <h6><b><a href="https://github.com/KanashiiDev/MAL-Clean-JS/blob/main/howtoopen.png">How to Open Settings</a></b> <br>
 <h3>Features</h3>
 <b>Home</b>
-<li>Show more info about Seasonal Anime</li><br>
+<li>Show more info about Seasonal Anime</li>
+<li>Show currently watching anime</li><br>
 <b>Profile</b>
 <li>Make profile looks like AniList (Custom background and avatar will be visible to others with the script.)</li>
 <li>Custom CSS (This will be visible to others with the script.)</li><br>
