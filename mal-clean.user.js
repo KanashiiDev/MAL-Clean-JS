@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.12
+// @version     1.13
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -132,6 +132,21 @@ if (svar) {
 
 //Settings CSS
 var styles = `
+.spaceit-shadow,
+.spaceit-shadow-end{
+    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
+    }
+.spaceit-shadow:after{
+    background-color: var(--color-foreground);
+    height: 6px;
+    content: "";
+    position: relative;
+    left: -10px;
+    bottom: -13px;
+    display: block;
+    width: 225px;
+    z-index: 5;
+    }
 #currently-popup {
     position: fixed;
     top: 50%;
@@ -151,9 +166,19 @@ var styles = `
     border-radius: var(--br);
     border:1px solid;
     }
+.widget.seasonal.left .btn-anime i:hover{
+    width:160px;
+    height:220px;
+    text-align:right;
+    background:0!important;
+    }
+.widget.seasonal.left .btn-anime:hover i,
+#widget-currently-watching .btn-anime:hover i{
+    opacity:.9!important
+    }
 #currently-watching span{
-width:95%
-}
+    width:93%
+    }
 #currently-closePopup {
     position: absolute;
     top: 5px;
@@ -937,91 +962,109 @@ function loadspin(val) {
   document.head.appendChild(styleSheet);
 
   //Currently Watching //--START--//
-  if (svar.currentlywatching && location.pathname === '/') {
-  //Create Currently Watching Div
-  getWatching();
-  async function getWatching() {
-    let user = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit.link-bg.pl8.pr8 > a").innerText;
-    const watchdiv = create("article", { class: "widget-container left", id: "currently-watching" });
-    watchdiv.innerHTML =
-      '<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span><h2 class="index_h2_seo"><a href="https://myanimelist.net/animelist/' + user + '?status=1">Currently Watching</a></h2></div><div class="widget-content"><div class="mt4"><div class="widget-slide-block" id="widget-currently-watching"><div id="current-left" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div><div id="current-right" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;"><span class="btn-inner" style="display: none;"></span></div><div class="widget-slide-outer"><ul class="widget-slide js-widget-slide" data-slide="4" style="width: 3984px; margin-left: 0px;"></ul></div></div></div></div></div>';
-    document.querySelector("#content > div.left-column").prepend(watchdiv);
-    const html = await fetch("https://myanimelist.net/animelist/-Yowai-?status=1")
-      .then((response) => response.text())
-      .then((data) => {
-        var newDocument = new DOMParser().parseFromString(data, "text/html");
-        let list = JSON.parse(newDocument.querySelector("#list-container > div.list-block > div > table").getAttribute("data-items"));
-        list.forEach((item) => {
-          let ib = create("i", {
-            class: "fa fa-pen",
-            id: item.anime_id,
-            style: { fontFamily: '"Font Awesome 6 Pro"', position: 'absolute', right: '3px', top: '3px', background: 'var(--color-foreground2)', padding: '4px', borderRadius: '5px'},
-          });
-          let wDiv = create("li", { class: "btn-anime" });
-          wDiv.innerHTML =
-            '<a class="link" href=' +
-            item.anime_url +
-            ">" +
-            '<img width="124" height="170" class="lazyloaded" src=' +
-            item.anime_image_path +
-            ">" +
-            '<span class="title js-color-pc-constant color-pc-constant">' +
-            item.anime_title +
-            "</span></a>";
-          wDiv.append(ib);
-          document.querySelector("#widget-currently-watching ul").append(wDiv);
-          ib.onclick = () => {
-            editpopup(ib.id);
-          };
+  if (svar.currentlywatching && location.pathname === "/") {
+    //Create Currently Watching Div
+    getWatching();
+    async function getWatching() {
+      let user = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit.link-bg.pl8.pr8 > a").innerText;
+      const watchdiv = create("article", { class: "widget-container left", id: "currently-watching" });
+      watchdiv.innerHTML =
+        '<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span><h2 class="index_h2_seo"><a href="https://myanimelist.net/animelist/' +
+        user +
+        '?status=1">Currently Watching</a></h2></div><div class="widget-content"><div class="mt4"><div class="widget-slide-block" id="widget-currently-watching">'+
+        '<div id="current-left" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div><div id="current-right" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;">'+
+        '<span class="btn-inner" style="display: none;"></span></div><div class="widget-slide-outer"><ul class="widget-slide js-widget-slide" data-slide="4" style="width: 3984px; margin-left: 0px;"></ul></div></div></div></div></div>';
+      const html = await fetch("https://myanimelist.net/animelist/-Yowai-?status=1")
+        .then((response) => response.text())
+        .then((data) => {
+          var newDocument = new DOMParser().parseFromString(data, "text/html");
+          let list = JSON.parse(newDocument.querySelector("#list-container > div.list-block > div > table").getAttribute("data-items"));
+          if (list) {
+            document.querySelector("#content > div.left-column").prepend(watchdiv);
+            list.forEach((item) => {
+              let ib = create("i", {
+                class: "fa fa-pen",
+                id: item.anime_id,
+                style: {
+                  fontFamily: '"Font Awesome 6 Pro"',
+                  position: "absolute",
+                  right: "3px",
+                  top: "3px",
+                  background: "var(--color-foreground2)",
+                  padding: "4px",
+                  borderRadius: "5px",
+                  opacity: "0.3",
+                  transition: ".4s",
+                },
+              });
+              let wDiv = create("li", { class: "btn-anime" });
+              wDiv.innerHTML =
+                '<a class="link" href=' +
+                item.anime_url +
+                ">" +
+                '<img width="124" height="170" class="lazyloaded" src=' +
+                item.anime_image_path +
+                ">" +
+                '<span class="title js-color-pc-constant color-pc-constant">' +
+                item.anime_title +
+                "</span></a>";
+              wDiv.append(ib);
+              document.querySelector("#widget-currently-watching ul").append(wDiv);
+              ib.onclick = () => {
+                editpopup(ib.id);
+              };
+            });
+
+            //Open Edit Popup Menu
+            function editpopup(id) {
+              const popupmask = create("div", {
+                class: "fancybox-overlay",
+                style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0" },
+              });
+              const popup = create("div", { id: "currently-popup" });
+              const popupclose = create("div", { id: "currently-closePopup", class: "fa fa-x" });
+              const iframe = create("iframe", { src: "/ownlist/anime/" + id + "/edit?hideLayout=1" });
+              popup.append(popupclose, iframe);
+              document.body.append(popup, popupmask);
+              document.body.style.overflow = "hidden";
+              popupclose.onclick = () => {
+                popup.remove();
+                popupmask.remove();
+                document.body.style.removeProperty("overflow");
+              };
+            }
+
+            //Watching Slider Left
+            document.querySelector("#current-left").addEventListener("click", function () {
+              const slider = document.querySelector(".widget-slide");
+              const slideWidth = slider.children[0].offsetWidth + 12;
+              slider.style.transition = "margin-left 0.4s ease-in-out";
+              if (parseInt(slider.style.marginLeft) < 0) {
+                slider.style.marginLeft = parseInt(slider.style.marginLeft) + slideWidth + "px";
+              }
+              if (parseInt(slider.style.marginLeft) > 0) {
+                slider.style.marginLeft = -slideWidth + "px";
+                setTimeout(function () {
+                  slider.style.transition = "margin-left 0.4s ease-in-out";
+                }, 50);
+              }
+            });
+            //Watching Slider Right
+            document.querySelector("#current-right").addEventListener("click", function () {
+              const slider = document.querySelector(".widget-slide");
+              const slideWidth = slider.children[0].offsetWidth + 12;
+              slider.style.transition = "margin-left 0.4s ease-in-out";
+              slider.style.marginLeft = parseInt(slider.style.marginLeft) - slideWidth + "px";
+              if (parseInt(slider.style.marginLeft) < -slideWidth * (slider.children.length - 5)) {
+                slider.style.marginLeft = 0;
+                setTimeout(function () {
+                  slider.style.transition = "margin-left 0.4s ease-in-out";
+                }, 50);
+              }
+            });
+          }
         });
-        //Open Edit Popup Menu
-        function editpopup(id) {
-          const popupmask = create("div", {
-            class: "fancybox-overlay",
-            style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0" },
-          });
-          const popup = create("div", { id: "currently-popup" });
-          const popupclose = create("div", { id: "currently-closePopup", class: "fa fa-x" });
-          const iframe = create("iframe", { src: "/ownlist/anime/" + id + "/edit?hideLayout=1" });
-          popup.append(popupclose, iframe);
-          document.body.append(popup, popupmask);
-          document.body.style.overflow = "hidden";
-          popupclose.onclick = () => {
-            popup.remove();
-            popupmask.remove();
-            document.body.style.removeProperty("overflow");
-          };
-        }
-      });
-    //Watching Slider Left
-    document.querySelector("#current-left").addEventListener("click", function () {
-      const slider = document.querySelector(".widget-slide");
-      const slideWidth = slider.children[0].offsetWidth + 12;
-      slider.style.transition = "margin-left 0.4s ease-in-out";
-      if (parseInt(slider.style.marginLeft) < 0) {
-        slider.style.marginLeft = parseInt(slider.style.marginLeft) + slideWidth + "px";
-      }
-      if (parseInt(slider.style.marginLeft) > 0) {
-        slider.style.marginLeft = -slideWidth + "px";
-        setTimeout(function () {
-          slider.style.transition = "margin-left 0.4s ease-in-out";
-        }, 50);
-      }
-    });
-    //Watching Slider Right
-    document.querySelector("#current-right").addEventListener("click", function () {
-      const slider = document.querySelector(".widget-slide");
-      const slideWidth = slider.children[0].offsetWidth + 12;
-      slider.style.transition = "margin-left 0.4s ease-in-out";
-      slider.style.marginLeft = parseInt(slider.style.marginLeft) - slideWidth + "px";
-      if (parseInt(slider.style.marginLeft) < -slideWidth * (slider.children.length - 5)) {
-        slider.style.marginLeft = 0;
-        setTimeout(function () {
-          slider.style.transition = "margin-left 0.4s ease-in-out";
-        }, 50);
-      }
-    });
-  }
+    }
   }
     //Currently Watching //--END--//
 
@@ -1032,7 +1075,7 @@ function loadspin(val) {
     i.forEach((info) => {
       let ib = create("i", {
         class: "fa fa-info-circle",
-        style: { fontFamily: '"Font Awesome 6 Pro"', position: 'absolute', right: '3px', top: '3px', padding: '4px' },
+        style: { fontFamily: '"Font Awesome 6 Pro"', position: 'absolute', right: '3px', top: '3px', padding: "4px", opacity: "0", transition: ".4s",zIndex:"20"},
       });
       info.prepend(ib);
     });
@@ -1055,46 +1098,49 @@ function loadspin(val) {
             await getinfo(id);
             info =
               '<div class="main">' +
-              (info.title ? '<div class="text"><h2>' + info.title + "</h2><br></div>" : "") +
-              (info.synopsis ? '<div class="text"><b>Synopsis </b><br>' + info.synopsis + "</div><br>" : "") +
-              (info.genres
-                ? '<div class="text"><b>Genres </b><br>' +
+              (info.title ? '<div class="text"><h2>' + info.title + "</h2></div>" : "") +
+              (info.synopsis ? '<div class="text"><b>Synopsis</b><br>' + info.synopsis + "</div>" : "") +
+              (info.genres && info.genres[0]
+                ? '<br><div class="text"><b>Genres</b><br>' +
                   info.genres
                     .map((node) => node.name)
                     .toString()
                     .split(",")
                     .join(", ") +
-                  "</div><br>"
+                  "</div>"
                 : "") +
-              (info.studios
-                ? '<div class="text"><b>Studios </b><br>' +
+              (info.studios && info.studios[0]
+                ? '<br><div class="text"><b>Studios</b><br>' +
                   info.studios
                     .map((node) => node.name)
                     .toString()
                     .split(",")
                     .join(", ") +
-                  "</div><br>"
+                  "</div>"
                 : "") +
-              (info.themes
-                ? '<div class="text"><b>Themes </b><br>' +
+              (info.themes && info.themes[0]
+                ? '<br><div class="text"><b>Themes</b><br>' +
                   info.themes
                     .map((node) => node.name)
                     .toString()
                     .split(",")
                     .join(", ") +
-                  "</div><br>"
+                  "</div>"
                 : "") +
-              (info.rating ? '<div class="text"><b>Rating </b><br>' + info.rating + "</div><br>" : "") +
-              (info.demographics
-                ? '<div class="text"><b>Demographic </b><br>' +
-                  info.themes
+              (info.demographics && info.demographics[0]
+                ? '<br><div class="text"><b>Demographics</b><br>' +
+                  info.demographics
                     .map((node) => node.name)
                     .toString()
                     .split(",")
                     .join(", ") +
-                  "</div><br>"
+                  "</div>"
                 : "") +
-              (info.broadcast ? '<div class="text"><b>Broadcast </b><br>' + info.broadcast.string + "</div>" : "") +
+              (info.type ? '<br><div class="text"><b>Type</b><br>' + info.type + "</div>" : "") +
+              (info.rating ? '<br><div class="text"><b>Rating</b><br>' + info.rating + "</div>" : "") +
+              (info.aired && info.aired.string ? '<br><div class="text"><b>Start Date</b><br>' + info.aired.string.split(" to ?").join("")+"</div>" : "") +
+              (info.broadcast ? '<br><div class="text"><b>Broadcast</b><br>' + info.broadcast.string + "</div>" : "") +
+              (info.episodes ? '<br><div class="text"><b>Episodes</b><br>' + info.episodes + "</div>" : "") +
               "</div>";
             $(this).closest(".btn-anime")[0].setAttribute("details", "true");
             $('<div class="tooltipDetails"></div>').html(info).appendTo($(this).closest(".btn-anime"));
@@ -1797,19 +1843,14 @@ function loadspin(val) {
           id: 'navbar',
         });
         nav.innerHTML =
-          '<div id="horiznav_nav" style="margin: 5px 0 10px;"><ul><li><a href="/profile/">Overview</a></li><li><a href="/profile/">Statistics</a></li><li><a href="/profile/">Favorites</a></li><li><a href="/profile/">Reviews</a></li><li><a href="/profile/">Recommendations</a></li><li><a href="/profile/">Interest Stacks</a></li><li><a href="/profile/">Clubs</a></li><li><a href="/profile/">Badges</a></li><li><a href="/profile/">Friends</a></li></ul></div>';
+          '<div id="horiznav_nav" style="margin: 5px 0 10px;"><ul>'+
+          '<li><a href="/profile/'+username+'">Overview</a></li><li><a href="/profile/'+username+'/statistics">Statistics</a></li>'+
+          '<li><a href="/profile/'+username+'/favorites">Favorites</a></li><li><a href="/profile/'+username+'/reviews">Reviews</a></li>'+
+          '<li><a href="/profile/'+username+'/recommendations">Recommendations</a></li><li><a href="/profile/'+username+'/stacks">Interest Stacks</a></li><li><a href="/profile/'+username+'/clubs">Clubs</a></li>'+
+          '<li><a href="/profile/'+username+'/badges">Badges</a></li><li><a href="/profile/'+username+'/friends">Friends</a></li></ul></div>';
         banner.insertAdjacentElement('afterend', nav);
         nav.setAttribute('style', 'z-index: 2;position: relative;background: #000;padding: 10px;text-align: center;background-color: var(--color-foreground) !important;');
         let navel = document.querySelectorAll('#navbar #horiznav_nav > ul > li > a');
-        navel[0].href = navel[0].href + username;
-        navel[1].href = navel[1].href + username + '/statistics';
-        navel[2].href = navel[2].href + username + '/favorites';
-        navel[3].href = navel[3].href + username + '/reviews';
-        navel[4].href = navel[4].href + username + '/recommendations';
-        navel[5].href = navel[5].href + username + '/stacks';
-        navel[6].href = navel[6].href + username + '/clubs';
-        navel[7].href = navel[7].href + username + '/badges';
-        navel[8].href = navel[8].href + username + '/friends';
         $('h2:contains("Synopsis"):last').parent().addClass('SynopsisDiv');
         let n = current.split('/')[3];
         if (!n) {
@@ -1977,6 +2018,7 @@ function loadspin(val) {
     //Left Side
     if ($('h2:contains("Alternative Titles"):last')) {
       $('h2:contains("Alternative Titles"):last').addClass('AlternativeTitlesDiv');
+    $(".AlternativeTitlesDiv").nextUntil('a').addClass("spaceit-shadow-end").addClass("mb8");
       document.querySelector('.AlternativeTitlesDiv').nextElementSibling.setAttribute('style', 'border-radius:var(--br);margin-bottom:2px');
       $('span:contains("Synonyms")').parent().next().css({
         borderRadius: 'var(--br)',
@@ -1987,14 +2029,21 @@ function loadspin(val) {
       document.querySelector('.js-alternative-titles.hide').setAttribute('style', 'border-radius:var(--br);overflow:hidden');
     }
     $('h2:contains("Information"):last').addClass('InformationDiv');
+    $(".InformationDiv").nextUntil('br').addClass("spaceit-shadow");
+    $(".InformationDiv").nextUntil('br').last().removeClass("spaceit-shadow").addClass("spaceit-shadow-end");
     document.querySelector('.InformationDiv').nextElementSibling.setAttribute('style', 'border-top-left-radius:var(--br);border-top-right-radius:var(--br);');
+    $(".InformationDiv").nextUntil('br').addClass("spaceit-shadow");
+    $(".InformationDiv").nextUntil('br').last().removeClass("spaceit-shadow").addClass("spaceit-shadow-end");
     $('h2:contains("Statistics"):last').addClass('StatisticsDiv');
+    $(".StatisticsDiv").nextUntil('br').addClass("spaceit-shadow");
+    $(".StatisticsDiv").nextUntil('br').not(".clearfix").last().removeClass("spaceit-shadow").addClass("spaceit-shadow-end").css({ borderBottomLeftRadius:"var(--br)",borderBottomRightRadius:"var(--br)"});;
     document.querySelector('.StatisticsDiv').nextElementSibling.setAttribute('style', 'border-top-left-radius:var(--br);border-top-right-radius:var(--br)');
     document
       .querySelector('.StatisticsDiv')
       .previousElementSibling.previousElementSibling.setAttribute('style', 'border-bottom-left-radius:var(--br);border-bottom-right-radius:var(--br)');
     if ($('h2:contains("Resources"):last').length > 0) {
       $('h2:contains("Resources"):last').addClass('ResourcesDiv');
+    $(".ResourcesDiv").next().addClass("spaceit-shadow-end");
       document
         .querySelector('.ResourcesDiv')
         .previousElementSibling.previousElementSibling.setAttribute('style', 'border-bottom-left-radius:var(--br);border-bottom-right-radius:var(--br)');
@@ -2002,10 +2051,13 @@ function loadspin(val) {
     }
     if ($('h2:contains("Streaming Platforms")').length > 0) {
       $('h2:contains("Streaming Platforms"):last').addClass('StreamingAtDiv');
+    $(".StreamingAtDiv").next().addClass("spaceit-shadow");
       document.querySelector('.StreamingAtDiv').nextElementSibling.style.borderRadius = 'var(--br)';
     }
     if ($('h2:contains("Available At")').length > 0) {
       $('h2:contains("Available At"):last').addClass('AvailableAtDiv');
+    $(".AvailableAtDiv").nextUntil('br').addClass("spaceit-shadow");
+    $(".AvailableAtDiv").nextUntil('br').last().removeClass("spaceit-shadow").addClass("spaceit-shadow-end");
       document.querySelector('.AvailableAtDiv').nextElementSibling.style.borderRadius = 'var(--br)';
       document
         .querySelector('.AvailableAtDiv')
