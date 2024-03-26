@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.13
+// @version     1.14
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -102,6 +102,33 @@ function set(q, tag, attrs, html) {
   if (html) ele.innerHTML = html;
   return ele;
 }
+
+//String Similarity
+var stringSimilarity = function (str1, str2, substringLength, caseSensitive) {
+    if (substringLength === void 0) { substringLength = 2; }
+    if (caseSensitive === void 0) { caseSensitive = false; }
+    if (!caseSensitive) {
+        str1 = str1.toLowerCase();
+        str2 = str2.toLowerCase();
+    }
+    if (str1.length < substringLength || str2.length < substringLength)
+        return 0;
+    var map = new Map();
+    for (var i = 0; i < str1.length - (substringLength - 1); i++) {
+        var substr1 = str1.substr(i, substringLength);
+        map.set(substr1, map.has(substr1) ? map.get(substr1) + 1 : 1);
+    }
+    var match = 0;
+    for (var j = 0; j < str2.length - (substringLength - 1); j++) {
+        var substr2 = str2.substr(j, substringLength);
+        var count = map.has(substr2) ? map.get(substr2) : 0;
+        if (count > 0) {
+            map.set(substr2, count - 1);
+            match++;
+        }
+    }
+    return (match * 2) / (str1.length + str2.length - ((substringLength - 1) * 2));
+};
 
 let svar = {
   animebg: true,
@@ -463,211 +490,102 @@ var styles3 = ` body,
     --color-text-hover: #cfcfcf!important;
     --color-link-hover: #cee7ff!important;
     }`;
-var styleSheet = document.createElement('style');
-var styleSheet1 = document.createElement('style');
-var styleSheet2 = document.createElement('style');
-var styleSheet3 = document.createElement('style');
-var stButton = create('li', {});
+var styleSheet = document.createElement("style");
+var styleSheet1 = document.createElement("style");
+var styleSheet2 = document.createElement("style");
+var styleSheet3 = document.createElement("style");
+var stButton = create("li", {});
 stButton.onclick = () => {
   Settings();
 };
-var stLink = create('a', {}, 'MalClean Settings');
-var active = false;
-
-var buttonclose = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'closebtn',
-  },
-  'Close',
-);
+var stLink = create("a", {}, "MalClean Settings");
+var active = !1;
+var buttonclose = create("button", { class: "mainbtns", id: "closebtn" }, "Close");
 buttonclose.onclick = () => {
   closeDiv();
 };
-
-var buttonreload = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'reloadbtn',
-  },
-  'Refresh',
-);
+var buttonreload = create("button", { class: "mainbtns", id: "reloadbtn" }, "Refresh");
 buttonreload.onclick = () => {
   reload();
 };
-
-var button1 = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'animebgbtn',
-  },
-  '<b>' + 'Anime/Manga' + '</b><hr>' + 'Image Based Background Color',
-);
+var button1 = create("button", { class: "mainbtns", id: "animebgbtn" }, "<b>" + "Anime/Manga" + "</b><hr>" + "Image Based Background Color");
 button1.onclick = () => {
   svar.animebg = !svar.animebg;
   svar.save();
   getSettings();
   reloadset();
 };
-
-var button2 = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'animeHeaderbtn',
-  },
-  '<b>' + 'Anime/Manga' + '</b><hr>' + 'Change Title Position',
-);
+var button2 = create("button", { class: "mainbtns", id: "animeHeaderbtn" }, "<b>" + "Anime/Manga" + "</b><hr>" + "Change Title Position");
 button2.onclick = () => {
   svar.animeHeader = !svar.animeHeader;
   svar.save();
   getSettings();
   reloadset();
 };
-
-var button3 = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'charbgbtn',
-  },
-  '<b>' + 'Character' + '</b><hr>' + 'Image Based Background Color',
-);
+var button3 = create("button", { class: "mainbtns", id: "charbgbtn" }, "<b>" + "Character" + "</b><hr>" + "Image Based Background Color");
 button3.onclick = () => {
   svar.charbg = !svar.charbg;
   svar.save();
   getSettings();
   reloadset();
 };
-
-var button4 = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'characterHeaderbtn',
-  },
-  '<b>' + 'Character' + '</b><hr>' + 'Change Name Position',
-);
+var button4 = create("button", { class: "mainbtns", id: "characterHeaderbtn" }, "<b>" + "Character" + "</b><hr>" + "Change Name Position");
 button4.onclick = () => {
   svar.characterHeader = !svar.characterHeader;
   svar.save();
   getSettings();
   reloadset();
 };
-
-var button5 = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'characterNameAltbtn',
-  },
-  '<b>' + 'Character' + '</b><hr>' + 'Show Alternative Name',
-);
+var button5 = create("button", { class: "mainbtns", id: "characterNameAltbtn" }, "<b>" + "Character" + "</b><hr>" + "Show Alternative Name");
 button5.onclick = () => {
   svar.characterNameAlt = !svar.characterNameAlt;
   svar.save();
   getSettings();
   reloadset();
 };
-
-var button6 = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'peopleHeaderbtn',
-  },
-  '<b>' + 'People' + '</b><hr>' + 'Change Name Position',
-);
+var button6 = create("button", { class: "mainbtns", id: "peopleHeaderbtn" }, "<b>" + "People" + "</b><hr>" + "Change Name Position");
 button6.onclick = () => {
   svar.peopleHeader = !svar.peopleHeader;
   svar.save();
   getSettings();
   reloadset();
 };
-
-var button7 = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'customcssbtn',
-  },
-  '<b>' + 'Profile' + '</b><hr>' + 'Show Custom CSS',
-);
+var button7 = create("button", { class: "mainbtns", id: "customcssbtn" }, "<b>" + "Profile" + "</b><hr>" + "Show Custom CSS");
 button7.onclick = () => {
   svar.customcss = !svar.customcss;
   svar.save();
   getSettings();
   reloadset();
 };
-
-var button9 = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'profileheaderbtn',
-  },
-  '<b>' + 'Profile' + '</b><hr>' + 'Change Username Position',
-);
+var button9 = create("button", { class: "mainbtns", id: "profileheaderbtn" }, "<b>" + "Profile" + "</b><hr>" + "Change Username Position");
 button9.onclick = () => {
   svar.profileHeader = !svar.profileHeader;
   svar.save();
   getSettings();
   reloadset();
 };
-
-var button10 = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'alstylebtn',
-  },
-  '<b>' + 'Profile' + '</b><hr>' + 'Make Profile Like Anilist',
-);
+var button10 = create("button", { class: "mainbtns", id: "alstylebtn" }, "<b>" + "Profile" + "</b><hr>" + "Make Profile Like Anilist");
 button10.onclick = () => {
   svar.alstyle = !svar.alstyle;
   svar.save();
   getSettings();
   reloadset();
 };
-var button13 = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'animeinfobtn',
-  },
-  '<b>' + 'Home' + '</b><hr>' + 'Seasonal Anime Info',
-);
+var button13 = create("button", { class: "mainbtns", id: "animeinfobtn" }, "<b>" + "Home" + "</b><hr>" + "Seasonal Anime Info");
 button13.onclick = () => {
   svar.animeinfo = !svar.animeinfo;
   svar.save();
   getSettings();
   reloadset();
 };
-var button14 = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'embedbtn',
-  },
-  '<b>' + 'Forum' + '</b><hr>' + 'Make Anime/Manga Links Like Anilist',
-);
+var button14 = create("button", { class: "mainbtns", id: "embedbtn" }, "<b>" + "Forum" + "</b><hr>" + "Make Anime/Manga Links Like Anilist");
 button14.onclick = () => {
   svar.embed = !svar.embed;
   svar.save();
   getSettings();
   reloadset();
 };
-var button15 = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'currentlybtn',
-  },
-  '<b>' + 'Home' + '</b><hr>' + 'Show Currently Watching Anime',
-);
+var button15 = create("button", { class: "mainbtns", id: "currentlybtn" }, "<b>" + "Home" + "</b><hr>" + "Show Currently Watching Anime");
 button15.onclick = () => {
   svar.currentlywatching = !svar.currentlywatching;
   svar.save();
@@ -675,133 +593,56 @@ button15.onclick = () => {
   reloadset();
 };
 //alstyle - BG Elements
-let bginput = create('input', {
-  class: 'bginput',
-  id: 'bginput',
-});
-bginput.placeholder = 'Paste your Background Image Url here';
-
-var button11 = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'custombg',
-  },
-  'Convert Background to BBCode',
-);
-
-var bginfo = create(
-  'p',
-  {
-    class: 'textpb',
-  },
-  '',
-);
+let bginput = create("input", { class: "bginput", id: "bginput" });
+bginput.placeholder = "Paste your Background Image Url here";
+var button11 = create("button", { class: "mainbtns", id: "custombg" }, "Convert Background to BBCode");
+var bginfo = create("p", { class: "textpb" }, "");
 
 button11.onclick = () => {
-  if (bginput.value.slice(-1) === ']') {
-    bginfo.innerText = 'Background Image already converted.';
+  if (bginput.value.slice(-1) === "]") {
+    bginfo.innerText = "Background Image already converted.";
   } else if (bginput.value.length > 1) {
-    bginput.value = '[url=https://custombg/' + LZString.compressToBase64(JSON.stringify(bginput.value)) + ']‎ [/url]';
+    bginput.value = "[url=https://custombg/" + LZString.compressToBase64(JSON.stringify(bginput.value)) + "]‎ [/url]";
     bginput.select();
     bginfo.innerHTML =
-      'Background Image Converted. Please copy and paste to your ' +
-      "<a class='embedLink' href=\"" +
-      'https://myanimelist.net/editprofile.php' +
-      '">' +
-      'About Me' +
-      '</a>' +
-      ' section.';
+      "Background Image Converted. Please copy and paste to your " + "<a class='embedLink' href=\"" + "https://myanimelist.net/editprofile.php" + '">' + "About Me" + "</a>" + " section.";
   } else {
-    bginfo.innerText = 'Background Image url empty.';
+    bginfo.innerText = "Background Image url empty.";
   }
 };
-
-//alstyle - PF  Elements
-var button12 = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'custompf',
-  },
-  'Convert Avatar to BBCode',
-);
-
+var button12 = create("button", { class: "mainbtns", id: "custompf" }, "Convert Avatar to BBCode");
 button12.onclick = () => {
-  if (pfinput.value.slice(-1) === ']') {
-    pfinfo.innerText = 'Background Image already converted.';
+  if (pfinput.value.slice(-1) === "]") {
+    pfinfo.innerText = "Background Image already converted.";
   } else if (pfinput.value.length > 1) {
-    pfinput.value = '[url=https://custompf/' + LZString.compressToBase64(JSON.stringify(pfinput.value)) + ']‎ [/url]';
+    pfinput.value = "[url=https://custompf/" + LZString.compressToBase64(JSON.stringify(pfinput.value)) + "]‎ [/url]";
     pfinput.select();
-    pfinfo.innerHTML =
-      'Avatar Image Converted. Please copy and paste to your ' +
-      "<a class='embedLink' href=\"" +
-      'https://myanimelist.net/editprofile.php' +
-      '">' +
-      'About Me' +
-      '</a>' +
-      ' section.';
+    pfinfo.innerHTML = "Avatar Image Converted. Please copy and paste to your " + "<a class='embedLink' href=\"" + "https://myanimelist.net/editprofile.php" + '">' + "About Me" + "</a>" + " section.";
   } else {
-    pfinfo.innerText = 'Avatar Image url empty.';
+    pfinfo.innerText = "Avatar Image url empty.";
   }
 };
-
-let pfinput = create('input', {
-  class: 'bginput',
-  id: 'pfinput',
-});
-pfinput.placeholder = 'Paste your Avatar Image Url here';
-
-var pfinfo = create(
-  'p',
-  {
-    class: 'textpb',
-  },
-  '',
-);
-
-//custom css Elements
-var button8 = create(
-  'button',
-  {
-    class: 'mainbtns',
-    id: 'customcss',
-  },
-  'Convert CSS to BBCode',
-);
-
+let pfinput = create("input", { class: "bginput", id: "pfinput" });
+pfinput.placeholder = "Paste your Avatar Image Url here";
+var pfinfo = create("p", { class: "textpb" }, "");
+var button8 = create("button", { class: "mainbtns", id: "customcss" }, "Convert CSS to BBCode");
 button8.onclick = () => {
-  if (cssinput.value.slice(-1) === ']') {
-    cssinfo.innerText = 'Css already converted.';
+  if (cssinput.value.slice(-1) === "]") {
+    cssinfo.innerText = "Css already converted.";
   } else if (cssinput.value.length > 1) {
-    cssinput.value = '[url=https://customcss/' + LZString.compressToBase64(JSON.stringify(cssinput.value)) + ']‎ [/url]';
+    cssinput.value = "[url=https://customcss/" + LZString.compressToBase64(JSON.stringify(cssinput.value)) + "]‎ [/url]";
     cssinput.select();
-    cssinfo.innerHTML =
-      'Css Converted. Please copy and paste to your ' + "<a class='embedLink' href=\"" + 'https://myanimelist.net/editprofile.php' + '">' + 'About Me' + '</a>' + ' section.';
+    cssinfo.innerHTML = "Css Converted. Please copy and paste to your " + "<a class='embedLink' href=\"" + "https://myanimelist.net/editprofile.php" + '">' + "About Me" + "</a>" + " section.";
   } else {
-    cssinfo.innerText = 'Css empty.';
+    cssinfo.innerText = "Css empty.";
   }
 };
-
-var cssinfo = create(
-  'p',
-  {
-    class: 'textpb',
-  },
-  '',
-);
-
-let cssinput = create('input', {
-  class: 'cssinput',
-  id: 'cssinput',
-});
-cssinput.placeholder = 'Paste your CSS here';
-
-//Refresh Page Button Function
+var cssinfo = create("p", { class: "textpb" }, "");
+let cssinput = create("input", { class: "cssinput", id: "cssinput" });
+cssinput.placeholder = "Paste your CSS here";
 function reload() {
   window.location.href = window.location.href;
 }
-
 //Refresh Page Button Animation
 function reloadset() {
   reloadbtn.setAttribute('style', 'animation:reloadLoop 2.5s infinite');
@@ -825,96 +666,58 @@ function getSettings() {
 
 //Create Settings Div
 function createDiv() {
-  var listDiv = create(
-    'div',
-    {
-      class: 'maindiv',
-      id: 'listDiv',
-    },
-    '<div class="maindivheader"><b>' + stLink.innerText + '</b></div>',
-  );
-
-  var buttonsDiv = create('div', {
-    class: 'buttonsDiv',
-    id: 'buttonsDiv',
-  });
-
+  var listDiv = create("div", { class: "maindiv", id: "listDiv" }, '<div class="maindivheader"><b>' + stLink.innerText + "</b></div>");
+  var buttonsDiv = create("div", { class: "buttonsDiv", id: "buttonsDiv" });
   var custombgDiv = create(
-    'div',
-    {
-      class: 'childdiv',
-      id: 'profileDiv',
-    },
+    "div",
+    { class: "childdiv", id: "profileDiv" },
     '<div class="profileHeader"><h2>' +
-      'Anilist Style - Custom Background Image' +
-      '</h2><h3>' +
-      'Add custom Background Image to your profile. This will be visible to others with the script.' +
-      '</h3></div>',
+      "Anilist Style - Custom Background Image" +
+      "</h2><h3>" +
+      "Add custom Background Image to your profile. This will be visible to others with the script." +
+      "</h3></div>"
   );
-
   var custompfDiv = create(
-    'div',
-    {
-      class: 'childdiv',
-      id: 'profileDiv',
-    },
-    '<div class="profileHeader"><h2>' +
-      'Anilist Style - Custom Avatar' +
-      '</h2><h3>' +
-      'Add custom Avatar to your profile. This will be visible to others with the script.' +
-      '</h3></div>',
+    "div",
+    { class: "childdiv", id: "profileDiv" },
+    '<div class="profileHeader"><h2>' + "Anilist Style - Custom Avatar" + "</h2><h3>" + "Add custom Avatar to your profile. This will be visible to others with the script." + "</h3></div>"
   );
-
   var customcssDiv = create(
-    'div',
-    {
-      class: 'childdiv',
-      id: 'profileDiv',
-    },
-    '<div class="profileHeader"><h2>' + 'Custom CSS' + '</h2><h3>' + 'Add custom CSS to your profile. This will be visible to others with the script.' + '</h3></div>',
+    "div",
+    { class: "childdiv", id: "profileDiv" },
+    '<div class="profileHeader"><h2>' + "Custom CSS" + "</h2><h3>" + "Add custom CSS to your profile. This will be visible to others with the script." + "</h3></div>"
   );
-
-  var buttonsDiv = create('div', {
-    class: 'buttonsDiv',
-    id: 'buttonsDiv',
-  });
-
-  listDiv.querySelector('.maindivheader').append(buttonreload, buttonclose);
+  var buttonsDiv = create("div", { class: "buttonsDiv", id: "buttonsDiv" });
+  listDiv.querySelector(".maindivheader").append(buttonreload, buttonclose);
   buttonsDiv.append(button13, button15, button14, button1, button2, button3, button4, button5, button6, button7, button9, button10);
   listDiv.append(buttonsDiv);
   if (svar.alstyle) {
     listDiv.append(custombgDiv, custompfDiv);
     custombgDiv.append(bginput, button11, bginfo);
     custompfDiv.append(pfinput, button12, pfinfo);
-    button9.style.display = 'none';
+    button9.style.display = "none";
   }
   listDiv.append(customcssDiv);
   customcssDiv.append(cssinput, button8, cssinfo);
-  document.querySelector('#headerSmall').insertAdjacentElement('afterend', listDiv);
+  document.querySelector("#headerSmall").insertAdjacentElement("afterend", listDiv);
   getSettings();
 }
-
-//Close Div Function
 function closeDiv() {
   listDiv.remove();
-  active = false;
+  active = !1;
 }
-
-//Add Settings Button to Dropdown Menu
 function add() {
-  var header = document.querySelector('#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit.link-bg.pl8.pr8.on > div > ul > li:nth-child(9)');
+  var header = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit.link-bg.pl8.pr8.on > div > ul > li:nth-child(9)");
   if (!header) {
     setTimeout(add, 100);
     return;
   }
-  var gear = document.querySelector('#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit.link-bg.pl8.pr8.on > div > ul > li:nth-child(9) > a > i');
-  var gear1 = gear.cloneNode(true);
+  var gear = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit.link-bg.pl8.pr8.on > div > ul > li:nth-child(9) > a > i");
+  var gear1 = gear.cloneNode(!0);
   stLink.prepend(gear1);
   stButton.append(stLink);
-  header.insertAdjacentElement('afterend', stButton);
+  header.insertAdjacentElement("afterend", stButton);
 }
-
-//Settings Open-Close Function
 function Settings() {
   active = !active;
   if (active) {
@@ -924,24 +727,21 @@ function Settings() {
     closeDiv();
   }
 }
-
-//Anilist Style - Loading Loop
-let v = false;
+let v = !1;
 let lv = 0;
 function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 function loadspin(val) {
-  let d = document.querySelector('#fancybox-loading > div');
+  let d = document.querySelector("#fancybox-loading > div");
   v = val;
-
   function l() {
     lv = lv - 40;
     if (lv < -440) {
       lv = 0;
     }
     if (d) {
-      d.style.top = lv + 'px';
+      d.style.top = lv + "px";
     }
   }
   if (v) {
@@ -1071,30 +871,56 @@ function loadspin(val) {
     //Seasonal Info //--START--//
   if (svar.animeinfo && location.pathname === "/") {
     //Get Seasonal Anime and add info button
-    const i = document.querySelectorAll(".widget.seasonal.left .btn-anime .link");
+    const i = document.querySelectorAll(".widget.seasonal.left .btn-anime");
     i.forEach((info) => {
       let ib = create("i", {
         class: "fa fa-info-circle",
         style: { fontFamily: '"Font Awesome 6 Pro"', position: 'absolute', right: '3px', top: '3px', padding: "4px", opacity: "0", transition: ".4s",zIndex:"20"},
       });
+      info.onclick = () => {window.location = info.children[1].href;}
       info.prepend(ib);
     });
+    async function exit() {
+      let v = 1;
+      timeout();
+      function timeout() {
+        if (v > 0) {
+          setTimeout(async function () {
+            if ($(".tooltipBody:hover").length === 0 && $(".widget.seasonal.left i:hover").length === 0) {
+              await delay(50);
+              if ($(".tooltipBody:hover").length === 0 && $(".widget.seasonal.left i:hover").length === 0) {
+                //info button hover out
+                $(this).attr("alt", $(this).data("tooltipTitle"));
+                $(".tooltipBody").slideUp(400, function () {
+                  $(this).remove();
+                  v = 0;
+                });
+              } else {
+                v = 1;
+              }
+            }
+            timeout();
+          }, 200);
+        }
+      }
+    }
     //info button hover event
     $(".widget.seasonal.left i").hover(
       async function () {
-        await delay(50);
+        exit();
+
         if ($(".tooltipBody").length === 0) {
           let info;
           if (!$(this).closest(".btn-anime")[0].getAttribute("details")) {
             async function getinfo(id) {
-              const apiUrl = `https://api.jikan.moe/v4/anime/${id}`;
+              const apiUrl = `https://api.jikan.moe/v4/anime/${id}/full`;
               await fetch(apiUrl)
                 .then((response) => response.json())
                 .then((data) => {
                   info = data.data;
                 });
             }
-            let id = $(this).closest(".link")[0].href.split("/")[4];
+            let id = $(this).next(".link")[0].href.split("/")[4];
             await getinfo(id);
             info =
               '<div class="main">' +
@@ -1103,7 +929,7 @@ function loadspin(val) {
               (info.genres && info.genres[0]
                 ? '<br><div class="text"><b>Genres</b><br>' +
                   info.genres
-                    .map((node) => node.name)
+                    .map((node) => "<a href='"+node.url + "'>"+node.name+"</a>")
                     .toString()
                     .split(",")
                     .join(", ") +
@@ -1112,7 +938,7 @@ function loadspin(val) {
               (info.studios && info.studios[0]
                 ? '<br><div class="text"><b>Studios</b><br>' +
                   info.studios
-                    .map((node) => node.name)
+                    .map((node) => "<a href='"+node.url + "'>"+node.name+"</a>")
                     .toString()
                     .split(",")
                     .join(", ") +
@@ -1121,7 +947,7 @@ function loadspin(val) {
               (info.themes && info.themes[0]
                 ? '<br><div class="text"><b>Themes</b><br>' +
                   info.themes
-                    .map((node) => node.name)
+                    .map((node) => "<a href='"+node.url + "'>"+node.name+"</a>")
                     .toString()
                     .split(",")
                     .join(", ") +
@@ -1130,7 +956,7 @@ function loadspin(val) {
               (info.demographics && info.demographics[0]
                 ? '<br><div class="text"><b>Demographics</b><br>' +
                   info.demographics
-                    .map((node) => node.name)
+                    .map((node) => "<a href='"+node.url + "'>"+node.name+"</a>")
                     .toString()
                     .split(",")
                     .join(", ") +
@@ -1141,7 +967,24 @@ function loadspin(val) {
               (info.aired && info.aired.string ? '<br><div class="text"><b>Start Date</b><br>' + info.aired.string.split(" to ?").join("")+"</div>" : "") +
               (info.broadcast ? '<br><div class="text"><b>Broadcast</b><br>' + info.broadcast.string + "</div>" : "") +
               (info.episodes ? '<br><div class="text"><b>Episodes</b><br>' + info.episodes + "</div>" : "") +
-              "</div>";
+              (info.trailer && info.trailer.embed_url ? '<br><div class="text"><b>Trailer</b><br>' +
+               '<div class="spoiler">'+
+               '<input type="button" class="button show_button" onclick="this.nextSibling.style.display=\'inline-block\';this.style.display=\'none\';" data-showname="Show Trailer" data-hidename="Hide Trailer" value="Show Trailer">' +
+               '<span class="spoiler_content" style="display:none">' +
+               '<input type="button" class="button hide_button" onclick="this.parentNode.style.display=\'none\';this.parentNode.parentNode.childNodes[0].style.display=\'inline-block\';" value="Hide Trailer">' +'<br>' +
+               '<iframe width="700" height="400" class="movie youtube" frameborder="0" autoplay="0" allowfullscreen src="' + info.trailer.embed_url.split("&autoplay=1").join("") + '"></iframe></span></div>' +
+               "</div>" : "") +
+              '<br><div class="text"><b>Forum</b><br>'+
+              "<a href='"+info.url+"/forum" + "'>All</a> | <a href='"+info.url+"/forum?topic=episode" + "'>Episodes</a> | <a href='"+info.url+"/forum?topic=other" + "'>Other</a></div>"+
+              (info.external && info.external[0]
+                ? '<br><div class="text"><b>Available At</b><br>' +
+                  info.external
+                    .map((node) =>"<a href='"+node.url + "'>"+node.name+"</a>")
+                    .toString()
+                    .split(",")
+                    .join(" | ") +
+                  "</div>"
+                : "");
             $(this).closest(".btn-anime")[0].setAttribute("details", "true");
             $('<div class="tooltipDetails"></div>').html(info).appendTo($(this).closest(".btn-anime"));
           }
@@ -1150,8 +993,8 @@ function loadspin(val) {
 
           $(
             '<div class="tooltipBody">' +
-              ($(".tooltipBody").length === 0 && $(this).closest(".btn-anime")[0].children[1]
-                ? $(this).closest(".btn-anime")[0].children[1].innerHTML
+              ($(".tooltipBody").length === 0 && $(this).closest(".btn-anime")[0].children[2]
+                ? $(this).closest(".btn-anime")[0].children[2].innerHTML
                 : "") +
               "</div>",
           )
@@ -1159,14 +1002,9 @@ function loadspin(val) {
             .slideDown(400);
         }
       },
-      async function () {
-        //info button hover out
-        $(this).attr("alt", $(this).data("tooltipTitle"));
-        $(".tooltipBody").slideUp(400, function () {
-          $(this).remove();
-        });
-        await delay(400);
-      },
+      async function (){
+        exit();
+      }
     );
   }
   //Seasonal Info //--END--//
@@ -1188,6 +1026,8 @@ function loadspin(val) {
         if (cache.time + options.cacheTTL < +new Date()) {
           const response = await fetch(apiUrl);
           data = await response.json();
+          const publishedYear = data.data.published?.prop?.from?.year;
+          const airedYear = data.data.aired?.prop?.from?.year;
           await embedCache.setItem(id, {
             data: {
               status: data.data.status,
@@ -1197,22 +1037,7 @@ function loadspin(val) {
               genres: data.data.genres,
               season: data.data.season,
               images: data.data.images,
-              year:
-                data.data.type !== "Anime" &&
-                data.data.published &&
-                data.data.published.prop &&
-                data.data.published.prop.from &&
-                data.data.published.prop.from.year
-                  ? data.data.published.prop.from.year
-                  : data.data.aired && data.data.aired.prop && data.data.aired.prop.from && data.data.aired.prop.from.year
-                    ? data.data.aired.prop.from.year
-                    : data.data.type === "Anime" &&
-                        data.data.aired &&
-                        data.data.aired.prop &&
-                        data.data.aired.prop.from &&
-                        data.data.aired.prop.from.year
-                      ? data.data.aired.prop.from.year
-                      : "",
+              year: data.data.type !== "Anime" ? (publishedYear || airedYear || "") : (airedYear || ""),
               url: data.data.url,
             },
             time: +new Date(),
@@ -1225,6 +1050,8 @@ function loadspin(val) {
           imgdata = data.data.images.jpg.image_url;
         }
         if (imgdata) {
+          const publishedYear = data.data.published?.prop?.from?.year;
+          const airedYear = data.data.aired?.prop?.from?.year;
           const genres = document.createElement("div");
           genres.classList.add("genres");
           genres.innerHTML = data.data.genres
@@ -1242,23 +1069,10 @@ function loadspin(val) {
             (data.data.status ? data.data.status.split("Airing").join("") + " · " : "") +
             (data.data.season ? data.data.season.charAt(0).toUpperCase() + data.data.season.slice(1) : "") +
             " " +
-            (cached && data.data.year
-              ? data.data.year
-              : data.data.type !== "Anime" &&
-                  data.data.published &&
-                  data.data.published.prop &&
-                  data.data.published.prop.from &&
-                  data.data.published.prop.from.year
-                ? data.data.published.prop.from.year
-                : data.data.aired && data.data.aired.prop && data.data.aired.prop.from && data.data.aired.prop.from.year
-                  ? data.data.aired.prop.from.year
-                  : data.data.type === "Anime" &&
-                      data.data.aired &&
-                      data.data.aired.prop &&
-                      data.data.aired.prop.from &&
-                      data.data.aired.prop.from.year
-                    ? data.data.aired.prop.from.year
-                    : "") +
+            (cached && data.data.year ? data.data.year :
+                    data.data.type !== "Anime" && publishedYear ? publishedYear :
+                    airedYear ? airedYear :
+                    data.data.type === "Anime" && airedYear ? airedYear : "") +
             (data.data.score ? '<span class="embedscore">' + " · " + Math.floor(data.data.score * 10) + "%" + "</span>" : "");
           const dat = document.createElement("div");
           dat.classList.add("embeddiv");
@@ -1297,14 +1111,8 @@ function loadspin(val) {
         const reg = new RegExp("(" + '<a href="' + m[x].replace(/\./g, "\\.").replace(/\//g, "\\/").replace(/\?/g, ".*?") + '".*?>.*?</a>)', "gm");
         const id = m[x].split("/")[4];
         const type = m[x].split("/")[3];
-        let link = create("a", {
-          href: m[x],
-        });
-        let cont = create("div", {
-          class: "embedLink",
-          id: id,
-          type: type,
-        });
+        let link = create("a", { href: m[x] });
+        let cont = create("div", { class: "embedLink", id: id, type: type });
         cont.appendChild(await getimgf(id, type));
         link.appendChild(cont);
         text = text.replace(reg, await DOMPurify.sanitize(link));
@@ -1450,13 +1258,7 @@ function loadspin(val) {
                 last = 12;
               }
               if (entry[0]) {
-                let head = create(
-                  'h2',
-                  {
-                    class: 'mt16',
-                  },
-                  'Activity',
-                );
+                let head = create("h2", { class: "mt16" }, "Activity");
                 document.querySelector('#statistics').insertAdjacentElement('beforeend', head);
                 myLoop();
               }
@@ -1473,22 +1275,11 @@ function loadspin(val) {
                 }
                 wait = 350;
                 animeid = entry[i].entry.mal_id;
-                let dat = create('div', {
-                  class: 'historydiv',
-                });
-                let name = create('div', {
-                  class: 'historyname',
-                });
+                let dat = create("div", { class: "historydiv" });
+                let name = create("div", { class: "historyname" });
                 let timestamp = new Date(entry[i].date).getTime();
                 const timestampSeconds = Math.floor(timestamp / 1000);
-                let date = create(
-                  'div',
-                  {
-                    class: 'historydate',
-                    title: entry[i].date,
-                  },
-                  nativeTimeElement(timestampSeconds),
-                );
+                let date = create("div", { class: "historydate", title: entry[i].date }, nativeTimeElement(timestampSeconds));
                 let apiUrl = `https://api.jikan.moe/v4/anime/${animeid}`;
                 if (entry[i].entry.type === 'anime') {
                   name.innerHTML = 'Watched  episode ' + entry[i].increment + ' of ' + '<a href="' + entry[i].entry.url + '">' + entry[i].entry.name + '</a>';
@@ -1552,257 +1343,98 @@ function loadspin(val) {
             .catch((error) => console.error('error:', error));
         }
         //Make Profile looks like Anilist
-        svar.profileHeader = false;
-        let about = document.querySelector('.user-profile-about.js-truncate-outer');
-        let modernabout = document.querySelector('#modern-about-me');
-        let avatar = document.querySelector('.user-image');
+        svar.profileHeader = !1;
+        let about = document.querySelector(".user-profile-about.js-truncate-outer");
+        let modernabout = document.querySelector("#modern-about-me");
+        let avatar = document.querySelector(".user-image");
         let name = $('span:contains("s Profile"):last');
-        let container = create('div', {
-          class: 'container',
-          id: 'container',
-        });
-        container.setAttribute('style', 'margin: 0 auto;min-width: 320px;max-width: 1240px;left: -40px;position: relative;height: 100%;');
+        let container = create("div", { class: "container", id: "container" });
+        container.setAttribute("style", "margin: 0 auto;min-width: 320px;max-width: 1240px;left: -40px;position: relative;height: 100%;");
         if (!custombg) {
-          banner.setAttribute('style', 'background-color: var(--color-foreground);background-position: 50% 35%; background-repeat: no-repeat;background-size: cover;height: 330px;position: relative;');
+          banner.setAttribute("style", "background-color: var(--color-foreground);background-position: 50% 35%; background-repeat: no-repeat;background-size: cover;height: 330px;position: relative;");
         }
-        document.querySelector('#myanimelist').setAttribute('style', 'min-width: 1240px;width:100%');
-        set(1, '#myanimelist .wrapper', {
-          sa: {
-            0: 'width:100%;display:table',
-          },
-        });
-        document.querySelector('#contentWrapper').insertAdjacentElement('beforebegin', banner);
+        document.querySelector("#myanimelist").setAttribute("style", "min-width: 1240px;width:100%");
+        set(1, "#myanimelist .wrapper", { sa: { 0: "width:100%;display:table" } });
+        document.querySelector("#contentWrapper").insertAdjacentElement("beforebegin", banner);
         banner.append(container);
         container.append(avatar);
-        if (
-          set(0, about, {
-            sa: {
-              0: 'margin-bottom: 20px;width: auto;background: var(--color-foreground);padding: 10px;border-radius: var(--br);max-height:5000px',
-            },
-          })
-        ) {
-          document.querySelector('#content > div > div.container-left > div > ul.user-status.border-top.pb8.mb4').insertAdjacentElement('beforebegin', about);
+        if (set(0, about, { sa: { 0: "margin-bottom: 20px;width: auto;background: var(--color-foreground);padding: 10px;border-radius: var(--br);max-height:5000px" } })) {
+          document.querySelector("#content > div > div.container-left > div > ul.user-status.border-top.pb8.mb4").insertAdjacentElement("beforebegin", about);
         }
-        if (
-          set(0, modernabout, {
-            sa: {
-              0: 'margin-bottom: 20px;width: auto;background: var(--color-foreground);padding: 10px;border-radius: var(--br);max-height:5000px',
-            },
-          })
-        ) {
-          document.querySelector('#content > div > div.container-left > div > ul.user-status.border-top.pb8.mb4').insertAdjacentElement('beforebegin', modernabout);
-          let l = document.querySelectorAll('.l-listitem');
-          let a = 'max-width:492px;max-height:492px';
-          set(2, '.l-listitem', {
-            sal: {
-              0: '-webkit-box-pack: center;display: flex;-ms-flex-pack: center;justify-content: center;flex-wrap: wrap;flex-direction: row;',
-            },
-          });
-          set(1, '.l-mainvisual', {
-            sa: {
-              0: a,
-            },
-          });
-          set(1, '.intro-mylinks-wrap', {
-            sa: {
-              0: a,
-            },
-          });
-          set(1, '.l-intro', {
-            sa: {
-              0: a,
-            },
-          });
-          set(1, '.l-intro-text-wrap-1', {
-            sa: {
-              0: a,
-            },
-          });
-          set(1, '.copy-wrap-1', {
-            sa: {
-              0: a,
-            },
-          });
-          set(1, '.mylinks-ul', {
-            sa: {
-              0: a,
-            },
-          });
+        if (set(0, modernabout, { sa: { 0: "margin-bottom: 20px;width: auto;background: var(--color-foreground);padding: 10px;border-radius: var(--br);max-height:5000px" } })) {
+          document.querySelector("#content > div > div.container-left > div > ul.user-status.border-top.pb8.mb4").insertAdjacentElement("beforebegin", modernabout);
+          let l = document.querySelectorAll(".l-listitem");
+          let a = "max-width:492px;max-height:492px";
+          set(2, ".l-listitem", { sal: { 0: "-webkit-box-pack: center;display: flex;-ms-flex-pack: center;justify-content: center;flex-wrap: wrap;flex-direction: row;" } });
+          set(1, ".l-mainvisual", { sa: { 0: a } });
+          set(1, ".intro-mylinks-wrap", { sa: { 0: a } });
+          set(1, ".l-intro", { sa: { 0: a } });
+          set(1, ".l-intro-text-wrap-1", { sa: { 0: a } });
+          set(1, ".copy-wrap-1", { sa: { 0: a } });
+          set(1, ".mylinks-ul", { sa: { 0: a } });
         }
         if (about || modernabout) {
-          if (
-            set(1, '.user-profile h1:first-child', {
-              sa: {
-                0: 'position: absolute;top: 50px;right: 0;',
-              },
-            })
-          ) {
-            banner.append(document.querySelector('.user-profile h1:first-child'));
+          if (set(1, ".user-profile h1:first-child", { sa: { 0: "position: absolute;top: 50px;right: 0;" } })) {
+            banner.append(document.querySelector(".user-profile h1:first-child"));
           }
           $('a:contains("About Me Design"):last').remove();
         }
-        set(1, '.user-image img', {
-          sa: {
-            0: 'display: inline-block;max-height: 230px;max-width: 160px;width: 100%;box-shadow:none!important',
-          },
-        });
-        set(1, '.user-image .btn-detail-add-picture', {
-          sa: {
-            0: 'display: flex;flex-direction: column;justify-content: center;',
-          },
-        });
-        document.querySelector('.user-image').setAttribute('style', 'top: 99px;left: 99px;position: relative;');
-        avatar.setAttribute('style', 'display: flex;height: inherit;align-items: flex-end;position: relative;width:500px;');
-        name.css({
-          'font-size': '2rem',
-          'font-weight': '800',
-          left: '35px',
-          top: '-35px',
-        });
-        name.html(name.html().replace(/'s Profile/g, '\n'));
+        set(1, ".user-image img", { sa: { 0: "display: inline-block;max-height: 230px;max-width: 160px;width: 100%;box-shadow:none!important" } });
+        set(1, ".user-image .btn-detail-add-picture", { sa: { 0: "display: flex;flex-direction: column;justify-content: center;" } });
+        document.querySelector(".user-image").setAttribute("style", "top: 99px;left: 99px;position: relative;");
+        avatar.setAttribute("style", "display: flex;height: inherit;align-items: flex-end;position: relative;width:500px;");
+        name.css({ "font-size": "2rem", "font-weight": "800", left: "35px", top: "-35px" });
+        name.html(name.html().replace(/'s Profile/g, "\n"));
         avatar.append(name[0]);
-        set(2, '#container span.profile-team-title.js-profile-team-title', {
-          sl: {
-            top: '18px',
-          },
-        });
-        container.append(document.querySelector('.user-function.mb8'));
-        set(1, 'a.btn-profile-submit.fl-l', {
-          sa: {
-            0: 'width:50%',
-          },
-        });
-        set(1, 'a.btn-profile-submit.fl-r', {
-          sa: {
-            0: 'width:50%',
-          },
-        });
-        if (
-          set(1, '.bar-outer.anime', {
-            sa: {
-              0: 'width:100%',
-            },
-          })
-        ) {
-          set(1, '.bar-outer.manga', {
-            sa: {
-              0: 'width:100%',
-            },
-          });
+        set(2, "#container span.profile-team-title.js-profile-team-title", { sl: { top: "18px" } });
+        container.append(document.querySelector(".user-function.mb8"));
+        set(1, "a.btn-profile-submit.fl-l", { sa: { 0: "width:50%" } });
+        set(1, "a.btn-profile-submit.fl-r", { sa: { 0: "width:50%" } });
+        if (set(1, ".bar-outer.anime", { sa: { 0: "width:100%" } })) {
+          set(1, ".bar-outer.manga", { sa: { 0: "width:100%" } });
         }
-        set(1, '.user-function.mb8', {
-          sa: {
-            0: 'position: relative;left: 100%;top: -50px;display: flex;width: 100px;font-size: 1rem;justify-content: space-evenly;',
-          },
-        });
-        if (
-          set(1, '.content-container', {
-            sa: {
-              0: 'display: grid!important;grid-template-columns: 33% auto;margin-top: 30px;justify-content: center;',
-            },
-          })
-        ) {
-          set(1, '.container-left', {
-            sa: {
-              0: 'width:auto',
-            },
-          });
-          set(1, '.container-right', {
-            sa: {
-              0: 'width:auto;min-width:800px',
-            },
-          });
+        set(1, ".user-function.mb8", { sa: { 0: "position: relative;left: 100%;top: -50px;display: flex;width: 100px;font-size: 1rem;justify-content: space-evenly;" } });
+        if (set(1, ".content-container", { sa: { 0: "display: grid!important;grid-template-columns: 33% auto;margin-top: 30px;justify-content: center;" } })) {
+          set(1, ".container-left", { sa: { 0: "width:auto" } });
+          set(1, ".container-right", { sa: { 0: "width:auto;min-width:800px" } });
         }
-        if (
-          set(1, '#content > table > tbody > tr > td.profile_leftcell', {
-            sa: {
-              0: 'width:auto',
-            },
-          })
-        ) {
-          set(1, '#content > table > tbody > tr', {
-            sa: {
-              0: 'display: grid!important;grid-template-columns: 33% auto;margin-top: 10px;justify-content: center;',
-            },
-          });
-          set(1, '#content > table > tbody > tr > td.pl8', {
-            sa: {
-              0: 'width: auto;position:relative;min-width:800px',
-            },
-          });
+        if (set(1, "#content > table > tbody > tr > td.profile_leftcell", { sa: { 0: "width:auto" } })) {
+          set(1, "#content > table > tbody > tr", { sa: { 0: "display: grid!important;grid-template-columns: 33% auto;margin-top: 10px;justify-content: center;" } });
+          set(1, "#content > table > tbody > tr > td.pl8", { sa: { 0: "width: auto;position:relative;min-width:800px" } });
         }
-        set(1, '.user-profile', {
-          sa: {
-            0: 'width:auto;',
-          },
-        });
-        set(2, '.user-profile li', {
-          sal: {
-            0: 'width:auto',
-          },
-        });
-        set(1, '.quotetext', {
-          sa: {
-            0: 'margin-left:0;',
-          },
-        });
-        if (
-          set(1, '#lastcomment', {
-            sa: {
-              0: 'padding-top:auto',
-            },
-          })
-        ) {
-          document.querySelector('#content > div > div.container-right').prepend(document.querySelector('#lastcomment'));
+        set(1, ".user-profile", { sa: { 0: "width:auto;" } });
+        set(2, ".user-profile li", { sal: { 0: "width:auto" } });
+        set(1, ".quotetext", { sa: { 0: "margin-left:0;" } });
+        if (set(1, "#lastcomment", { sa: { 0: "padding-top:auto" } })) {
+          document.querySelector("#content > div > div.container-right").prepend(document.querySelector("#lastcomment"));
         }
-        set(1, '#content > table > tbody > tr > td.pl8 > #horiznav_nav', {
-          r: {
-            0: 0,
-          },
-        });
-        set(1, '.container-right #horiznav_nav', {
-          r: {
-            0: 0,
-          },
-        });
-        document.querySelector('#contentWrapper').setAttribute('style', 'width: 1375px;min-width:500px; margin: auto;top: -40px;transition:.6s');
-        if (document.querySelector('#fancybox-loading')) {
-          document.querySelector('#fancybox-loading').style.setProperty('display', '');
+        set(1, "#content > table > tbody > tr > td.pl8 > #horiznav_nav", { r: { 0: 0 } });
+        set(1, ".container-right #horiznav_nav", { r: { 0: 0 } });
+        document.querySelector("#contentWrapper").setAttribute("style", "width: 1375px;min-width:500px; margin: auto;top: -40px;transition:.6s");
+        if (document.querySelector("#fancybox-loading")) {
+          document.querySelector("#fancybox-loading").style.setProperty("display", "");
         }
-        let more = document.querySelector('.btn-truncate.js-btn-truncate');
+        let more = document.querySelector(".btn-truncate.js-btn-truncate");
         if (more) {
-          more.setAttribute('data-height', '{"outer":1000,"inner":5000}');
+          more.setAttribute("data-height", '{"outer":1000,"inner":5000}');
         }
-        let s = document.querySelector('#statistics');
+        let s = document.querySelector("#statistics");
         if (s) {
-          s.setAttribute('style', 'width: 813px');
-          s.children[1].append(document.querySelector('#statistics .stats.manga'));
-          s.children[2].prepend(document.querySelector('#statistics .updates.anime'));
-          s.prepend(document.querySelector('#statistics > div:nth-child(2)'));
-          document.querySelector('.container-right').prepend(s);
+          s.setAttribute("style", "width: 813px");
+          s.children[1].append(document.querySelector("#statistics .stats.manga"));
+          s.children[2].prepend(document.querySelector("#statistics .updates.anime"));
+          s.prepend(document.querySelector("#statistics > div:nth-child(2)"));
+          document.querySelector(".container-right").prepend(s);
           $('h2:contains("Statistics"):last').remove();
-          let favs = create('div', {
-            class: 'favs',
-          });
-          let favs2 = create('div', {
-            class: 'favs',
-          });
-          let favs3 = create('div', {
-            class: 'favs',
-          });
-          let favs4 = create('div', {
-            class: 'favs',
-          });
-          let favs5 = create('div', {
-            class: 'favs',
-          });
-
-          /*Get Favorites*/
-          document.querySelector('#content > div > div.container-left > div > ul:nth-child(4)').prepend(favs, favs2, favs3, favs4, favs5);
+          let favs = create("div", { class: "favs" });
+          let favs2 = create("div", { class: "favs" });
+          let favs3 = create("div", { class: "favs" });
+          let favs4 = create("div", { class: "favs" });
+          let favs5 = create("div", { class: "favs" });
+          document.querySelector("#content > div > div.container-left > div > ul:nth-child(4)").prepend(favs, favs2, favs3, favs4, favs5);
           getfavs();
-
           function getfavs() {
-            let favc = ['#anime_favorites', '#manga_favorites', '#character_favorites', '#person_favorites', '#company_favorites'];
+            let favc = ["#anime_favorites", "#manga_favorites", "#character_favorites", "#person_favorites", "#company_favorites"];
             let fave = [favs, favs2, favs3, favs4, favs5];
             let f, c;
             for (let l = 0; l < 5; l++) {
@@ -1810,38 +1442,27 @@ function loadspin(val) {
               if (!f) {
                 fave[l].remove();
               } else {
-                fave[l].insertAdjacentElement('beforebegin', f.previousElementSibling);
-                c = document.querySelectorAll(favc[l] + ' ul > li');
+                fave[l].insertAdjacentElement("beforebegin", f.previousElementSibling);
+                c = document.querySelectorAll(favc[l] + " ul > li");
                 for (let x = 0; x < c.length; x++) {
-                  let r = c[x].querySelectorAll('span');
+                  let r = c[x].querySelectorAll("span");
                   for (let y = 0; y < r.length; y++) {
                     r[y].remove();
                   }
-                  c[x].setAttribute('style', 'width:76px');
+                  c[x].setAttribute("style", "width:76px");
                   fave[l].append(c[x]);
                 }
                 f.remove();
               }
             }
           }
-          document.querySelector('.container-right > h2.mb12').remove();
-          set(1, '.container-right > .btn-favmore', {
-            r: {
-              0: 0,
-            },
-          });
-          set(1, '.favs', {
-            sap: {
-              0: 'box-shadow: none!important;',
-            },
-          });
+          document.querySelector(".container-right > h2.mb12").remove();
+          set(1, ".container-right > .btn-favmore", { r: { 0: 0 } });
+          set(1, ".favs", { sap: { 0: "box-shadow: none!important;" } });
           gethistory();
         }
         //Add Navbar to Profile Banner
-        let nav = create('div', {
-          class: 'navbar',
-          id: 'navbar',
-        });
+        let nav = create("div", { class: "navbar", id: "navbar" });
         nav.innerHTML =
           '<div id="horiznav_nav" style="margin: 5px 0 10px;"><ul>'+
           '<li><a href="/profile/'+username+'">Overview</a></li><li><a href="/profile/'+username+'/statistics">Statistics</a></li>'+
@@ -1859,11 +1480,7 @@ function loadspin(val) {
           n = n.charAt(0).toUpperCase() + n.slice(1);
           $('.navbar a:contains(' + n + ')').addClass('navactive');
         }
-        set(0, navel, {
-          sal: {
-            0: 'margin: 0 30px;font-size: 1rem;box-shadow: none!important;',
-          },
-        });
+        set(0, navel, { sal: { 0: "margin: 0 30px;font-size: 1rem;box-shadow: none!important;" } });
       }
     }
     if (svar.profileHeader) {
@@ -2224,16 +1841,13 @@ function loadspin(val) {
   };
   anisong();
   function anisong() {
-    const songCache = localforage.createInstance({
-      name: 'MalJS',
-      storeName: 'anisongs',
-    });
+    const songCache = localforage.createInstance({ name: "MalJS", storeName: "anisongs" });
     let currentpath = current.match(/(anime|manga)\/([0-9]+)\/[^/]*\/?(.*)/);
     let currentid;
     let location;
-    if (currentpath && currentpath[1] === 'anime') {
-              styleSheet1.innerText = styles1;
-    document.head.appendChild(styleSheet1);
+    if (currentpath && currentpath[1] === "anime") {
+      styleSheet1.innerText = styles1;
+      document.head.appendChild(styleSheet1);
       currentid = currentpath[2];
       location = currentpath[3];
       if (location !== '') {
@@ -2248,19 +1862,14 @@ function loadspin(val) {
           setTimeout(anisong, 500);
         }
       }
-    } else if (currentpath && currentpath[1] === 'manga') {
+    } else if (currentpath && currentpath[1] === "manga") {
       cleaner(anisongs_temp.target);
       anisongs_temp.last = 0;
     } else {
       anisongs_temp.last = 0;
     }
-    const options = {
-      cacheTTL: 604800000,
-      // Update Weekly
-      class: 'anisongs',
-    };
+    const options = { cacheTTL: 604800000, class: "anisongs" };
     let anisongdata = 0;
-
     const API = {
       //Get Songs from JikanAPI
       async getSongs(mal_id) {
@@ -2352,64 +1961,57 @@ function loadspin(val) {
           return entries.map((e, i) => {
             //try to fix video order
             let u = null;
-            let m = 0;
+            let c = 0;
+            let s = 1;
             for (let x = 0; x < videos.length;) {
-              if (!videos[x].sequence && videos[x].slug) {
-                if(anisongdata && anisongdata.openings.length === 1){
-                  if (videos[x].slug === "OP" || videos[x].slug === "OP1") {
+            let m = 0;
+              let title = cleanTitle(e).replace(/\((.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1').replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').trim();
+              let title2 =  videos[x].song.title.replace(/\((.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1').replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').trim();
+              if (m === 0 && videos[x].sequence) {
+                if (i + 1 === videos[x].sequence && stringSimilarity(title, videos[x].song.title) > .8 || i === videos[x].sequence && stringSimilarity(title, title2) > .8) {
+                  u = videos[x].animethemeentries[0].videos[0].link;
+                  m = 1;
+                }
+              }
+              if (m === 0 && !videos[x].sequence && videos[x].slug) {
+                if(anisongdata && anisongdata.openings.length > 0 && videos[x].type === "OP"){
+                  let n = videos[x].slug.replace(/(OP)(.*\d)(.*)/g, '$2');
+                  if (n === s) {
                   u = videos[x].animethemeentries[0].videos[0].link;
                   m = 1;
                   }
                 }
-                if(anisongdata && anisongdata.endings.length === 1){
-                  if (videos[x].slug === "ED"  || videos[x].slug === "ED1") {
+                if(anisongdata && anisongdata.endings.length > 0 && videos[x].type === "ED"){
+                  let n = videos[x].slug.replace(/(ED)(.*\d)(.*)/g, '$2');
+
+                  if (n === s) {
                   u = videos[x].animethemeentries[0].videos[0].link;
                   m = 1;
                   }
                 }
               }
-              if (m === 0 && videos[x].song.title !== null) {
+              if (!videos[x].sequence && videos.length < 10 && m === 0 && videos[x].song.title !== null) {
                 if (cleanTitle(e).match(videos[x].song.title)) {
                   u = videos[x].animethemeentries[0].videos[0].link;
-                  m=1;
-                }
-                else {
-                  let reg = /\(|\)/g;
-                  if(cleanTitle(e).match(reg)){
-
-                  let r1 = cleanTitle(e).replace(reg,'');
-                  let r2 = videos[x].song.title.replace(reg,'');
-
-                  if(r1.match(r2)){
-                  u = videos[x].animethemeentries[0].videos[0].link;
-                  m = 1;
-                  }
-                    else{
-                      reg = /\(\W.*\)|by.*/g;
-                      r1 = cleanTitle(e).replace(reg,'').trim();
-                      r2 = videos[x].song.title.replace(reg,'').trim();
-                      if(r1.match(r2)){
-                        u = videos[x].animethemeentries[0].videos[0].link;
-                        m = 1;
-                      }
-                    }
-                  }
-                }
-              }
-              if (m === 0 && videos[x].sequence) {
-                if (x === videos[x].sequence) {
-                  u = videos[x].animethemeentries[0].videos[0].link;
                   m = 1;
                 }
-              }
-              if (m === 0 && videos[x].song.artists.length > 0) {
-                if (cleanTitle(e).match(videos[x].song.artists[0].name)) {
-                  if (cleanTitle(e).match(videos[x].song.title)) {
+                if(m === 0) {
+                  if(m === 0 && stringSimilarity(title, title2) > .85){
                     u = videos[x].animethemeentries[0].videos[0].link;
                     m = 1;
                   }
                 }
               }
+               if(!videos[x].sequence && videos.length < 10 && m === 0  &&  videos[x].song.artists !== null && videos[x].song.artists[0]) {
+                  let artist = cleanTitle(e).replace(/\((.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1').replace(/(.*)( feat. | ft. )(.*)/g,'$2').replace(/["']/g, '').trim();
+                  let artist2 = videos[x].song.artists[0].name.replace(/\((.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1').replace(/(.*)( feat. | ft. )(.*)/g,'$2').replace(/["']/g, '').trim();
+                  if(m === 0 && stringSimilarity(artist, artist2) > .9){
+                    u = videos[x].animethemeentries[0].videos[0].link;
+                    m = 1;
+                  }
+                }
+              s++;
+              c++;
               x++;
             }
             return {
@@ -2425,7 +2027,6 @@ function loadspin(val) {
         });
       }
     }
-
     function insert(songs, parent) {
       if (!songs || !songs.length) {
         let song = create(
@@ -2541,11 +2142,7 @@ function loadspin(val) {
                 console.log('Anisongs', e);
               }
             }
-            await songCache.setItem(currentid, {
-              opening_themes,
-              ending_themes,
-              time: +new Date(),
-            });
+            await songCache.setItem(currentid, { opening_themes, ending_themes, time: +new Date() });
           }
           // place the data onto site
           placeData({
@@ -2567,31 +2164,18 @@ function loadspin(val) {
 
   //Anime and Manga Header Position Change //--START--//
   if (/\/(anime|manga)\/.?([\w-]+)?\/?/.test(current) && svar.animeHeader && !/\/(anime|manga)\/producer\/.?([\w-]+)?\/?/.test(current)) {
-    set(1, '.h1.edit-info', {
-      sa: {
-        0: 'margin:0;width:97.5%',
-      },
-    });
-    set(1, '#content > table > tbody > tr > td:nth-child(2) > .js-scrollfix-bottom-rel', {
-      pp: {
-        0: '.h1.edit-info',
-      },
-    });
+    set(1, ".h1.edit-info", { sa: { 0: "margin:0;width:97.5%" } });
+    set(1, "#content > table > tbody > tr > td:nth-child(2) > .js-scrollfix-bottom-rel", { pp: { 0: ".h1.edit-info" } });
   }
 
   //Clubs Page add class to Divs
   if (/\/(clubs.php).?([\w-]+)?\/?/.test(current)) {
-    $('div.normal_header').next('table').addClass('clubDivs');
-    $('div.bgNone').addClass('clubDivs');
-    $('div.bgColor1').addClass('clubDivs');
-    $('div.normal_header:contains("Club Pictures")').next().children().children().children().addClass('clubDivs');
-    $('#content > table > tbody > tr > td[valign=top]:last-child').addClass('clubDivs');
-    set(2, '.clubDivs', {
-      sal: {
-        0: 'border-radius:var(--br);overflow:hidden',
-      },
-    });
+    $("div.normal_header").next("table").addClass("clubDivs");
+    $("div.bgNone").addClass("clubDivs");
+    $("div.bgColor1").addClass("clubDivs");
+    $('div.normal_header:contains("Club Pictures")').next().children().children().children().addClass("clubDivs");
+    $("#content > table > tbody > tr > td[valign=top]:last-child").addClass("clubDivs");
+    set(2, ".clubDivs", { sal: { 0: "border-radius:var(--br);overflow:hidden" } });
   }
-
   //Anime-Manga Image to Background Color //--END--//
 })();
