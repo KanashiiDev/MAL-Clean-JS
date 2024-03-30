@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.14
+// @version     1.15
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -161,7 +161,8 @@ if (svar) {
 var styles = `
 .spaceit-shadow,
 .spaceit-shadow-end{
-    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
+    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
+    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
     }
 .spaceit-shadow:after{
     background-color: var(--color-foreground);
@@ -774,7 +775,7 @@ function loadspin(val) {
         '?status=1">Currently Watching</a></h2></div><div class="widget-content"><div class="mt4"><div class="widget-slide-block" id="widget-currently-watching">'+
         '<div id="current-left" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div><div id="current-right" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;">'+
         '<span class="btn-inner" style="display: none;"></span></div><div class="widget-slide-outer"><ul class="widget-slide js-widget-slide" data-slide="4" style="width: 3984px; margin-left: 0px;"></ul></div></div></div></div></div>';
-      const html = await fetch("https://myanimelist.net/animelist/-Yowai-?status=1")
+      const html = await fetch("https://myanimelist.net/animelist/"+user+"?status=1")
         .then((response) => response.text())
         .then((data) => {
           var newDocument = new DOMParser().parseFromString(data, "text/html");
@@ -824,13 +825,21 @@ function loadspin(val) {
               const popup = create("div", { id: "currently-popup" });
               const popupclose = create("div", { id: "currently-closePopup", class: "fa fa-x" });
               const iframe = create("iframe", { src: "/ownlist/anime/" + id + "/edit?hideLayout=1" });
+              const close = () => {
+                popup.remove();
+                popupmask.remove();
+                watchdiv.remove();
+                document.body.style.removeProperty("overflow");
+                getWatching();
+              };
               popup.append(popupclose, iframe);
               document.body.append(popup, popupmask);
               document.body.style.overflow = "hidden";
+              popupmask.onclick = () => {
+                close();
+              };
               popupclose.onclick = () => {
-                popup.remove();
-                popupmask.remove();
-                document.body.style.removeProperty("overflow");
+                close();
               };
             }
 
@@ -1775,19 +1784,37 @@ function loadspin(val) {
   }
   //People and Character Name Position Change //--END--//
 
+  //Anime and Manga Header Position Change //--START--//
+  if (/\/(anime|manga)\/.?([\w-]+)?\/?/.test(current) && svar.animeHeader && !/\/(anime|manga)\/producer\/.?([\w-]+)?\/?/.test(current)) {
+    set(1, ".h1.edit-info", { sa: { 0: "margin:0;width:97.5%" } });
+    set(1, "#content > table > tbody > tr > td:nth-child(2) > .js-scrollfix-bottom-rel", { pp: { 0: ".h1.edit-info" } });
+  }
+  if (/\/(anime|manga)\/producer\/.?([\w-]+)?\/?/.test(current)) {
+    set(1, ".h1.edit-info", { sa: { 0: "margin:0;width:100%" } });
+  }
+  //Anime and Manga Header Position Change //--END--//
+
+  //Clubs Page add class to Divs
+  if (/\/(clubs.php).?([\w-]+)?\/?/.test(current)) {
+    $("div.normal_header").next("table").addClass("clubDivs");
+    $("div.bgNone").addClass("clubDivs");
+    $("div.bgColor1").addClass("clubDivs");
+    $('div.normal_header:contains("Club Pictures")').next().children().children().children().addClass("clubDivs");
+    $("#content > table > tbody > tr > td[valign=top]:last-child").addClass("clubDivs");
+    set(2, ".clubDivs", { sal: { 0: "border-radius:var(--br);overflow:hidden" } });
+  }
+
   //Anime-Manga Background Color from Cover Image //--START--//
   if (/myanimelist.net\/(anime|manga|character|people)\/?([\w-]+)?\/?/.test(location.href)) {
-    if (/\/(character.php)\/?([\w-]+)?/.test(current) ||
-        /\/(people)\/?([\w-]+)?\/?/.test(current) ||
-        /\/(anime|manga)\/producer|season\/.?([\w-]+)?\/?/.test(current) ||
-        /\/(anime.php|manga.php).?([\w-]+)?\/?/.test(current)) {
+    if (
+      /\/(character.php)\/?([\w-]+)?/.test(current) ||
+      /\/(people)\/?([\w-]+)?\/?/.test(current) ||
+      /\/(anime|manga)\/producer|season\/.?([\w-]+)?\/?/.test(current) ||
+      /\/(anime.php|manga.php).?([\w-]+)?\/?/.test(current) ||
+      (/\/(character)\/?([\w-]+)?\/?/.test(current) && !svar.charbg) ||
+      (/\/(anime|manga)\/?([\w-]+)?\/?/.test(current) && !svar.animebg)
+    ) {
       return;
-    }
-    if (/\/(character)\/?([\w-]+)?\/?/.test(current) && !svar.charbg) {
-      return;
-    }
-    if (/\/(anime|manga)\/?([\w-]+)?\/?/.test(current) && !svar.animebg) {
-    return;
     }
     styleSheet2.innerText = styles2;
     document.head.appendChild(styleSheet2);
@@ -2099,7 +2126,7 @@ function loadspin(val) {
       if (data.opening_themes.length === 0) {
         op.append(nt);
         nt.innerHTML = 'No opening themes have been added to this title. Help improve our database by adding an opening theme '+
-          "<a class='embedLink' href=\"" +`https://myanimelist.net/dbchanges.php?aid=${currentid}&t=theme` + '">' + 'here' + '</a>';
+          "<a class='embedLink' href='https://myanimelist.net/dbchanges.php?aid=" + currentid + "&t=theme'>" + 'here' + '</a>';
       }
       let ed = createTargetDiv('Endings', anisongs_temp.target, 1);
       if (data.ending_themes.length === 1) {
@@ -2108,7 +2135,7 @@ function loadspin(val) {
       if (data.ending_themes.length === 0) {
         ed.append(nt2);
         nt2.innerHTML = 'No ending themes have been added to this title. Help improve our database by adding an ending theme '+
-          "<a class='embedLink' href=\"" +`https://myanimelist.net/dbchanges.php?aid=${currentid}&t=theme` + '">' + 'here' + '</a>';
+          "<a class='embedLink' href='https://myanimelist.net/dbchanges.php?aid=" + currentid + "&t=theme'>" + 'here' + '</a>';
       }
       insert(data.opening_themes, op);
       insert(data.ending_themes, ed);
@@ -2161,21 +2188,4 @@ function loadspin(val) {
     }
   }
   //Anisongs for MAL //--END--//
-
-  //Anime and Manga Header Position Change //--START--//
-  if (/\/(anime|manga)\/.?([\w-]+)?\/?/.test(current) && svar.animeHeader && !/\/(anime|manga)\/producer\/.?([\w-]+)?\/?/.test(current)) {
-    set(1, ".h1.edit-info", { sa: { 0: "margin:0;width:97.5%" } });
-    set(1, "#content > table > tbody > tr > td:nth-child(2) > .js-scrollfix-bottom-rel", { pp: { 0: ".h1.edit-info" } });
-  }
-
-  //Clubs Page add class to Divs
-  if (/\/(clubs.php).?([\w-]+)?\/?/.test(current)) {
-    $("div.normal_header").next("table").addClass("clubDivs");
-    $("div.bgNone").addClass("clubDivs");
-    $("div.bgColor1").addClass("clubDivs");
-    $('div.normal_header:contains("Club Pictures")').next().children().children().children().addClass("clubDivs");
-    $("#content > table > tbody > tr > td[valign=top]:last-child").addClass("clubDivs");
-    set(2, ".clubDivs", { sal: { 0: "border-radius:var(--br);overflow:hidden" } });
-  }
-  //Anime-Manga Image to Background Color //--END--//
 })();
