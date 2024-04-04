@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.15
+// @version     1.16
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -130,6 +130,44 @@ var stringSimilarity = function (str1, str2, substringLength, caseSensitive) {
     return (match * 2) / (str1.length + str2.length - ((substringLength - 1) * 2));
 };
 
+// Current Watching Airing Schedule - Calculate Time until Airing
+async function airingTime(sec){
+  const timeUntilAiring = sec;
+  const currentTimeStamp = Math.floor(Date.now() / 1000);
+  const targetTimeStamp = currentTimeStamp + timeUntilAiring;
+  const remainingTime = targetTimeStamp - currentTimeStamp;
+  const days = Math.floor(remainingTime / (24 * 60 * 60));
+  const hours = Math.floor((remainingTime % (24 * 60 * 60)) / (60 * 60));
+  const minutes = Math.floor((remainingTime % (60 * 60)) / 60);
+  return (days ? days+"d ":"")+(hours ? hours+"h ":"")+(minutes ? minutes+"m":"");
+};
+
+// Current Watching Airing Schedule - Get Info from Anilist API
+async function getAiringDate(id){
+  let left;
+  var query = `query($id:Int){Media(idMal:$id,type:ANIME){nextAiringEpisode{timeUntilAiring episode}}}`;
+  var variables = {id: id,};
+  let url = 'https://graphql.anilist.co',
+      options = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          query: query,
+          variables: variables,
+        }),
+      };
+  await delay(333);
+  await fetch(url, options).then((response) => response.json()).then(async(data) => {
+    const ep = data.data.Media.nextAiringEpisode ? data.data.Media.nextAiringEpisode.episode : "";
+    const airing = data.data.Media.nextAiringEpisode ? data.data.Media.nextAiringEpisode.timeUntilAiring : "";
+    left = ep && airing ? '<div class="airingInfo"><div>Ep '+ep+'</div>'+'<div>'+await airingTime(airing)+'</div></div>' : "";
+  });
+  return left;
+}
+
 let svar = {
   animebg: true,
   charbg: true,
@@ -143,6 +181,7 @@ let svar = {
   animeinfo:true,
   embed:true,
   currentlywatching:true,
+  airingDate:true,
 };
 
 svar.save = function () {
@@ -174,6 +213,9 @@ var styles = `
     display: block;
     width: 225px;
     z-index: 5;
+    }
+.fa-info-circle:before {
+    text-shadow: rgb(0 0 0 / 70%) 0px 0px 2px;
     }
 #currently-popup {
     position: fixed;
@@ -217,11 +259,30 @@ var styles = `
     border-radius: 5px;
     -webkit-border-radius: 5px;
     }
-.widget-slide-block:hover #current-left{
+.airingInfo {
+    color: var(--color-text);
+    transition:.4s;
+    text-align:center;
+    background-color:rgb(31 38 49 / 72%);
+    padding:3px 0px;
+    position:absolute;
+    bottom:0;
+    width:100%;
+    }
+.airingInfo div:first-child:after {
+    content: "";
+    display: block;
+    height: 3px;
+    width: 0;
+}
+.widget.anime_suggestions.left #widget-currently-watching a:hover .airingInfo {
+    opacity:0;
+    }
+.widget-slide-block:hover #current-left.active{
     left:0!important;
     opacity:1!important
     }
-.widget-slide-block:hover #current-right{
+.widget-slide-block:hover #current-right.active{
     right:0!important;
     opacity:1!important
     }
@@ -305,12 +366,13 @@ var styles = `
     }
 .maindiv {
     right: 0;
-    width: 500px;
-    margin: auto;
+    width: 520px;
+    height: 86vh;
+    max-height: 775px;
     margin-right: 15px;
-    -webkit-transition: 1s;
-    -o-transition: 1s;
-    transition: 1s;
+    -webkit-transition: .4s;
+    -o-transition: .4s;
+    transition: .4s;
     position: fixed;
     top:55px;
     z-index:11;
@@ -318,7 +380,7 @@ var styles = `
     overflow-y: scroll;
     display: -ms-grid;
     display: grid;
-    color: rgb(var(--color-text));
+    color: var(--color-text);
     padding: 10px;
     border: 1px solid #6969694d;
     -webkit-border-radius: 10px;
@@ -361,14 +423,16 @@ var styles = `
     border: 0px;
     -webkit-border-radius: 4px;
             border-radius: 4px;
-    padding: 4px;
+    padding: 5px;
     margin: 4px;
     cursor: pointer;
      background-color: var(--color-background);
-    color: rgb(var(--color-text));
+    color: var(--color-text);
     }
     .mainbtns:hover{
-    transform:scale(1.04)
+    -webkit-transform:scale(1.04);
+    -ms-transform:scale(1.04);
+    transform:scale(1.04);
     }
 .mainbtns hr{
     width:100%
@@ -393,14 +457,14 @@ button#custombg,
 button#custompf{
     height: 40px;
     width: 45%;
-}
+    }
 input#cssinput,
 input#bginput,
 input#pfinput{
     width: 47%;
     height: 15px;
     margin-right: 5px;
-}
+    }
 .maindiv .childdiv h2{
     background: var(--fg2);
     border-radius: var(--br);
@@ -491,109 +555,133 @@ var styles3 = ` body,
     --color-text-hover: #cfcfcf!important;
     --color-link-hover: #cee7ff!important;
     }`;
+//Create Style Elements
 var styleSheet = document.createElement("style");
 var styleSheet1 = document.createElement("style");
 var styleSheet2 = document.createElement("style");
 var styleSheet3 = document.createElement("style");
+
+//Settings Button
 var stButton = create("li", {});
 stButton.onclick = () => {
   Settings();
 };
 var stLink = create("a", {}, "MalClean Settings");
 var active = !1;
+
+//Close Button
 var buttonclose = create("button", { class: "mainbtns", id: "closebtn" }, "Close");
 buttonclose.onclick = () => {
   closeDiv();
 };
+
+//Reload Button
 var buttonreload = create("button", { class: "mainbtns", id: "reloadbtn" }, "Refresh");
 buttonreload.onclick = () => {
   reload();
 };
-var button1 = create("button", { class: "mainbtns", id: "animebgbtn" }, "<b>" + "Anime/Manga" + "</b><hr>" + "Image Based Background Color");
+//Refresh Page
+function reload() {
+  window.location.href = window.location.href;
+}
+//Refresh Page Button Animation
+function reloadset() {
+  reloadbtn.setAttribute('style', 'animation:reloadLoop 2.5s infinite');
+}
+
+//Other Buttons
+var button1 = create("button", { class: "mainbtns", id: "animebgbtn" }, '<b>Anime/Manga</b><hr><p>Image Based Background Color</p>');
 button1.onclick = () => {
   svar.animebg = !svar.animebg;
   svar.save();
   getSettings();
   reloadset();
 };
-var button2 = create("button", { class: "mainbtns", id: "animeHeaderbtn" }, "<b>" + "Anime/Manga" + "</b><hr>" + "Change Title Position");
+var button2 = create("button", { class: "mainbtns", id: "animeHeaderbtn" }, '<b>Anime/Manga</b><hr><p>Change Title Position</p>');
 button2.onclick = () => {
   svar.animeHeader = !svar.animeHeader;
   svar.save();
   getSettings();
   reloadset();
 };
-var button3 = create("button", { class: "mainbtns", id: "charbgbtn" }, "<b>" + "Character" + "</b><hr>" + "Image Based Background Color");
+var button3 = create("button", { class: "mainbtns", id: "charbgbtn" }, '<b>Character</b><hr><p>Image Based Background Color</p>');
 button3.onclick = () => {
   svar.charbg = !svar.charbg;
   svar.save();
   getSettings();
   reloadset();
 };
-var button4 = create("button", { class: "mainbtns", id: "characterHeaderbtn" }, "<b>" + "Character" + "</b><hr>" + "Change Name Position");
+var button4 = create("button", { class: "mainbtns", id: "characterHeaderbtn" }, '<b>Character</b><hr><p>Change Name Position</p>');
 button4.onclick = () => {
   svar.characterHeader = !svar.characterHeader;
   svar.save();
   getSettings();
   reloadset();
 };
-var button5 = create("button", { class: "mainbtns", id: "characterNameAltbtn" }, "<b>" + "Character" + "</b><hr>" + "Show Alternative Name");
+var button5 = create("button", { class: "mainbtns", id: "characterNameAltbtn" }, '<b>Character</b><hr><p>Show Alternative Name</p>');
 button5.onclick = () => {
   svar.characterNameAlt = !svar.characterNameAlt;
   svar.save();
   getSettings();
   reloadset();
 };
-var button6 = create("button", { class: "mainbtns", id: "peopleHeaderbtn" }, "<b>" + "People" + "</b><hr>" + "Change Name Position");
+var button6 = create("button", { class: "mainbtns", id: "peopleHeaderbtn" }, '<b>People</b><hr><p>Change Name Position</p>');
 button6.onclick = () => {
   svar.peopleHeader = !svar.peopleHeader;
   svar.save();
   getSettings();
   reloadset();
 };
-var button7 = create("button", { class: "mainbtns", id: "customcssbtn" }, "<b>" + "Profile" + "</b><hr>" + "Show Custom CSS");
+var button7 = create("button", { class: "mainbtns", id: "customcssbtn" }, '<b>Profile</b><hr><p>Show Custom CSS</p>');
 button7.onclick = () => {
   svar.customcss = !svar.customcss;
   svar.save();
   getSettings();
   reloadset();
 };
-var button9 = create("button", { class: "mainbtns", id: "profileheaderbtn" }, "<b>" + "Profile" + "</b><hr>" + "Change Username Position");
+var button9 = create("button", { class: "mainbtns", id: "profileheaderbtn" }, '<b>Profile</b><hr><p>Change Username Position</p>');
 button9.onclick = () => {
   svar.profileHeader = !svar.profileHeader;
   svar.save();
   getSettings();
   reloadset();
 };
-var button10 = create("button", { class: "mainbtns", id: "alstylebtn" }, "<b>" + "Profile" + "</b><hr>" + "Make Profile Like Anilist");
+var button10 = create("button", { class: "mainbtns", id: "alstylebtn" }, '<b>Profile</b><hr><p>Make Profile Like Anilist</p>');
 button10.onclick = () => {
   svar.alstyle = !svar.alstyle;
   svar.save();
   getSettings();
   reloadset();
 };
-var button13 = create("button", { class: "mainbtns", id: "animeinfobtn" }, "<b>" + "Home" + "</b><hr>" + "Seasonal Anime Info");
+var button13 = create("button", { class: "mainbtns", id: "animeinfobtn" }, '<b>Home</b><hr><p>Seasonal Anime Info</p>');
 button13.onclick = () => {
   svar.animeinfo = !svar.animeinfo;
   svar.save();
   getSettings();
   reloadset();
 };
-var button14 = create("button", { class: "mainbtns", id: "embedbtn" }, "<b>" + "Forum" + "</b><hr>" + "Make Anime/Manga Links Like Anilist");
+var button14 = create("button", { class: "mainbtns", id: "embedbtn" }, '<b>Forum</b><hr><p>Make Anime/Manga Links Like Anilist</p>');
 button14.onclick = () => {
   svar.embed = !svar.embed;
   svar.save();
   getSettings();
   reloadset();
 };
-var button15 = create("button", { class: "mainbtns", id: "currentlybtn" }, "<b>" + "Home" + "</b><hr>" + "Show Currently Watching Anime");
+var button15 = create("button", { class: "mainbtns", id: "currentlybtn" }, '<b>Home</b><hr><p>Show Currently Watching Anime</p>');
 button15.onclick = () => {
   svar.currentlywatching = !svar.currentlywatching;
   svar.save();
   getSettings();
   reloadset();
 };
-//alstyle - BG Elements
+var button16 = create("button", { class: "mainbtns", id: "airingdatebtn" }, '<b>Home</b><hr><p>Watching Anime Next Episode Countdown</p>');
+button16.onclick = () => {
+  svar.airingDate = !svar.airingDate;
+  svar.save();
+  getSettings();
+  reloadset();
+};
+//Custom Profile Background
 let bginput = create("input", { class: "bginput", id: "bginput" });
 bginput.placeholder = "Paste your Background Image Url here";
 var button11 = create("button", { class: "mainbtns", id: "custombg" }, "Convert Background to BBCode");
@@ -605,12 +693,14 @@ button11.onclick = () => {
   } else if (bginput.value.length > 1) {
     bginput.value = "[url=https://custombg/" + LZString.compressToBase64(JSON.stringify(bginput.value)) + "]‎ [/url]";
     bginput.select();
-    bginfo.innerHTML =
-      "Background Image Converted. Please copy and paste to your " + "<a class='embedLink' href=\"" + "https://myanimelist.net/editprofile.php" + '">' + "About Me" + "</a>" + " section.";
+    bginput.addEventListener(`focus`, () => bginput.select());
+    bginfo.innerHTML ="Background Image Converted. Please copy and paste to your " +"<a class='embedLink' href='https://myanimelist.net/editprofile.php'>About Me</a>" + " section.";
   } else {
     bginfo.innerText = "Background Image url empty.";
   }
 };
+
+//Custom Avatar
 var button12 = create("button", { class: "mainbtns", id: "custompf" }, "Convert Avatar to BBCode");
 button12.onclick = () => {
   if (pfinput.value.slice(-1) === "]") {
@@ -618,7 +708,8 @@ button12.onclick = () => {
   } else if (pfinput.value.length > 1) {
     pfinput.value = "[url=https://custompf/" + LZString.compressToBase64(JSON.stringify(pfinput.value)) + "]‎ [/url]";
     pfinput.select();
-    pfinfo.innerHTML = "Avatar Image Converted. Please copy and paste to your " + "<a class='embedLink' href=\"" + "https://myanimelist.net/editprofile.php" + '">' + "About Me" + "</a>" + " section.";
+    pfinput.addEventListener(`focus`, () => pfinput.select());
+    pfinfo.innerHTML ="Avatar Image Converted. Please copy and paste to your " +"<a class='embedLink' href='https://myanimelist.net/editprofile.php'>About Me</a>" + " section.";
   } else {
     pfinfo.innerText = "Avatar Image url empty.";
   }
@@ -626,6 +717,8 @@ button12.onclick = () => {
 let pfinput = create("input", { class: "bginput", id: "pfinput" });
 pfinput.placeholder = "Paste your Avatar Image Url here";
 var pfinfo = create("p", { class: "textpb" }, "");
+
+//Custom CSS
 var button8 = create("button", { class: "mainbtns", id: "customcss" }, "Convert CSS to BBCode");
 button8.onclick = () => {
   if (cssinput.value.slice(-1) === "]") {
@@ -633,7 +726,8 @@ button8.onclick = () => {
   } else if (cssinput.value.length > 1) {
     cssinput.value = "[url=https://customcss/" + LZString.compressToBase64(JSON.stringify(cssinput.value)) + "]‎ [/url]";
     cssinput.select();
-    cssinfo.innerHTML = "Css Converted. Please copy and paste to your " + "<a class='embedLink' href=\"" + "https://myanimelist.net/editprofile.php" + '">' + "About Me" + "</a>" + " section.";
+    cssinput.addEventListener(`focus`, () => cssinput.select());
+    cssinfo.innerHTML = "Css Converted. Please copy and paste to your " +"<a class='embedLink' href='https://myanimelist.net/editprofile.php'>About Me</a>" + " section.";
   } else {
     cssinfo.innerText = "Css empty.";
   }
@@ -641,13 +735,6 @@ button8.onclick = () => {
 var cssinfo = create("p", { class: "textpb" }, "");
 let cssinput = create("input", { class: "cssinput", id: "cssinput" });
 cssinput.placeholder = "Paste your CSS here";
-function reload() {
-  window.location.href = window.location.href;
-}
-//Refresh Page Button Animation
-function reloadset() {
-  reloadbtn.setAttribute('style', 'animation:reloadLoop 2.5s infinite');
-}
 
 // Toggle enabled Buttons
 function getSettings() {
@@ -663,6 +750,7 @@ function getSettings() {
   animeinfobtn.classList.toggle('btn-active', svar.animeinfo);
   embedbtn.classList.toggle('btn-active', svar.embed);
   currentlybtn.classList.toggle('btn-active', svar.currentlywatching);
+  airingdatebtn.classList.toggle('btn-active', svar.airingDate);
 }
 
 //Create Settings Div
@@ -690,7 +778,7 @@ function createDiv() {
   );
   var buttonsDiv = create("div", { class: "buttonsDiv", id: "buttonsDiv" });
   listDiv.querySelector(".maindivheader").append(buttonreload, buttonclose);
-  buttonsDiv.append(button13, button15, button14, button1, button2, button3, button4, button5, button6, button7, button9, button10);
+  buttonsDiv.append(button13, button15, button16, button14, button1, button2, button3, button4, button5, button6, button7, button9, button10);
   listDiv.append(buttonsDiv);
   if (svar.alstyle) {
     listDiv.append(custombgDiv, custompfDiv);
@@ -707,6 +795,8 @@ function closeDiv() {
   listDiv.remove();
   active = !1;
 }
+
+//Add MalClean Settings to header dropdown
 function add() {
   var header = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit.link-bg.pl8.pr8.on > div > ul > li:nth-child(9)");
   if (!header) {
@@ -719,6 +809,8 @@ function add() {
   stButton.append(stLink);
   header.insertAdjacentElement("afterend", stButton);
 }
+
+//Settings Open & Close
 function Settings() {
   active = !active;
   if (active) {
@@ -728,11 +820,14 @@ function Settings() {
     closeDiv();
   }
 }
-let v = !1;
-let lv = 0;
+
+//Delay
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+//Anilist Profile Loading Spinner
+let v = !1;
+let lv = 0;
 function loadspin(val) {
   let d = document.querySelector("#fancybox-loading > div");
   v = val;
@@ -767,14 +862,23 @@ function loadspin(val) {
     //Create Currently Watching Div
     getWatching();
     async function getWatching() {
+      if(svar.airingDate){
+        let s = document.createElement("style");
+        s.innerText = `.widget.anime_suggestions.left #widget-currently-watching > div.widget-slide-outer ul > li > a span{opacity: 0;transition: .4s}
+        .widget.anime_suggestions.left div#widget-currently-watching > div.widget-slide-outer ul > li > a:hover span{opacity: 1}`;
+        document.head.appendChild(s);
+      }
       let user = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit.link-bg.pl8.pr8 > a").innerText;
       const watchdiv = create("article", { class: "widget-container left", id: "currently-watching" });
       watchdiv.innerHTML =
-        '<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span><h2 class="index_h2_seo"><a href="https://myanimelist.net/animelist/' +
-        user +
-        '?status=1">Currently Watching</a></h2></div><div class="widget-content"><div class="mt4"><div class="widget-slide-block" id="widget-currently-watching">'+
-        '<div id="current-left" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div><div id="current-right" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;">'+
-        '<span class="btn-inner" style="display: none;"></span></div><div class="widget-slide-outer"><ul class="widget-slide js-widget-slide" data-slide="4" style="width: 3984px; margin-left: 0px;"></ul></div></div></div></div></div>';
+        '<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span><h2 class="index_h2_seo"><a href="https://myanimelist.net/animelist/' +user + '?status=1">Currently Watching</a>'+
+        '</h2><i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-size:12px;font-family:FontAwesome"></i></div>'+
+        '<div class="widget-content"><div class="mt4"><div class="widget-slide-block" id="widget-currently-watching">'+
+        '<div id="current-left" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div>'+
+        '<div id="current-right" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;">'+
+        '<span class="btn-inner" style="display: none;"></span></div><div class="widget-slide-outer">'+
+        '<ul class="widget-slide js-widget-slide" data-slide="4" style="width: 3984px; margin-left: 0px;-webkit-transition:margin-left 0.4s ease-in-out;transition:margin-left 0.4s ease-in-out"></ul></div></div></div></div></div>';
+      //Get data from user's list
       const html = await fetch("https://myanimelist.net/animelist/"+user+"?status=1")
         .then((response) => response.text())
         .then((data) => {
@@ -782,8 +886,11 @@ function loadspin(val) {
           let list = JSON.parse(newDocument.querySelector("#list-container > div.list-block > div > table").getAttribute("data-items"));
           if (list) {
             document.querySelector("#content > div.left-column").prepend(watchdiv);
-            list.forEach((item) => {
-              let ib = create("i", {
+            processList();
+            async function processList() {
+             for (const item of list) {
+               let nextep = svar.airingDate ? await getAiringDate(item.anime_id) : "";
+               let ib = create("i", {
                 class: "fa fa-pen",
                 id: item.anime_id,
                 style: {
@@ -808,14 +915,16 @@ function loadspin(val) {
                 ">" +
                 '<span class="title js-color-pc-constant color-pc-constant">' +
                 item.anime_title +
-                "</span></a>";
-              wDiv.append(ib);
+                "</span>"+(nextep?nextep:"")+"</a>";
+              wDiv.appendChild(ib);
               document.querySelector("#widget-currently-watching ul").append(wDiv);
               ib.onclick = () => {
                 editpopup(ib.id);
               };
-            });
-
+            };
+            document.querySelector("#currently-watching > div > div.widget-header > i").remove();
+            document.querySelector("#widget-currently-watching > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#current-right").classList.add("active") : "";
+            };
             //Open Edit Popup Menu
             function editpopup(id) {
               const popupmask = create("div", {
@@ -842,33 +951,31 @@ function loadspin(val) {
                 close();
               };
             }
-
-            //Watching Slider Left
+            //Currently Watching - Slider Left
             document.querySelector("#current-left").addEventListener("click", function () {
               const slider = document.querySelector(".widget-slide");
               const slideWidth = slider.children[0].offsetWidth + 12;
-              slider.style.transition = "margin-left 0.4s ease-in-out";
               if (parseInt(slider.style.marginLeft) < 0) {
                 slider.style.marginLeft = parseInt(slider.style.marginLeft) + slideWidth + "px";
+                document.querySelector("#widget-currently-watching > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#current-right").classList.add("active") : "";
               }
               if (parseInt(slider.style.marginLeft) > 0) {
                 slider.style.marginLeft = -slideWidth + "px";
-                setTimeout(function () {
-                  slider.style.transition = "margin-left 0.4s ease-in-out";
-                }, 50);
+              }
+              if(parseInt(slider.style.marginLeft) === 0) {
+                document.querySelector("#current-left").classList.remove("active");
               }
             });
-            //Watching Slider Right
+            //Currently Watching - Slider Right
             document.querySelector("#current-right").addEventListener("click", function () {
               const slider = document.querySelector(".widget-slide");
               const slideWidth = slider.children[0].offsetWidth + 12;
-              slider.style.transition = "margin-left 0.4s ease-in-out";
-              slider.style.marginLeft = parseInt(slider.style.marginLeft) - slideWidth + "px";
-              if (parseInt(slider.style.marginLeft) < -slideWidth * (slider.children.length - 5)) {
-                slider.style.marginLeft = 0;
-                setTimeout(function () {
-                  slider.style.transition = "margin-left 0.4s ease-in-out";
-                }, 50);
+              if (parseInt(slider.style.marginLeft) > -slideWidth * (slider.children.length - 5)) {
+                slider.style.marginLeft = parseInt(slider.style.marginLeft) - slideWidth + "px";
+                document.querySelector("#current-left").classList.add("active");
+              }
+              if (parseInt(slider.style.marginLeft) === -slideWidth * (slider.children.length - 5)) {
+                document.querySelector("#current-right").classList.remove("active");
               }
             });
           }
@@ -886,7 +993,6 @@ function loadspin(val) {
         class: "fa fa-info-circle",
         style: { fontFamily: '"Font Awesome 6 Pro"', position: 'absolute', right: '3px', top: '3px', padding: "4px", opacity: "0", transition: ".4s",zIndex:"20"},
       });
-      info.onclick = () => {window.location = info.children[1].href;}
       info.prepend(ib);
     });
     async function exit() {
@@ -914,13 +1020,12 @@ function loadspin(val) {
       }
     }
     //info button hover event
-    $(".widget.seasonal.left i").hover(
-      async function () {
+    $(".widget.seasonal.left i").on('click', async function () {
         exit();
-
         if ($(".tooltipBody").length === 0) {
           let info;
           if (!$(this).closest(".btn-anime")[0].getAttribute("details")) {
+            //Get info from Jikan API
             async function getinfo(id) {
               const apiUrl = `https://api.jikan.moe/v4/anime/${id}/full`;
               await fetch(apiUrl)
@@ -1010,11 +1115,11 @@ function loadspin(val) {
             .appendTo(".widget.seasonal.left")
             .slideDown(400);
         }
-      },
+      }
+    ).on('mouseleave',
       async function (){
         exit();
-      }
-    );
+      });
   }
   //Seasonal Info //--END--//
 
@@ -1222,7 +1327,7 @@ function loadspin(val) {
           });
       }
     }
-    //Apply Anilist Style
+    //Apply Anilist Style Profile
     async function applyAl() {
       if (svar.alstyle) {
         //CSS Fix for Anilist Style
@@ -1231,8 +1336,11 @@ function loadspin(val) {
         .profile-about-user.js-truncate-inner img,.user-comments .comment .text .comment-text .userimg{-webkit-box-shadow:none!important;box-shadow:none!important}
         .user-profile .user-friends {display: -webkit-box;display: -webkit-flex;display: -ms-flexbox;display: flex;-webkit-box-pack: start;-webkit-justify-content: start;-ms-flex-pack: start;justify-content: start}
         .user-profile .user-friends .icon-friend {margin: 5px!important;}
-        .favs{-webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;display: -ms-grid!important;background-color: var(--color-foreground);padding:5px;display: grid!important;grid-gap: 5px 5px!important;grid-template-columns: repeat(auto-fill, 76px)!important;-webkit-box-pack: space-evenly!important;-ms-flex-pack: space-evenly!important;-webkit-justify-content: space-evenly!important;justify-content: space-evenly!important;margin-bottom: 12px!important;-webkit-border-radius: var(--br);border-radius: var(--br);}
-        .word-break img, .dark-mode .profile .user-profile-about .userimg, .profile .user-profile-about .userimg, .profile .user-profile-about a .userimg,.profile .user-profile-about .userimg.img-a-r {max-width: 420px;-webkit-box-shadow: none!important;box-shadow: none!important;}
+        .favs{-webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;display: -ms-grid!important;background-color: var(--color-foreground);
+        padding:5px;display: grid!important;grid-gap: 5px 5px!important;grid-template-columns: repeat(auto-fill, 76px)!important;-webkit-box-pack: space-evenly!important;-ms-flex-pack: space-evenly!important;
+        -webkit-justify-content: space-evenly!important;justify-content: space-evenly!important;margin-bottom: 12px!important;-webkit-border-radius: var(--br);border-radius: var(--br);}
+        .word-break img, .dark-mode .profile .user-profile-about .userimg, .profile .user-profile-about .userimg,
+        .profile .user-profile-about a .userimg,.profile .user-profile-about .userimg.img-a-r {max-width: 420px;-webkit-box-shadow: none!important;box-shadow: none!important;}
         .profile .user-profile-about input.button {white-space: break-spaces;}
         #modern-about-me-inner {overflow:hidden}
          #modern-about-me-inner > *, #modern-about-me-inner .l-mainvisual {max-width:420px!important}
@@ -1241,7 +1349,8 @@ function loadspin(val) {
         .historyname{width: 80%;-webkit-align-self: center;-ms-flex-item-align: center;-ms-grid-row-align: center;align-self: center;}
         .historydate{width:25%;text-align: right;}
         .historyimg{background-size:cover;margin-left: -10px;height: 69px;width:50px;margin-top: -9px;margin-right: 10px;padding-right: 5px;}
-        .historydiv {height: 50px;background-color: var(--color-foreground);margin: 10px 5px;padding: 10px;-webkit-border-radius: var(--br);border-radius: var(--br);display: -webkit-box;display: -webkit-flex;display: -ms-flexbox;display: flex;-webkit-box-pack: justify;-webkit-justify-content: space-between;-ms-flex-pack: justify;justify-content: space-between;overflow: hidden;}
+        .historydiv {height: 50px;background-color: var(--color-foreground);margin: 10px 5px;padding: 10px;-webkit-border-radius: var(--br);border-radius: var(--br);display: -webkit-box;display: -webkit-flex;
+        display: -ms-flexbox;display: flex;-webkit-box-pack: justify;-webkit-justify-content: space-between;-ms-flex-pack: justify;justify-content: space-between;overflow: hidden;}
         #horiznav_nav .navactive {color: var(--color-text)!important;background: var(--color-foreground2)!important;padding: 5px!important;}`;
         var fixstylesheet = document.createElement('style');
         fixstylesheet.innerText = fixstyle;
@@ -1849,9 +1958,8 @@ function loadspin(val) {
             color2 = tinycolor('rgb (' + color2.brighten(2) + ')');
           }
         }
-        document
-          .querySelector('body')
-          .style.setProperty('background', 'linear-gradient(180deg, ' + color0.toString() + ' 0%,' + color1.toString() + ' 50%, ' + color2.toString() + ' 100%)', 'important');
+        document.querySelector('body').style
+          .setProperty('background', 'linear-gradient(180deg, ' + color0.toString() + ' 0%,' + color1.toString() + ' 50%, ' + color2.toString() + ' 100%)', 'important');
         await delay(200);
         img.removeAttribute('crossorigin');
       });
