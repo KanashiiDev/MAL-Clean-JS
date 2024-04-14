@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.17
+// @version     1.18
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -160,11 +160,11 @@ async function getAiringDate(fullQuery){
   try {
     const response = await fetch(url, options);
     const data = await response.json();
-    if(data){
-      return data;
-    }
     if(data.error){
       return null;
+    }
+    if(data.data){
+      return data;
     }
   } catch (error) {
     return null;
@@ -867,6 +867,7 @@ function Settings() {
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
 //Anilist Profile Loading Spinner
 let v = !1;
 let lv = 0;
@@ -911,7 +912,7 @@ function loadspin(val) {
         document.head.appendChild(s);
       }
       let idArray = [];
-      let ep, left;
+      let ep, left, infoData;
       let user = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit.link-bg.pl8.pr8 > a").innerText;
       const watchdiv = create("article", { class: "widget-container left", id: "currently-watching" });
       watchdiv.innerHTML =
@@ -934,34 +935,53 @@ function loadspin(val) {
             document.querySelector("#content > div.left-column").prepend(watchdiv);
             processList();
             async function processList() {
-              for (const item of list) {
-                idArray.push(item.anime_id);
-              }
-              const queries = idArray.map((id, index) => `Media${index}: Media(idMal: ${id}, type: ANIME) {nextAiringEpisode {timeUntilAiring episode}}`);
-              const fullQuery = `query {${queries.join("\n")}}`;
-              const infoData = await getAiringDate(fullQuery);
-              if (!infoData) {
-                for (let x = 0; x < 5; x++) {
+              if (svar.airingDate) {
+                for (const item of list) {
+                  idArray.push(item.anime_id);
+                }
+                const queries = idArray.map((id, index) => `Media${index}: Media(idMal: ${id}, type: ANIME) {nextAiringEpisode {timeUntilAiring episode}}`);
+                const fullQuery = `query {${queries.join("\n")}}`;
+                infoData = await getAiringDate(fullQuery);
+                if (!infoData) {
+                  for (let x = 0; x < 5; x++) {
                     if (!infoData) {
                       await getAiringDate(fullQuery);
                       await delay(1000);
                     }
+                    if(!infoData && x === 4) {
+                      let d = document.querySelector("#currently-watching > div > div.widget-content > div");
+                      let r = create("i",{class:"fa-solid fa-rotate-right",style:{cursor: "pointer",color: "var(--color-link)"}});
+                      r.onclick = () => {
+                        watchdiv.remove();
+                        getWatching();
+                      }
+                      d.innerText = "API Error ";
+                      d.append(r);
+                      document.querySelector("#currently-watching > div > div.widget-header > i").remove();
+                      return;
+                    }
+                  }
                 }
               }
-              for (let x = 0; x < Object.keys(infoData.data).length; x++) {
-                const mediaKey = "Media" + x;
-                const media = infoData.data[mediaKey];
-                ep = media.nextAiringEpisode ? media.nextAiringEpisode.episode : "";
-                const airing = media.nextAiringEpisode ? media.nextAiringEpisode.timeUntilAiring : "";
-                left = ep && airing ? '<div class="airingInfo"><div>Ep ' + ep + "</div>" + "<div>" + (await airingTime(airing)) + "</div></div>" : "";
+              for (let x = 0; x < list.length; x++) {
                 let currep, nextep;
-                let info = [ep, left];
-                if(info) {
-                  currep = info[0] && info[0] !== 1 ? await episodesBehind(info[0], list[x].num_watched_episodes) : 0;
-                  nextep = svar.airingDate && info[1] ? info[1] : "";
-                  if (currep) {
-                    nextep += '<span class="epBehind">' + currep + '</span><div class="behindWarn"></div>';
+                if (svar.airingDate) {
+                  const media = infoData.data["Media" + x];
+                  ep = media.nextAiringEpisode ? media.nextAiringEpisode.episode : "";
+                  const airing = media.nextAiringEpisode ? media.nextAiringEpisode.timeUntilAiring : "";
+                  left = ep && airing ? '<div class="airingInfo"><div>Ep ' + ep + "</div>" + "<div>" + (await airingTime(airing)) + "</div></div>" : "";
+                  let info = [ep, left];
+                  if(info) {
+                    currep = info[0] && info[0] !== 1 ? await episodesBehind(info[0], list[x].num_watched_episodes) : 0;
+                    nextep = svar.airingDate && info[1] ? info[1] : "";
+                    if (currep) {
+                      nextep += '<span class="epBehind">' + currep + '</span><div class="behindWarn"></div>';
+                    }
                   }
+                }
+                if(!nextep) {
+                  nextep = '<div class="airingInfo" style="padding: 8px 0px"><div style="padding-top:3px">' + list[x].num_watched_episodes +
+                    (list[x].anime_num_episodes !== 0 ? " / " + list[x].anime_num_episodes : "") + '</div></div>';
                 }
                 let ib = create("i", {
                   class: "fa fa-pen",
@@ -1212,6 +1232,14 @@ function loadspin(val) {
       }
       try {
         const cache = (await embedCache.getItem(id)) || { time: 0 };
+        data = await cache;
+        if (data && data.data && data.data.status) {
+          if (data.data.status === "Finished Airing" || data.data.status === "Finished") {
+            options.cacheTTL = 15778476000;
+          } else {
+            options.cacheTTL = 262974383;
+          }
+        }
         if (cache.time + options.cacheTTL < +new Date()) {
           const response = await fetch(apiUrl);
           data = await response.json();
@@ -1299,13 +1327,15 @@ function loadspin(val) {
         }
         const reg = new RegExp("(" + '<a href="' + m[x].replace(/\./g, "\\.").replace(/\//g, "\\/").replace(/\?/g, ".*?") + '".*?>.*?</a>)', "gm");
         const id = m[x].split("/")[4];
-        const type = m[x].split("/")[3];
-        let link = create("a", { href: m[x] });
-        let cont = create("div", { class: "embedLink", id: id, type: type });
-        cont.appendChild(await getimgf(id, type));
-        link.appendChild(cont);
-        text = text.replace(reg, await DOMPurify.sanitize(link));
-        cached ? await delay(33) : await delay(333);
+        if (!id.startsWith('0')) {
+          const type = m[x].split("/")[3];
+          let link = create("a", { href: m[x] });
+          let cont = create("div", { class: "embedLink", id: id, type: type });
+          cont.appendChild(await getimgf(id, type));
+          link.appendChild(cont);
+          text = text.replace(reg, await DOMPurify.sanitize(link));
+          cached ? await delay(33) : await delay(333);
+        }
       }
       return text;
     }
@@ -1697,7 +1727,7 @@ function loadspin(val) {
           n = n.charAt(0).toUpperCase() + n.slice(1);
           $('.navbar a:contains(' + n + ')').addClass('navactive');
         }
-        set(0, navel, { sal: { 0: "margin: 0 30px;font-size: 1rem;box-shadow: none!important;" } });
+        set(0, navel, { sal: { 0: "margin: 0 30px;font-size: .9rem;box-shadow: none!important;" } });
       }
     }
     if (svar.profileHeader) {
