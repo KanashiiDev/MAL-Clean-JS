@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.18
+// @version     1.19
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -326,7 +326,7 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
 .embedLink {
     width:max-content;
     line-height: 1.16rem;
-    margin: 5px 0px;
+    margin: 5px 1px;
     display: inline-block;
     -webkit-user-select: none;
     -ms-user-select: none;
@@ -368,6 +368,7 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     margin-left: -10px;
     }
 .embeddiv{
+    color: var(--color-text);
     align-items: center;
     text-align:center;
     width:max-content;
@@ -1293,6 +1294,7 @@ function loadspin(val) {
             (data.data.score ? '<span class="embedscore">' + " · " + Math.floor(data.data.score * 10) + "%" + "</span>" : "");
           const dat = document.createElement("div");
           dat.classList.add("embeddiv");
+          dat.innerHTML = '<a></a>';
           const namediv = document.createElement("div");
           namediv.classList.add("detailsDiv");
           const name = document.createElement("a");
@@ -1304,46 +1306,44 @@ function loadspin(val) {
           historyimg.style.backgroundImage = `url(${imgdata})`;
           historyimg.href = data.data.url;
           data.data.genres.length > 0 ? (genres.style.display = "block") : dat.classList.add("no-genre");
+          namediv.append(name, genres, details);
           dat.appendChild(historyimg);
           dat.appendChild(namediv);
-          namediv.append(name, genres, details);
           return dat;
         }
       } catch (error) {
         console.error("error:", error);
       }
     }
-    //Replace links
-    async function htmlfix(text) {
-      let m = text.match(/(?<!>)\b(https:\/\/)(myanimelist\.net\/(anime|manga)\/)([0-9]+)([^"'<]+)(?=" rel="nofollow">\w)/gm);
-      if (!m) {
-        return text;
-      }
-      for (let x = 0; x < m.length; x++) {
-        if (m.length > 6) {
-          cached ? await delay(33) : await delay(666);
-        } else {
-          cached ? await delay(33) : await delay(333);
-        }
-        const reg = new RegExp("(" + '<a href="' + m[x].replace(/\./g, "\\.").replace(/\//g, "\\/").replace(/\?/g, ".*?") + '".*?>.*?</a>)', "gm");
-        const id = m[x].split("/")[4];
-        if (!id.startsWith('0')) {
-          const type = m[x].split("/")[3];
-          let link = create("a", { href: m[x] });
-          let cont = create("div", { class: "embedLink", id: id, type: type });
-          cont.appendChild(await getimgf(id, type));
-          link.appendChild(cont);
-          text = text.replace(reg, await DOMPurify.sanitize(link));
-          cached ? await delay(33) : await delay(333);
-        }
-      }
-      return text;
-    }
     //Load Embed
     async function embedload() {
       const c = document.querySelectorAll(".message-wrapper > div.content");
       for (let x = 0; x < c.length; x++) {
-        c[x].innerHTML = await htmlfix(c[x].innerHTML);
+        let content = c[x].innerHTML;
+        let matches = content.match(/(?<!Div">)<a href="\b(http:\/\/|https:\/\/)(myanimelist\.net\/(anime|manga)\/)([0-9]+)([^"'<]+)(?=".\w)/gm);
+        if (matches) {
+          let uniqueMatches = Array.from(new Set(matches));
+          for (let i = 0; i < uniqueMatches.length; i++) {
+            let match = uniqueMatches[i];
+            const id = match.split("/")[4];
+            const reg = new RegExp("("+match.replace(/\./g, "\\.").replace(/\//g, "\\/").replace(/\?/g, ".*?") + '".*?>.*?</a>)', "gm");
+            if (!id.startsWith('0')) {
+              const type = match.split("/")[3];
+              let link = create("a", { href: match });
+              let cont = create("div", { class: "embedLink", id: id, type: type });
+              cont.appendChild(await getimgf(id, type));
+              link.appendChild(cont);
+              content = content.replace(reg, await DOMPurify.sanitize(cont));
+              if (matches.length > 6 && i % 6 === 0) {
+                cached ? await delay(10) : await delay(999);
+              } else {
+                cached ? await delay(10) : await delay(333);
+              }
+            }
+            c[x].innerHTML = content;
+          }
+          await delay(999);
+        }
       }
     }
     embedload();
