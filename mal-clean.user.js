@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.19
+// @version     1.20
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -869,29 +869,6 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-//Anilist Profile Loading Spinner
-let v = !1;
-let lv = 0;
-function loadspin(val) {
-  let d = document.querySelector("#fancybox-loading > div");
-  v = val;
-  function l() {
-    lv = lv - 40;
-    if (lv < -440) {
-      lv = 0;
-    }
-    if (d) {
-      d.style.top = lv + "px";
-    }
-  }
-  if (v) {
-    setTimeout(l(), 100);
-    return;
-  } else {
-    return;
-  }
-}
-
 //Main
 (function () {
   "use strict";
@@ -1334,10 +1311,10 @@ function loadspin(val) {
               cont.appendChild(await getimgf(id, type));
               link.appendChild(cont);
               content = content.replace(reg, await DOMPurify.sanitize(cont));
-              if (matches.length > 6 && i % 6 === 0) {
-                cached ? await delay(10) : await delay(999);
+              if (matches.length > 4 && i % 4 === 0) {
+                cached ? await delay(33) : await delay(999);
               } else {
-                cached ? await delay(10) : await delay(333);
+                cached ? await delay(33) : await delay(333);
               }
             }
             c[x].innerHTML = content;
@@ -1366,15 +1343,14 @@ function loadspin(val) {
     });
     let custombg;
     let custompf;
+    const loading = create("div", { class: "actloading",style:{position:"fixed",top:"50%",left:"0",right:"0",fontSize:"16px"}},
+                         "Loading"+'<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>');
+    document.body.append(loading);
     shadow.setAttribute('style', 'background: linear-gradient(180deg,rgba(6,13,34,0) 40%,rgba(6,13,34,.6));height: 100%;left: 0;position: absolute;top: 0;width: 100%;');
     banner.append(shadow);
     findbg();
     async function findbg() {
       //Get Custom Background Image and Custom Profile Image Data from About Section
-      if (document.querySelector('#fancybox-loading')) {
-        document.querySelector('#fancybox-loading').style.setProperty('display', 'block', 'important');
-        loadspin(true);
-      }
       let regex = /(custombg)\/([^"]+)/gm;
       let regex2 = /(custompf)\/([^"]+)/gm;
       let about = document.querySelector('.user-profile-about.js-truncate-outer');
@@ -1483,7 +1459,8 @@ function loadspin(val) {
         .profile-about-user.js-truncate-inner img,.user-comments .comment .text .comment-text .userimg{-webkit-box-shadow:none!important;box-shadow:none!important}
         .user-profile .user-friends {display: -webkit-box;display: -webkit-flex;display: -ms-flexbox;display: flex;-webkit-box-pack: start;-webkit-justify-content: start;-ms-flex-pack: start;justify-content: start}
         .user-profile .user-friends .icon-friend {margin: 5px!important;}
-        .favs{-webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;display: -ms-grid!important;background-color: var(--color-foreground);
+        .favs{justify-items: center;-webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
+        box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;display: -ms-grid!important;background-color: var(--color-foreground);
         padding:5px;display: grid!important;grid-gap: 5px 5px!important;grid-template-columns: repeat(auto-fill, 76px)!important;-webkit-box-pack: space-evenly!important;-ms-flex-pack: space-evenly!important;
         -webkit-justify-content: space-evenly!important;justify-content: space-evenly!important;margin-bottom: 12px!important;-webkit-border-radius: var(--br);border-radius: var(--br);}
         .word-break img, .dark-mode .profile .user-profile-about .userimg, .profile .user-profile-about .userimg,
@@ -1498,7 +1475,13 @@ function loadspin(val) {
         .historyimg{background-size:cover;margin-left: -10px;height: 69px;width:50px;margin-top: -9px;margin-right: 10px;padding-right: 5px;}
         .historydiv {height: 50px;background-color: var(--color-foreground);margin: 10px 5px;padding: 10px;-webkit-border-radius: var(--br);border-radius: var(--br);display: -webkit-box;display: -webkit-flex;
         display: -ms-flexbox;display: flex;-webkit-box-pack: justify;-webkit-justify-content: space-between;-ms-flex-pack: justify;justify-content: space-between;overflow: hidden;}
-        #horiznav_nav .navactive {color: var(--color-text)!important;background: var(--color-foreground2)!important;padding: 5px!important;}`;
+        #horiznav_nav .navactive {color: var(--color-text)!important;background: var(--color-foreground2)!important;padding: 5px!important;}
+        .favTooltip {text-indent:0;transition:.4s;position: absolute;background-color: var(--color-foreground4);color: var(--color-text);
+        padding: 5px;border-radius: 6px;opacity:0;width: max-content;left: 0;right: 0;margin: auto;max-width: 420px;}
+        .favs .btn-fav {overflow:hidden}.favs .btn-fav:hover, .user-badge:hover, .icon-friend:hover {overflow:visible!important}
+        .favs .btn-fav:hover .favTooltip,.user-badge:hover .favTooltip, .icon-friend:hover .favTooltip{opacity:1}
+        .user-profile .user-badges .user-badge:hover,.user-profile .user-friends .icon-friend:hover,.user-profile .user-friends .icon-friend:active{opacity:1!important}
+        .dark-mode .user-profile .user-badges .user-badge,.user-profile .user-badges .user-badge {margin:3.5px!important;}`;
         var fixstylesheet = document.createElement('style');
         fixstylesheet.innerText = fixstyle.replace(/\n/g, '');
         document.head.appendChild(fixstylesheet);
@@ -1510,7 +1493,7 @@ function loadspin(val) {
           let c = l ? l - 12 : 0;
           let length = l ? l : 12;
           let head = create("h2", { class: "mt16" }, "Activity");
-          let loading = create("div", { class: "actloading" },"Loading"+'<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-size:12px;font-family:FontAwesome"></i>');
+          const loading = create("div", { class: "actloading" },"Loading"+'<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-size:12px;font-family:FontAwesome"></i>');
           const html = await fetch("https://myanimelist.net/history/"+username)
           .then((response) => response.text())
           .then(async(data) => {
@@ -1565,7 +1548,7 @@ function loadspin(val) {
                 });
               }
               else {
-                wait = 666;
+                wait = 999;
                 await getimg(url);
               }
               dat.append(historyimg, name);
@@ -1658,9 +1641,7 @@ function loadspin(val) {
         set(1, "#content > table > tbody > tr > td.pl8 > #horiznav_nav", { r: { 0: 0 } });
         set(1, ".container-right #horiznav_nav", { r: { 0: 0 } });
         document.querySelector("#contentWrapper").setAttribute("style", "width: 1375px;max-width: 1375px!important;min-width:500px; margin: auto;top: -40px;transition:.6s");
-        if (document.querySelector("#fancybox-loading")) {
-          document.querySelector("#fancybox-loading").style.setProperty("display", "");
-        }
+        loading.remove();
         let more = document.querySelector(".btn-truncate.js-btn-truncate");
         if (more) {
           more.setAttribute("data-height", '{"outer":1000,"inner":5000}');
@@ -1703,8 +1684,36 @@ function loadspin(val) {
               }
             }
           }
+          let userFavs = document.querySelectorAll("li.btn-fav");
+          let userBadges = document.querySelectorAll(".user-badge");
+          let userFriends = document.querySelectorAll(".icon-friend");
+          let collection = Array.from(userFavs).concat(Array.from(userBadges), Array.from(userFriends));
+          for (let btnFav of collection) {
+            btnFav.tagName === "A" ? btnFav.innerText = "" : "";
+            btnFav.style.position = "relative";
+            btnFav.style.display = "flex";
+            btnFav.style.justifyContent = "center";
+            if(btnFav.attributes.title){
+              btnFav.setAttribute("data-title",btnFav.attributes.title.textContent);
+              btnFav.removeAttribute("title");
+            }
+            let title = btnFav.getAttribute("data-title");
+            if (title) {
+              let tt = document.createElement("div");
+              tt.className="favTooltip";
+              tt.textContent = title;
+              btnFav.prepend(tt);
+              btnFav.tagName === "A" || btnFav.classList[0] && btnFav.classList[0] === "user-badge" ? tt.style.marginTop = "-5px" : "";
+              tt.style.top = -tt.offsetHeight+"px";
+            }
+          };
           document.querySelector(".container-right > h2.mb12").remove();
           set(1, ".container-right > .btn-favmore", { r: { 0: 0 } });
+          set(2, "ul.user-status.border-top h5", { sal: { 0: "font-size: 11px;margin-bottom: 8px;margin-left: 2px;" } });
+          const favHeader = document.querySelectorAll('ul.user-status.border-top h5');
+          for(let i = 0; i < favHeader.length; i++) {
+            favHeader[i].innerText = favHeader[i].innerText.replace(/ (.*)/, '');
+          }
           set(1, ".favs", { sap: { 0: "box-shadow: none!important;" } });
           gethistory();
         }
@@ -1741,6 +1750,9 @@ function loadspin(val) {
         table.prepend(title);
       }
     }
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+    },1000);
   }
   //Profile Section //--END--//
 
@@ -1852,7 +1864,7 @@ function loadspin(val) {
     });
 
     //Left Side
-    if ($('h2:contains("Alternative Titles"):last')) {
+    if ($('h2:contains("Alternative Titles"):last').length > 0) {
       $('h2:contains("Alternative Titles"):last').addClass('AlternativeTitlesDiv');
     $(".AlternativeTitlesDiv").nextUntil('br').addClass("spaceit-shadow-end").addClass("mb8");
       document.querySelector('.AlternativeTitlesDiv').nextElementSibling.setAttribute('style', 'border-radius:var(--br);margin-bottom:2px');
@@ -2195,58 +2207,69 @@ function loadspin(val) {
           return entries.map((e, i) => {
             //try to fix video order
             let u = null;
-            let c = 0;
-            let s = 1;
-            for (let x = 0; x < videos.length;) {
+            for (let x = 0; x < videos.length;x++) {
             let m = 0;
-              let title = cleanTitle(e).replace(/\((.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1').replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').trim();
-              let title2 =  videos[x].song.title.replace(/\((.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1').replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').trim();
+              let title = cleanTitle(e).replace(/\((.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1')
+              .replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').replace(/[^\w\s]/gi, '').trim();
+              let title2 =  videos[x].song.title ? videos[x].song.title.replace(/\((.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1')
+              .replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').replace(/[^\w\s]/gi, '').trim() : null;
               if (m === 0 && videos[x].sequence) {
-                if (i + 1 === videos[x].sequence && stringSimilarity(title, videos[x].song.title) > .8 || i === videos[x].sequence && stringSimilarity(title, title2) > .8) {
+                if (i + 1 === videos[x].sequence && stringSimilarity(title, videos[x].song.title) > .8 ||
+                    i === videos[x].sequence && stringSimilarity(title, title2) > .8 ||
+                    i + 1 === videos[x].sequence && stringSimilarity(title, title2) > .8 ||
+                    i + 2 === videos[x].sequence && stringSimilarity(title, title2) > .8) {
                   u = videos[x].animethemeentries[0].videos[0].link;
                   m = 1;
                 }
               }
-              if (m === 0 && !videos[x].sequence && videos[x].slug) {
+
+              if(m === 0  && videos[x].song.artists !== null && videos[x].song.artists[0] && videos[x].song.title !== null) {
+                let artist = cleanTitle(e).replace(/\(([^CV: ].*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$3').replace(/( feat\. | feat\.| ft\. )/g,', ').replace(/["']/g, '').replace(/\s\[.*\]/gm, '').trim();
+                let artists = [];
+                let matches = [];
+                let match;
+                for(let y = 0; y < videos[x].song.artists.length;y++){
+                  artists.push(videos[x].song.artists[y].name.replace(/\((.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$3').replace(/( feat\. | feat\.| ft\. )/g,', ').replace(/["']/g, '').replace(/\s\[.*\]/gm, '').trim())
+                }
+                artists = artists.join(", ");
+                const cv = /\(CV: ([^\)]+)\)/g;
+                if(artist.match(cv)) {
+                  while ((match = cv.exec(artist)) !== null) {
+                    matches.push(match[1]);
+                  }
+                  matches = matches.join(", ");
+                  if(m === 0 && stringSimilarity(artists, matches) > .85 || m === 0 && stringSimilarity(artist, artists) > .85) {
+                    if (stringSimilarity(title, videos[x].song.title) > .8 || i === videos[x].sequence && stringSimilarity(title, title2) > .8) {
+                      u = videos[x].animethemeentries[0].videos[0].link;
+                      m = 1;
+                    }
+                  }
+                }
+                else {
+                  if(m === 0 && stringSimilarity(artist, artists) > .85) {
+                    if (stringSimilarity(title, videos[x].song.title) > .8 || i === videos[x].sequence && stringSimilarity(title, title2) > .8) {
+                      u = videos[x].animethemeentries[0].videos[0].link;
+                      m = 1;
+                    }
+                  }
+                }
+              }
+              if (m === 0 && !videos[x].sequence && !videos[x].song.artists[0] && videos[x].slug) {
                 if(anisongdata && anisongdata.openings.length > 0 && videos[x].type === "OP"){
                   let n = videos[x].slug.replace(/(OP)(.*\d)(.*)/g, '$2');
-                  if (n === s) {
+                  if (n === (i + 1).toString()) {
                   u = videos[x].animethemeentries[0].videos[0].link;
                   m = 1;
                   }
                 }
                 if(anisongdata && anisongdata.endings.length > 0 && videos[x].type === "ED"){
                   let n = videos[x].slug.replace(/(ED)(.*\d)(.*)/g, '$2');
-
-                  if (n === s) {
+                  if (n === (i + 1).toString()) {
                   u = videos[x].animethemeentries[0].videos[0].link;
                   m = 1;
                   }
                 }
               }
-              if (!videos[x].sequence && videos.length < 10 && m === 0 && videos[x].song.title !== null) {
-                if (cleanTitle(e).match(videos[x].song.title)) {
-                  u = videos[x].animethemeentries[0].videos[0].link;
-                  m = 1;
-                }
-                if(m === 0) {
-                  if(m === 0 && stringSimilarity(title, title2) > .85){
-                    u = videos[x].animethemeentries[0].videos[0].link;
-                    m = 1;
-                  }
-                }
-              }
-               if(!videos[x].sequence && videos.length < 10 && m === 0  &&  videos[x].song.artists !== null && videos[x].song.artists[0]) {
-                  let artist = cleanTitle(e).replace(/\((.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1').replace(/(.*)( feat. | ft. )(.*)/g,'$2').replace(/["']/g, '').trim();
-                  let artist2 = videos[x].song.artists[0].name.replace(/\((.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1').replace(/(.*)( feat. | ft. )(.*)/g,'$2').replace(/["']/g, '').trim();
-                  if(m === 0 && stringSimilarity(artist, artist2) > .9){
-                    u = videos[x].animethemeentries[0].videos[0].link;
-                    m = 1;
-                  }
-                }
-              s++;
-              c++;
-              x++;
             }
             return {
               title: cleanTitle(e),
