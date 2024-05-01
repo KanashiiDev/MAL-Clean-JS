@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.20
+// @version     1.21
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -1220,6 +1220,11 @@ function delay(ms) {
         }
         if (cache.time + options.cacheTTL < +new Date()) {
           const response = await fetch(apiUrl);
+          if(!response) {
+            setTimeout(async function () {
+              await fetch(apiUrl);
+            }, 2000);
+          }
           data = await response.json();
           const publishedYear = data.data.published?.prop?.from?.year;
           const airedYear = data.data.aired?.prop?.from?.year;
@@ -1303,7 +1308,7 @@ function delay(ms) {
           for (let i = 0; i < uniqueMatches.length; i++) {
             let match = uniqueMatches[i];
             const id = match.split("/")[4];
-            const reg = new RegExp("("+match.replace(/\./g, "\\.").replace(/\//g, "\\/").replace(/\?/g, ".*?") + '".*?>.*?</a>)', "gm");
+            const reg = new RegExp("("+match.replace(/\./g, "\\.").replace(/\//g, "\\/").replace(/\?/g, ".*?") + '".*?>.*?</a>)', "gms");
             if (!id.startsWith('0')) {
               const type = match.split("/")[3];
               let link = create("a", { href: match });
@@ -1464,7 +1469,9 @@ function delay(ms) {
         padding:5px;display: grid!important;grid-gap: 5px 5px!important;grid-template-columns: repeat(auto-fill, 76px)!important;-webkit-box-pack: space-evenly!important;-ms-flex-pack: space-evenly!important;
         -webkit-justify-content: space-evenly!important;justify-content: space-evenly!important;margin-bottom: 12px!important;-webkit-border-radius: var(--br);border-radius: var(--br);}
         .word-break img, .dark-mode .profile .user-profile-about .userimg, .profile .user-profile-about .userimg,
-        .profile .user-profile-about a .userimg,.profile .user-profile-about .userimg.img-a-r {max-width: 420px;-webkit-box-shadow: none!important;box-shadow: none!important;}
+        .profile .user-profile-about a .userimg,.profile .user-profile-about .userimg.img-a-r {max-width: 100%;-webkit-box-shadow: none!important;box-shadow: none!important;}
+        .profile .user-profile-about .quotetext{margin-left:0px;max-width:100%}
+        .profile .user-profile-about iframe {max-width:100%}
         .profile .user-profile-about input.button {white-space: break-spaces;}
         #modern-about-me-inner {overflow:hidden}
          #modern-about-me-inner > *, #modern-about-me-inner .l-mainvisual {max-width:420px!important}
@@ -1476,12 +1483,13 @@ function delay(ms) {
         .historydiv {height: 50px;background-color: var(--color-foreground);margin: 10px 5px;padding: 10px;-webkit-border-radius: var(--br);border-radius: var(--br);display: -webkit-box;display: -webkit-flex;
         display: -ms-flexbox;display: flex;-webkit-box-pack: justify;-webkit-justify-content: space-between;-ms-flex-pack: justify;justify-content: space-between;overflow: hidden;}
         #horiznav_nav .navactive {color: var(--color-text)!important;background: var(--color-foreground2)!important;padding: 5px!important;}
-        .favTooltip {text-indent:0;transition:.4s;position: absolute;background-color: var(--color-foreground4);color: var(--color-text);
-        padding: 5px;border-radius: 6px;opacity:0;width: max-content;left: 0;right: 0;margin: auto;max-width: 420px;}
+        .favTooltip {text-indent:0;-webkit-transition:.4s;-o-transition:.4s;transition:.4s;position: absolute;background-color: var(--color-foreground4);color: var(--color-text);
+        padding: 5px;-webkit-border-radius: 6px;border-radius: 6px;opacity:0;width: -webkit-max-content;width: -moz-max-content;width: max-content;left: 0;right: 0;margin: auto;max-width: 420px;}
         .favs .btn-fav {overflow:hidden}.favs .btn-fav:hover, .user-badge:hover, .icon-friend:hover {overflow:visible!important}
         .favs .btn-fav:hover .favTooltip,.user-badge:hover .favTooltip, .icon-friend:hover .favTooltip{opacity:1}
         .user-profile .user-badges .user-badge:hover,.user-profile .user-friends .icon-friend:hover,.user-profile .user-friends .icon-friend:active{opacity:1!important}
-        .dark-mode .user-profile .user-badges .user-badge,.user-profile .user-badges .user-badge {margin:3.5px!important;}`;
+        .dark-mode .user-profile .user-badges .user-badge,.user-profile .user-badges .user-badge {margin:3.5px!important;}
+        .max{max-height:99999px!important}`;
         var fixstylesheet = document.createElement('style');
         fixstylesheet.innerText = fixstyle.replace(/\n/g, '');
         document.head.appendChild(fixstylesheet);
@@ -1583,10 +1591,12 @@ function delay(ms) {
         document.querySelector("#contentWrapper").insertAdjacentElement("beforebegin", banner);
         banner.append(container);
         container.append(avatar);
-        if (set(0, about, { sa: { 0: "margin-bottom: 20px;width: auto;background: var(--color-foreground);padding: 10px;border-radius: var(--br);max-height:5000px" } })) {
+        about ? about.classList.add("max") : null;
+        modernabout ? modernabout.classList.add("max") : null;
+        if (set(0, about, { sa: { 0: "margin-bottom: 20px;width: auto;background: var(--color-foreground);padding: 10px;border-radius: var(--br);" } })) {
           document.querySelector("#content > div > div.container-left > div > ul.user-status.border-top.pb8.mb4").insertAdjacentElement("beforebegin", about);
         }
-        if (set(0, modernabout, { sa: { 0: "margin-bottom: 20px;width: auto;background: var(--color-foreground);padding: 10px;border-radius: var(--br);max-height:5000px" } })) {
+        if (set(0, modernabout, { sa: { 0: "margin-bottom: 20px;width: auto;background: var(--color-foreground);padding: 10px;border-radius: var(--br);" } })) {
           document.querySelector("#content > div > div.container-left > div > ul.user-status.border-top.pb8.mb4").insertAdjacentElement("beforebegin", modernabout);
           let l = document.querySelectorAll(".l-listitem");
           let a = "max-width:492px;max-height:492px";
@@ -1618,6 +1628,10 @@ function delay(ms) {
         container.append(document.querySelector(".user-function.mb8"));
         set(1, "a.btn-profile-submit.fl-l", { sa: { 0: "width:50%" } });
         set(1, "a.btn-profile-submit.fl-r", { sa: { 0: "width:50%" } });
+
+        if (set(1, ".user-profile-about.js-truncate-outer .btn-truncate.js-btn-truncate", { sa: { 0: "display:none" } })) {
+          set(1, ".user-profile-about.js-truncate-outer .btn-truncate.js-btn-truncate", { sa: { 0: "display:none" } });
+        }
         if (set(1, ".bar-outer.anime", { sa: { 0: "width:100%" } })) {
           set(1, ".bar-outer.manga", { sa: { 0: "width:100%" } });
         }
@@ -1644,7 +1658,7 @@ function delay(ms) {
         loading.remove();
         let more = document.querySelector(".btn-truncate.js-btn-truncate");
         if (more) {
-          more.setAttribute("data-height", '{"outer":1000,"inner":5000}');
+          more.setAttribute("data-height", '{"outer":1000,"inner":90000}');
         }
         let s = document.querySelector("#statistics");
         if (s) {
@@ -1750,15 +1764,22 @@ function delay(ms) {
         table.prepend(title);
       }
     }
-    setTimeout(() => {
-      window.scrollTo(0, 0);
-    },1000);
+    if (document.readyState !== 'loading') {
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+      },1000);
+    } else {
+      document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+        },1000);
+      });
+    }
   }
   //Profile Section //--END--//
 
   //Character Section //-START-//
   if (/\/(character)\/.?([\w-]+)?\/?/.test(current) && !(/\/(clubs)/.test(current)) && !(/\/(pics)/.test(current))) {
-
     let regex = /(Member Favorites).*/g;
     let match = document.createElement('p');
     let fav = document.querySelector('#content > table > tbody > tr > td.borderClass');
@@ -2026,6 +2047,7 @@ function delay(ms) {
 
   //Anime-Manga Background Color from Cover Image //--START--//
   if (/myanimelist.net\/(anime|manga|character|people)\/?([\w-]+)?\/?/.test(location.href)) {
+    let m;
     if (
       /\/(character.php)\/?([\w-]+)?/.test(current) ||
       /\/(people)\/?([\w-]+)?\/?/.test(current) ||
@@ -2034,8 +2056,9 @@ function delay(ms) {
       (/\/(character)\/?([\w-]+)?\/?/.test(current) && !svar.charbg) ||
       (/\/(anime|manga)\/?([\w-]+)?\/?/.test(current) && !svar.animebg)
     ) {
-      return;
+      m = 1
     }
+    if(!m){
     styleSheet2.innerText = styles2;
     document.head.appendChild(styleSheet2);
     let img = document.querySelector('div:nth-child(1) > a > img');
@@ -2048,33 +2071,24 @@ function delay(ms) {
         //Single Color
         // document.querySelector("body").style.setProperty("background-color", "rgba("+dominantColor[0]+","+dominantColor[1]+","+dominantColor[2]+")", "important");
         //Linear Color
-        let color0 = tinycolor('rgba (' + Palette[2][0] + ', ' + Palette[2][1] + ', ' + Palette[2][2] + ', .8)');
-        let color1 = tinycolor('rgba (' + Palette[1][0] + ', ' + Palette[1][1] + ', ' + Palette[1][2] + ', .8)');
-        let color2 = tinycolor('rgba (' + Palette[0][0] + ', ' + Palette[0][1] + ', ' + Palette[0][2] + ', .8)');
-        //Color Brightness Adjustment Loop
-        for (let x = 0; x < 25; x++) {
-          if (color0.getLuminance() > 0.08) {
-            color0 = tinycolor('rgb (' + color0.darken(2) + ')');
-          } else if (color0.getLuminance() < 0.01) {
-            color0 = tinycolor('rgb (' + color0.brighten(2) + ')');
+        let colors = [];
+        for (let i = 0; i < Palette.length; i++) {
+          let color = tinycolor('rgba(' + Palette[i][0] + ',' + Palette[i][1] + ',' + Palette[i][2] + ', .8)');
+          while(color.getLuminance() > 0.08) {
+            color = color.darken(1)
           }
-          if (color1.getLuminance() > 0.08) {
-            color1 = tinycolor('rgb (' + color1.darken(2) + ')');
-          } else if (color1.getLuminance() < 0.01) {
-            color1 = tinycolor('rgb (' + color1.brighten(2) + ')');
+          while(color.getLuminance() < 0.01) {
+            color = color.brighten(5);
           }
-          if (color2.getLuminance() > 0.08) {
-            color2 = tinycolor('rgb (' + color2.darken(2) + ')');
-          } else if (color2.getLuminance() < 0.01) {
-            color2 = tinycolor('rgb (' + color2.brighten(2) + ')');
-          }
+          colors.push(color);
         }
         document.querySelector('body').style
-          .setProperty('background', 'linear-gradient(180deg, ' + color0.toString() + ' 0%,' + color1.toString() + ' 50%, ' + color2.toString() + ' 100%)', 'important');
+          .setProperty('background', 'linear-gradient(180deg, ' + colors[2].toString() + ' 0%,' + colors[1].toString() + ' 50%, ' + colors[0].toString() + ' 100%)', 'important');
         await delay(200);
         img.removeAttribute('crossorigin');
       });
     });
+    }
   }
   //Anime-Manga Background Color from Cover Image //--END--//
 
@@ -2115,7 +2129,7 @@ function delay(ms) {
       anisongs_temp.last = 0;
     }
     const options = { cacheTTL: 604800000, class: "anisongs" };
-    let anisongdata = 0;
+    let anisongdata,op1,ed1;
     const API = {
       //Get Songs from JikanAPI
       async getSongs(mal_id) {
@@ -2153,7 +2167,6 @@ function delay(ms) {
         this.el = box;
       }
     }
-
     class Videos {
       constructor(id) {
         this.id = id;
@@ -2167,14 +2180,14 @@ function delay(ms) {
           };
         }
         //Sort and Remove Dubbed OP-ED
-        let d = anime[0].animethemes.sort((a, b) => a.sequence - b.sequence);
+        let d = anime ? anime[0].animethemes.sort((a, b) => a.sequence - b.sequence) : null;
         let t = [];
         for (let x = 0; x < d.length; x++) {
           let reg = /Dubbed/;
-          if (d[x].group !== null && !d[x].group.match(reg)) {
+          if (d[x].group && !d[x].group.match(reg)) {
             t.push(d[x]);
           }
-          if (d[x].group === null) {
+          else if (!d[x].group) {
             t.push(d[x]);
           }
         }
@@ -2205,30 +2218,47 @@ function delay(ms) {
         };
         if (videos) {
           return entries.map((e, i) => {
-            //try to fix video order
             let u = null;
             for (let x = 0; x < videos.length;x++) {
-            let m = 0;
-              let title = cleanTitle(e).replace(/\((.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1')
+              let link = videos[x].animethemeentries[0].videos[0].link;
+              let m = 0;
+              let title = cleanTitle(e).replace(/\((?!.*(Ver\.|ver\.))(.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1')
               .replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').replace(/[^\w\s]/gi, '').trim();
-              let title2 =  videos[x].song.title ? videos[x].song.title.replace(/\((.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1')
+              let title2 =  videos[x].song.title ? videos[x].song.title.replace(/\((?!.*(Ver\.|ver\.))(.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1')
               .replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').replace(/[^\w\s]/gi, '').trim() : null;
+              let ep = cleanTitle(e).replace(/(.*).(eps (.*)\))/gm,'$3');
+              let ep2 =  videos[x].animethemeentries[0].episodes ? videos[x].animethemeentries[0].episodes : null;
+              let eps = [];
+              if(videos[x].animethemeentries.length > 1) {
+                for(let y = 0; y < videos[x].animethemeentries.length; y++) {
+                  eps.push(videos[x].animethemeentries[y].episodes);
+                }
+                eps = eps.join("-").split("-").map(Number);
+                eps = eps[0] + "-" + eps[eps.length - 1];
+              }
+              let artistmatch;
+              if(videos[x].type === "OP" && title) {
+                op1 = title;
+              }
+              if(videos[x].type === "ED" && title) {
+                ed1 = title;
+              }
               if (m === 0 && videos[x].sequence) {
-                if (i + 1 === videos[x].sequence && stringSimilarity(title, videos[x].song.title) > .8 ||
-                    i === videos[x].sequence && stringSimilarity(title, title2) > .8 ||
-                    i + 1 === videos[x].sequence && stringSimilarity(title, title2) > .8 ||
-                    i + 2 === videos[x].sequence && stringSimilarity(title, title2) > .8) {
-                  u = videos[x].animethemeentries[0].videos[0].link;
+                if (i + 1 === videos[x].sequence && stringSimilarity(title, videos[x].song.title) > .8) {
+                  u = link;
                   m = 1;
                 }
+                if (i === videos[x].sequence || i + 1 === videos[x].sequence || i + 2 === videos[x].sequence) {
+                  if(stringSimilarity(title, title2) > .8) {
+                  }
+                }
               }
-
-              if(m === 0  && videos[x].song.artists !== null && videos[x].song.artists[0] && videos[x].song.title !== null) {
+              if (m === 0 && videos[x].song.artists !== null && videos[x].song.artists[0] && videos[x].song.title !== null) {
                 let artist = cleanTitle(e).replace(/\(([^CV: ].*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$3').replace(/( feat\. | feat\.| ft\. )/g,', ').replace(/["']/g, '').replace(/\s\[.*\]/gm, '').trim();
                 let artists = [];
                 let matches = [];
                 let match;
-                for(let y = 0; y < videos[x].song.artists.length;y++){
+                for(let y = 0; y < videos[x].song.artists.length;y++) {
                   artists.push(videos[x].song.artists[y].name.replace(/\((.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$3').replace(/( feat\. | feat\.| ft\. )/g,', ').replace(/["']/g, '').replace(/\s\[.*\]/gm, '').trim())
                 }
                 artists = artists.join(", ");
@@ -2238,34 +2268,31 @@ function delay(ms) {
                     matches.push(match[1]);
                   }
                   matches = matches.join(", ");
-                  if(m === 0 && stringSimilarity(artists, matches) > .85 || m === 0 && stringSimilarity(artist, artists) > .85) {
-                    if (stringSimilarity(title, videos[x].song.title) > .8 || i === videos[x].sequence && stringSimilarity(title, title2) > .8) {
-                      u = videos[x].animethemeentries[0].videos[0].link;
-                      m = 1;
-                    }
-                  }
                 }
-                else {
-                  if(m === 0 && stringSimilarity(artist, artists) > .85) {
-                    if (stringSimilarity(title, videos[x].song.title) > .8 || i === videos[x].sequence && stringSimilarity(title, title2) > .8) {
-                      u = videos[x].animethemeentries[0].videos[0].link;
-                      m = 1;
-                    }
+                if (m === 0 && (stringSimilarity(artist, artists) > .85 || matches.length > 0 && stringSimilarity(artists, matches) > .85)) {
+                  artistmatch = 1;
+                  if (stringSimilarity(title, videos[x].song.title) > .8 || i === videos[x].sequence && stringSimilarity(title, title2) > .8) {
+                    u = link;
+                    m = 1;
                   }
                 }
               }
-              if (m === 0 && !videos[x].sequence && !videos[x].song.artists[0] && videos[x].slug) {
-                if(anisongdata && anisongdata.openings.length > 0 && videos[x].type === "OP"){
+              if (m === 0 && (ep === ep2 || ep === eps)) {
+                u = link;
+                m = 1;
+              }
+              if (m === 0 && (videos[x].sequence && artistmatch && videos[x].slug && videos.length < 10 || !videos[x].sequence && videos[x].slug && videos.length < 10)) {
+                if (anisongdata && anisongdata.openings.length > 0 && videos[x].type === "OP"){
                   let n = videos[x].slug.replace(/(OP)(.*\d)(.*)/g, '$2');
-                  if (n === (i + 1).toString()) {
-                  u = videos[x].animethemeentries[0].videos[0].link;
+                  if (n === (i + 1).toString() && (!videos[x].sequence || artistmatch &&  i + 1 === videos[x].sequence)) {
+                  u = link;
                   m = 1;
                   }
                 }
-                if(anisongdata && anisongdata.endings.length > 0 && videos[x].type === "ED"){
+                if (anisongdata && anisongdata.endings.length > 0 && videos[x].type === "ED" && ed1 !== undefined && op1 !== undefined && ed1 !== op1){
                   let n = videos[x].slug.replace(/(ED)(.*\d)(.*)/g, '$2');
-                  if (n === (i + 1).toString()) {
-                  u = videos[x].animethemeentries[0].videos[0].link;
+                  if (!videos[x].sequence && n === (i + 1).toString() || artistmatch && n === (i + 1).toString() &&  i + 1 === videos[x].sequence) {
+                  u = link;
                   m = 1;
                   }
                 }
@@ -2286,27 +2313,14 @@ function delay(ms) {
     }
     function insert(songs, parent) {
       if (!songs || !songs.length) {
-        let song = create(
-          'div',
-          {
-            class: 'song',
-          },
-          '',
-        );
+        let song = create('div',{class: 'song',},'',);
         parent.append(song);
       } else {
         songs.forEach((song, i) => {
           song.title = song.title.replace(/(".*")/, '<b>' + '$1' + '</b>');
           const txt = `${i + 1}. ${song.title || song}`;
-          const node = create(
-            'div',
-            {
-              class: 'theme-songs js-theme-songs',
-            },
-            txt,
-          );
+          const node = create('div', { class: 'theme-songs js-theme-songs',},txt,);
           parent.appendChild(node);
-
           if (song.url) {
             let play = create('div', {class: 'oped-preview-button oped-preview-button-gray'});
             node.prepend(play);
@@ -2331,7 +2345,6 @@ function delay(ms) {
       if (!target) return;
       let el = target.querySelectorAll(`.${options.class}`);
       el.forEach((e) => target.removeChild(e));
-
       $('.rightside.js-scrollfix-bottom-rel > table > tbody > tr:nth-child(3) > td > div.di-t > .di-tc.va-t').remove();
       set(1, '.rightside.js-scrollfix-bottom-rel > table > tbody > tr:nth-child(3) > td > div.di-t', {
         sa: {
@@ -2378,6 +2391,7 @@ function delay(ms) {
       if (cache.time + options.cacheTTL < +new Date()) {
         let mal_id = currentid;
         let status;
+        let _videos;
         const apiUrl = `https://api.jikan.moe/v4/anime/${currentid}`;
         await fetch(apiUrl)
           .then((response) => response.json())
@@ -2391,21 +2405,25 @@ function delay(ms) {
           if (opening_themes.length || ending_themes.length) {
             if (['Finished Airing', 'Currently Airing'].includes(status)) {
               try {
-              anisongdata = data;
-                const _videos = await new Videos(currentid).get();
+                anisongdata = data;
+                _videos = await new Videos(currentid).get();
                 opening_themes = Videos.merge(opening_themes, _videos.OP);
                 ending_themes = Videos.merge(ending_themes, _videos.ED);
               } catch (e) {
                 console.log('Anisongs', e);
               }
             }
+          if (_videos) {
             await songCache.setItem(currentid, { opening_themes, ending_themes, time: +new Date() });
           }
+          }
           // place the data onto site
+          if (await songCache.getItem(currentid)) {
           placeData({
             opening_themes,
             ending_themes,
           });
+          };
           return 'Downloaded songs';
         } else {
           return 'No malid';
