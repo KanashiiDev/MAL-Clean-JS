@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.21
+// @version     1.22
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -342,10 +342,10 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     margin-bottom:-18.5px;
     opacity:0
     }
-    .embeddiv:not(.no-genre):hover .genres {
+.embeddiv:not(.no-genre):hover .genres {
     opacity:1
     }
-    .embeddiv:not(.no-genre):hover .details {
+.embeddiv:not(.no-genre):hover .details {
     opacity:0
     }
 .embedname{
@@ -1203,6 +1203,24 @@ function delay(ms) {
     let acttextfix;
     let id, type, embed, imgdata, data, cached;
     //API Request
+    async function fetchData(url) {
+      return new Promise((resolve, reject) => {
+        setTimeout(async () => {
+          try {
+            const response = await fetch(url);
+            if (!response.ok) {
+              if (response.status === 429) {
+                setTimeout(() => resolve(fetchData(url)), 3000);
+                return;
+              }
+            }
+            resolve(await response.json());
+          } catch (error) {
+            reject(error);
+          }
+        }, 333);
+      });
+    }
     async function getimgf(id, type) {
       let apiUrl = `https://api.jikan.moe/v4/anime/${id}`;
       if (type === "manga") {
@@ -1219,13 +1237,7 @@ function delay(ms) {
           }
         }
         if (cache.time + options.cacheTTL < +new Date()) {
-          const response = await fetch(apiUrl);
-          if(!response) {
-            setTimeout(async function () {
-              await fetch(apiUrl);
-            }, 2000);
-          }
-          data = await response.json();
+          data = await fetchData(apiUrl);
           const publishedYear = data.data.published?.prop?.from?.year;
           const airedYear = data.data.aired?.prop?.from?.year;
           await embedCache.setItem(id, {
@@ -1308,7 +1320,7 @@ function delay(ms) {
           for (let i = 0; i < uniqueMatches.length; i++) {
             let match = uniqueMatches[i];
             const id = match.split("/")[4];
-            const reg = new RegExp("("+match.replace(/\./g, "\\.").replace(/\//g, "\\/").replace(/\?/g, ".*?") + '".*?>.*?</a>)', "gms");
+            const reg = new RegExp("(?<!Div\"\>)("+match.replace(/\./g, "\\.").replace(/\//g, "\\/").replace(/\?/g, ".*?") + '".*?>[a-zA-Z0-9_ ].*?</a>)', "gms");
             if (!id.startsWith('0')) {
               const type = match.split("/")[3];
               let link = create("a", { href: match });
@@ -1485,7 +1497,8 @@ function delay(ms) {
         #horiznav_nav .navactive {color: var(--color-text)!important;background: var(--color-foreground2)!important;padding: 5px!important;}
         .favTooltip {text-indent:0;-webkit-transition:.4s;-o-transition:.4s;transition:.4s;position: absolute;background-color: var(--color-foreground4);color: var(--color-text);
         padding: 5px;-webkit-border-radius: 6px;border-radius: 6px;opacity:0;width: -webkit-max-content;width: -moz-max-content;width: max-content;left: 0;right: 0;margin: auto;max-width: 420px;}
-        .favs .btn-fav {overflow:hidden}.favs .btn-fav:hover, .user-badge:hover, .icon-friend:hover {overflow:visible!important}
+        .favs .btn-fav, .user-badge, .icon-friend {overflow:hidden}
+        .favs .btn-fav:hover, .user-badge:hover, .icon-friend:hover {overflow:visible!important}
         .favs .btn-fav:hover .favTooltip,.user-badge:hover .favTooltip, .icon-friend:hover .favTooltip{opacity:1}
         .user-profile .user-badges .user-badge:hover,.user-profile .user-friends .icon-friend:hover,.user-profile .user-friends .icon-friend:active{opacity:1!important}
         .dark-mode .user-profile .user-badges .user-badge,.user-profile .user-badges .user-badge {margin:3.5px!important;}
@@ -2222,11 +2235,11 @@ function delay(ms) {
             for (let x = 0; x < videos.length;x++) {
               let link = videos[x].animethemeentries[0].videos[0].link;
               let m = 0;
-              let title = cleanTitle(e).replace(/\((?!.*(Ver\.|ver\.))(.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1')
+              let title = cleanTitle(e).replace(/(\w\d+\: |)/gm,'').replace(/\((?!.*(Ver\.|ver\.))(.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1')
               .replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').replace(/[^\w\s]/gi, '').trim();
               let title2 =  videos[x].song.title ? videos[x].song.title.replace(/\((?!.*(Ver\.|ver\.))(.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1')
               .replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').replace(/[^\w\s]/gi, '').trim() : null;
-              let ep = cleanTitle(e).replace(/(.*).(eps (.*)\))/gm,'$3');
+              let ep = cleanTitle(e).replace(/(.*).(eps (\w.*\ |)(.*)\))/gm,'$4');
               let ep2 =  videos[x].animethemeentries[0].episodes ? videos[x].animethemeentries[0].episodes : null;
               let eps = [];
               if(videos[x].animethemeentries.length > 1) {
