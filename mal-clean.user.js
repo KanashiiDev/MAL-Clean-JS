@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.22
+// @version     1.23
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -891,7 +891,9 @@ function delay(ms) {
       }
       let idArray = [];
       let ep, left, infoData;
-      let user = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit.link-bg.pl8.pr8 > a").innerText;
+      let user = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit.link-bg.pl8.pr8 > a");
+      user = user ? user.innerText : null;
+      if(user) {
       const watchdiv = create("article", { class: "widget-container left", id: "currently-watching" });
       watchdiv.innerHTML =
         '<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span><h2 class="index_h2_seo"><a href="https://myanimelist.net/animelist/' +
@@ -1053,6 +1055,7 @@ function delay(ms) {
             });
           }
         });
+    }
     }
   }
     //Currently Watching //--END--//
@@ -1311,7 +1314,7 @@ function delay(ms) {
     }
     //Load Embed
     async function embedload() {
-      const c = document.querySelectorAll(".message-wrapper > div.content");
+      const c = document.querySelectorAll(".message-wrapper > div.content").length > 0 ? document.querySelectorAll(".message-wrapper > div.content") : document.querySelectorAll(".forum.thread .message");
       for (let x = 0; x < c.length; x++) {
         let content = c[x].innerHTML;
         let matches = content.match(/(?<!Div">)<a href="\b(http:\/\/|https:\/\/)(myanimelist\.net\/(anime|manga)\/)([0-9]+)([^"'<]+)(?=".\w)/gm);
@@ -1337,6 +1340,9 @@ function delay(ms) {
             c[x].innerHTML = content;
           }
           await delay(999);
+        }
+        if(c[x].className === "message" && !c[x].id) {
+          c[x].remove();
         }
       }
     }
@@ -1737,6 +1743,7 @@ function delay(ms) {
           document.querySelector(".container-right > h2.mb12").remove();
           set(1, ".container-right > .btn-favmore", { r: { 0: 0 } });
           set(2, "ul.user-status.border-top h5", { sal: { 0: "font-size: 11px;margin-bottom: 8px;margin-left: 2px;" } });
+          set(2, ".container-left h4", { sal: { 0: "font-size: 11px;margin-left: 2px;" } });
           const favHeader = document.querySelectorAll('ul.user-status.border-top h5');
           for(let i = 0; i < favHeader.length; i++) {
             favHeader[i].innerText = favHeader[i].innerText.replace(/ (.*)/, '');
@@ -1900,7 +1907,11 @@ function delay(ms) {
     //Left Side
     if ($('h2:contains("Alternative Titles"):last').length > 0) {
       $('h2:contains("Alternative Titles"):last').addClass('AlternativeTitlesDiv');
-    $(".AlternativeTitlesDiv").nextUntil('br').addClass("spaceit-shadow-end").addClass("mb8");
+      if($("a.viewOpEdMore.js-anime-toggle-alternative-title-button").length > 0) {
+        $(".AlternativeTitlesDiv").nextUntil('a').addClass("spaceit-shadow-end").addClass("mb8");
+      } else {
+        $(".AlternativeTitlesDiv").nextUntil('br').addClass("spaceit-shadow-end");
+      }
       document.querySelector('.AlternativeTitlesDiv').nextElementSibling.setAttribute('style', 'border-radius:var(--br);margin-bottom:2px');
       $('span:contains("Synonyms")').parent().next().css({
         borderRadius: 'var(--br)',
@@ -2071,20 +2082,32 @@ function delay(ms) {
     ) {
       m = 1
     }
-    if(!m){
-    styleSheet2.innerText = styles2;
-    document.head.appendChild(styleSheet2);
-    let img = document.querySelector('div:nth-child(1) > a > img');
-    var colorThief = new ColorThief();
+    if(!m) {
+      styleSheet2.innerText = styles2;
+      document.head.appendChild(styleSheet2);
+      let img = document.querySelector('div:nth-child(1) > a > img');
+      let colorThief = new ColorThief();
+      let dominantColor,Palette,t;
+      let colors = [];
+      async function r () {
+        if(!t) {
+          img.setAttribute('crossorigin', 'anonymous');
+          Palette = colorThief.getPalette(img, 10, 5);
+          await delay(25);
+          if(!Palette) {
+            return r();
+          }
+          img.removeAttribute('crossorigin');
+          t = !t;
+        }
+      }
     $(document).ready( async function ($) {
-      img.setAttribute('crossorigin', 'anonymous');
       $(img).load(async function () {
-        var dominantColor = colorThief.getColor(img);
-        var Palette = colorThief.getPalette(img, 10, 5);
+        await r();
         //Single Color
+        // colorThief.getColor(img) ? dominantColor = colorThief.getColor(img) : dominantColor = null;
         // document.querySelector("body").style.setProperty("background-color", "rgba("+dominantColor[0]+","+dominantColor[1]+","+dominantColor[2]+")", "important");
         //Linear Color
-        let colors = [];
         for (let i = 0; i < Palette.length; i++) {
           let color = tinycolor('rgba(' + Palette[i][0] + ',' + Palette[i][1] + ',' + Palette[i][2] + ', .8)');
           while(color.getLuminance() > 0.08) {
@@ -2097,8 +2120,6 @@ function delay(ms) {
         }
         document.querySelector('body').style
           .setProperty('background', 'linear-gradient(180deg, ' + colors[2].toString() + ' 0%,' + colors[1].toString() + ' 50%, ' + colors[0].toString() + ' 100%)', 'important');
-        await delay(200);
-        img.removeAttribute('crossorigin');
       });
     });
     }
@@ -2233,46 +2254,48 @@ function delay(ms) {
           return entries.map((e, i) => {
             let u = null;
             for (let x = 0; x < videos.length;x++) {
-              let link = videos[x].animethemeentries[0].videos[0].link;
+              let vid = videos[x];
+              let link = vid.animethemeentries[0].videos[0].link;
               let m = 0;
               let title = cleanTitle(e).replace(/(\w\d+\: |)/gm,'').replace(/\((?!.*(Ver\.|ver\.))(.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1')
-              .replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').replace(/[^\w\s]/gi, '').trim();
-              let title2 =  videos[x].song.title ? videos[x].song.title.replace(/\((?!.*(Ver\.|ver\.))(.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1')
-              .replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').replace(/[^\w\s]/gi, '').trim() : null;
-              let ep = cleanTitle(e).replace(/(.*).(eps (\w.*\ |)(.*)\))/gm,'$4');
-              let ep2 =  videos[x].animethemeentries[0].episodes ? videos[x].animethemeentries[0].episodes : null;
+              .replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').replace(/<.*>/g, '').replace(/[^\w\s]/gi, '').trim();
+              let title2 =  vid.song.title ? vid.song.title.replace(/\((?!.*(Ver\.|ver\.))(.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1')
+              .replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').replace(/<.*>/g, '').replace(/[^\w\s]/gi, '').trim() : null;
+              let ep = cleanTitle(e).replace(/(.*).(eps (\w.*\ |)(.*)\))/gm,'$4').replace(/\s/g, '');
+              let epdata = vid.animethemeentries[0].episodes;
+              let ep2 = epdata && (epdata.constructor !== Array || epdata.length === 1) ? (epdata.constructor !== Array ? epdata.replace(/\s/g, '') : epdata) : null;
               let eps = [];
-              if(videos[x].animethemeentries.length > 1) {
-                for(let y = 0; y < videos[x].animethemeentries.length; y++) {
-                  eps.push(videos[x].animethemeentries[y].episodes);
+              if(vid.animethemeentries.length > 1) {
+                for(let y = 0; y < vid.animethemeentries.length; y++) {
+                  eps.push(vid.animethemeentries[y].episodes);
                 }
                 eps = eps.join("-").split("-").map(Number);
                 eps = eps[0] + "-" + eps[eps.length - 1];
               }
               let artistmatch;
-              if(videos[x].type === "OP" && title) {
+              if(vid.type === "OP" && title) {
                 op1 = title;
               }
-              if(videos[x].type === "ED" && title) {
+              if(vid.type === "ED" && title) {
                 ed1 = title;
               }
-              if (m === 0 && videos[x].sequence) {
-                if (i + 1 === videos[x].sequence && stringSimilarity(title, videos[x].song.title) > .8) {
+              if (m === 0 && vid.sequence) {
+                if (i + 1 === vid.sequence && stringSimilarity(title, vid.song.title) > .8) {
                   u = link;
                   m = 1;
                 }
-                if (i === videos[x].sequence || i + 1 === videos[x].sequence || i + 2 === videos[x].sequence) {
+                if (i === vid.sequence || i + 1 === vid.sequence || i + 2 === vid.sequence) {
                   if(stringSimilarity(title, title2) > .8) {
                   }
                 }
               }
-              if (m === 0 && videos[x].song.artists !== null && videos[x].song.artists[0] && videos[x].song.title !== null) {
+              if (m === 0 && vid.song.artists !== null && vid.song.artists[0] && vid.song.title !== null) {
                 let artist = cleanTitle(e).replace(/\(([^CV: ].*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$3').replace(/( feat\. | feat\.| ft\. )/g,', ').replace(/["']/g, '').replace(/\s\[.*\]/gm, '').trim();
                 let artists = [];
                 let matches = [];
                 let match;
-                for(let y = 0; y < videos[x].song.artists.length;y++) {
-                  artists.push(videos[x].song.artists[y].name.replace(/\((.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$3').replace(/( feat\. | feat\.| ft\. )/g,', ').replace(/["']/g, '').replace(/\s\[.*\]/gm, '').trim())
+                for(let y = 0; y < vid.song.artists.length;y++) {
+                  artists.push(vid.song.artists[y].name.replace(/\((.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$3').replace(/( feat\. | feat\.| ft\. )/g,', ').replace(/["']/g, '').replace(/\s\[.*\]/gm, '').trim())
                 }
                 artists = artists.join(", ");
                 const cv = /\(CV: ([^\)]+)\)/g;
@@ -2284,7 +2307,7 @@ function delay(ms) {
                 }
                 if (m === 0 && (stringSimilarity(artist, artists) > .85 || matches.length > 0 && stringSimilarity(artists, matches) > .85)) {
                   artistmatch = 1;
-                  if (stringSimilarity(title, videos[x].song.title) > .8 || i === videos[x].sequence && stringSimilarity(title, title2) > .8) {
+                  if (stringSimilarity(title, vid.song.title) > .8 || i === vid.sequence && stringSimilarity(title, title2) > .8 || !vid.sequence && stringSimilarity(title, title2) > .8) {
                     u = link;
                     m = 1;
                   }
@@ -2294,21 +2317,25 @@ function delay(ms) {
                 u = link;
                 m = 1;
               }
-              if (m === 0 && (videos[x].sequence && artistmatch && videos[x].slug && videos.length < 10 || !videos[x].sequence && videos[x].slug && videos.length < 10)) {
-                if (anisongdata && anisongdata.openings.length > 0 && videos[x].type === "OP"){
-                  let n = videos[x].slug.replace(/(OP)(.*\d)(.*)/g, '$2');
-                  if (n === (i + 1).toString() && (!videos[x].sequence || artistmatch &&  i + 1 === videos[x].sequence)) {
+              if (m === 0 && (vid.sequence && artistmatch && vid.slug && videos.length < 10 || !vid.sequence && vid.slug && videos.length < 10)) {
+                if (anisongdata && anisongdata.openings.length > 0 && vid.type === "OP"){
+                  let n = vid.slug.replace(/(OP)(.*\d)(.*)/g, '$2');
+                  if (n === (i + 1).toString() && (!vid.sequence || artistmatch &&  i + 1 === vid.sequence)) {
                   u = link;
                   m = 1;
                   }
                 }
-                if (anisongdata && anisongdata.endings.length > 0 && videos[x].type === "ED" && ed1 !== undefined && op1 !== undefined && ed1 !== op1){
-                  let n = videos[x].slug.replace(/(ED)(.*\d)(.*)/g, '$2');
-                  if (!videos[x].sequence && n === (i + 1).toString() || artistmatch && n === (i + 1).toString() &&  i + 1 === videos[x].sequence) {
+                if (anisongdata && anisongdata.endings.length > 0 && vid.type === "ED" && ed1 !== undefined && op1 !== undefined && ed1 !== op1){
+                  let n = vid.slug.replace(/(ED)(.*\d)(.*)/g, '$2');
+                  if (!vid.sequence && n === (i + 1).toString() || artistmatch && n === (i + 1).toString() &&  i + 1 === vid.sequence) {
                   u = link;
                   m = 1;
                   }
                 }
+              }
+              if(m === 0 && artistmatch && videos.length === 1) {
+                u = link;
+                m = 1;
               }
             }
             return {
