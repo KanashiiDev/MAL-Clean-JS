@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.24
+// @version     1.25
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -197,6 +197,8 @@ let svar = {
   peopleHeader: true,
   animeHeader: true,
   animeBanner: true,
+  animeTag: true,
+  animeRelation: true,
   characterHeader: true,
   characterNameAlt: true,
   profileHeader: true,
@@ -222,6 +224,128 @@ if (svar) {
 
 //Settings CSS
 let styles = `
+.relationsTarget {
+    display: -webkit-box!important;
+    display: -webkit-flex!important;
+    display: -ms-flexbox!important;
+    display: flex!important;
+    -webkit-flex-wrap: wrap;
+    -ms-flex-wrap: wrap;
+    flex-wrap: wrap
+}
+.relationEntry{
+    background-repeat: no-repeat;
+    background-size: cover;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    display: inline-block;
+    float: left;
+    opacity: 1;
+    overflow: hidden;
+    position: relative;
+    -webkit-transition-duration: .3s;
+    transition-duration: .3s;
+    -webkit-transition-property: opacity;
+    transition-property: opacity;
+    -webkit-transition-timing-function: ease-in-out;
+    transition-timing-function: ease-in-out
+}
+.relationTitle{
+    border-bottom: 2px solid;
+    transition: .3s;
+    width: 100%;
+    background: var(--color-foreground2);
+    align-content: center;
+    bottom: 1px;
+    height: 35px;
+    color: var(--color-main-text-normal);
+    font-size: 9.5px;
+    font-weight: bold;
+    left: 0;
+    position: absolute;
+    text-align: center;
+    opacity: .95;
+    border-bottom-left-radius: var(--br);
+    border-bottom-right-radius: var(--br)
+}
+.relationImg {
+    width: 86px;
+    height: 120px;
+    transition:.3s
+}
+.relationEntry:hover {
+    overflow:visible!important
+}
+.relationEntry:hover .relationImg {
+    border-top-right-radius:0!important;
+    border-bottom-right-radius:0!important
+}
+.relationEntryRight:hover .relationImg {
+    border-top-left-radius:0!important;
+    border-bottom-left-radius:0!important;
+    border-top-right-radius:var(--br)!important;
+    border-bottom-right-radius:var(--br)!important
+}
+.relationEntry:hover .relationTitle {
+    opacity:0
+}
+.relationEntry:hover .relationDetails {
+    opacity:1
+}
+.relationDetails:hover {
+    display:none
+}
+.relationDetails {
+    transition: .3s;
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    left: 86px;
+    width: max-content;
+    max-width: 300px;
+    height: 100px;
+    padding: 10px;
+    background: var(--color-foreground2);
+    z-index: 5;
+    border-top-right-radius: var(--br);
+    border-bottom-right-radius: var(--br)
+}
+.relationDetailsRight{
+    border-top-right-radius:0;
+    border-bottom-right-radius: 0;
+    border-top-left-radius: var(--br);
+    border-bottom-left-radius: var(--br);
+    left: inherit;
+    right:86px
+}
+.relationDetailsTitle{
+    height: 67px;
+    margin-bottom: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    color: var(--color-main-text-normal)
+}
+.aniTagDiv {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-gap: 6px
+}
+.aniTag {
+    cursor: default;
+    display: -webkit-box;
+    display: flex;
+    background-color: var(--color-foreground);
+    border-radius: var(--br);
+    padding: 7px;
+    -webkit-box-pack: justify;
+    justify-content: space-between
+}
+.aniTag-percent {
+    color:var(--color-main-text-light)
+}
 #content > table > tbody > tr > td:nth-child(2) > div.rightside.js-scrollfix-bottom-rel > div.h1.edit-info,
 #content > table > tbody > tr > td.borderClass > div > div > div:nth-child(1),
 #content > table > tbody > tr > td.borderClass > div > div:nth-child(1){
@@ -248,6 +372,7 @@ let styles = `
     margin-top: -30px;
     overflow: hidden
 }
+.aniTag,
 .spaceit-shadow,
 .spaceit-shadow-end{
     -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
@@ -686,9 +811,23 @@ button2.onclick = () => {
   getSettings();
   reloadset();
 };
-var button17 = create("button", { class: "mainbtns", id: "animeBannerbtn" }, '<b>Anime/Manga</b><hr><p>Add Banner Image</p>');
+var button17 = create("button", { class: "mainbtns", id: "animeBannerbtn" }, '<b>Anime/Manga</b><hr><p>Add Banner Image</p><p>from Anilist</p>');
 button17.onclick = () => {
   svar.animeBanner = !svar.animeBanner;
+  svar.save();
+  getSettings();
+  reloadset();
+};
+var button18 = create("button", { class: "mainbtns", id: "animeTagbtn" }, '<b>Anime/Manga</b><hr><p>Add Tags from Anilist</p>');
+button18.onclick = () => {
+  svar.animeTag = !svar.animeTag;
+  svar.save();
+  getSettings();
+  reloadset();
+};
+var button19 = create("button", { class: "mainbtns", id: "animeRelationbtn" }, '<b>Anime/Manga</b><hr><p>Replace Relations</p>');
+button19.onclick = () => {
+  svar.animeRelation = !svar.animeRelation;
   svar.save();
   getSettings();
   reloadset();
@@ -772,7 +911,7 @@ button16.onclick = () => {
 };
 //Custom Profile Background
 let bginput = create("input", { class: "bginput", id: "bginput" });
-bginput.placeholder = "Paste your Background Image Url here";
+bginput.placeholder = "Paste your Background Image Url";
 var button11 = create("button", { class: "mainbtns", id: "custombg" }, "Convert Background to BBCode");
 var bginfo = create("p", { class: "textpb" }, "");
 
@@ -832,6 +971,8 @@ function getSettings() {
   peopleHeaderbtn.classList.toggle('btn-active', svar.peopleHeader);
   animeHeaderbtn.classList.toggle('btn-active', svar.animeHeader);
   animeBannerbtn.classList.toggle('btn-active', svar.animeBanner);
+  animeTagbtn.classList.toggle('btn-active', svar.animeTag);
+  animeRelationbtn.classList.toggle('btn-active', svar.animeRelation);
   characterHeaderbtn.classList.toggle('btn-active', svar.characterHeader);
   characterNameAltbtn.classList.toggle('btn-active', svar.characterNameAlt);
   customcssbtn.classList.toggle('btn-active', svar.customcss);
@@ -868,7 +1009,7 @@ function createDiv() {
   );
   var buttonsDiv = create("div", { class: "buttonsDiv", id: "buttonsDiv" });
   listDiv.querySelector(".maindivheader").append(buttonreload, buttonclose);
-  buttonsDiv.append(button13, button15, button16,  button17, button1, button2, button3, button4, button5, button6, button14, button7, button9, button10);
+  buttonsDiv.append(button13, button15, button16,  button17, button18, button19, button1, button2, button3, button4, button5, button6, button14, button7, button9, button10);
   listDiv.append(buttonsDiv);
   if (svar.alstyle) {
     listDiv.append(custombgDiv, custompfDiv);
@@ -1938,7 +2079,9 @@ function delay(ms) {
   //Character Section //--END--//
 
   //Anime/Manga Section//--START--//
-  if (/\/(anime|manga)\/.?([\w-]+)?\/?/.test(current) && !/\/(anime|manga)\/producer|genre|magazine\/.?([\w-]+)?\/?/.test(current) &&!/\/(ownlist)/.test(current)) {
+  if (/\/(anime|manga)\/.?([\w-]+)?\/?/.test(current) && !/\/(anime|manga)\/producer|genre|magazine\/.?([\w-]+)?\/?/.test(current) &&!/\/(ownlist|season)/.test(current) && !document.querySelector("#content > .error404")) {
+    const entryId = current.split("/")[2];
+    const entryType = current.split("/")[1].toUpperCase();
     let text = create('div', {
       class: 'description',
       itemprop: 'description',
@@ -2028,24 +2171,23 @@ function delay(ms) {
       getBannerImage();
       async function getBannerImage() {
         let bannerData;
-        const bannerID = current.split("/")[2];
         const bannerDiv = create("div", { class: "bannerDiv"});
         const bannerImage = create("div", { class: "bannerImage"});
         const bannerShadow = create("div", { class: "bannerShadow"});
         const bannerTarget = document.querySelector("#content > table > tbody > tr > td:nth-child(2)");
         const BannerLocalForage = localforage.createInstance({ name: "MalJS", storeName: "banner" });
-        const BannerCache = await BannerLocalForage.getItem(bannerID);
+        const BannerCache = await BannerLocalForage.getItem(entryId+"-"+entryType);
         if(BannerCache) {
           bannerData = BannerCache;
         }
         else {
-          const bannerQuery = `query {Media(idMal:${bannerID}) {bannerImage}}`;
+          const bannerQuery = `query {Media(idMal:${entryId} type:${entryType}) {bannerImage}}`;
           bannerData = await AnilistAPI(bannerQuery);
           if(bannerData.data.Media && bannerData.data.Media.bannerImage) {
-          await BannerLocalForage.setItem(bannerID, {
+          await BannerLocalForage.setItem(entryId+"-"+entryType, {
             bannerImage:bannerData.data.Media.bannerImage
           });
-            bannerData = await BannerLocalForage.getItem(bannerID);
+            bannerData = await BannerLocalForage.getItem(entryId+"-"+entryType);
           } else {
             bannerData = null;
           }
@@ -2057,6 +2199,108 @@ function delay(ms) {
           bannerTarget.prepend(bannerDiv);
           document.querySelector("#content > table > tbody > tr > td:nth-child(1)").style.paddingTop = "125px";
           headerPosChange(1);
+        }
+      }
+    }
+
+    // Add Tags from Anilist
+    if(svar.animeTag) {
+      getTags();
+      async function getTags() {
+        let tagData;
+        const tagDiv = create("div", { class: "aniTagDiv"});
+        const tagTarget = document.querySelector("#content > table > tbody > tr > td:nth-child(1)");
+        const tagLocalForage = localforage.createInstance({ name: "MalJS", storeName: "tags" });
+        const tagcacheTTL = 262974383;
+        let tagCache = await tagLocalForage.getItem(entryId+"-"+entryType);
+        if (!tagCache || tagCache.time + tagcacheTTL < +new Date()) {
+          const tagQuery = `query {Media(idMal:${entryId} type:${entryType}) {tags {isMediaSpoiler name rank description}}}`;
+          tagData = await AnilistAPI(tagQuery);
+          if (tagData.data.Media && tagData.data.Media.tags) {
+            await tagLocalForage.setItem(entryId+"-"+entryType, {
+              tags: tagData.data.Media.tags,
+              time: +new Date(),
+            });
+            tagCache = await tagLocalForage.getItem(entryId+"-"+entryType);
+          }
+        }
+        if (tagCache) {
+        tagDiv.innerHTML = tagCache.tags
+          .filter((item) => item.isMediaSpoiler === false)
+          .map((node) => "<div class='aniTag'><a title='"+(node.description ? node.description : null)+"'><div class='aniTag-name'>" + node.name.replace(/'/g, " ") +
+               "</div></a>" + "<div class='aniTag-percent'>" + "(" + node.rank + "%)</div></div>").toString().split(",").join("");
+        tagTarget.innerHTML += '<h2>Tags</h2>';
+        tagTarget.append(tagDiv);
+        }
+      }
+    }
+
+    // Replace Relations
+    if(svar.animeRelation) {
+      getRelations();
+      async function getRelations() {
+        let relationData;
+        const relationDiv = create("div", { class: "aniTagDiv"});
+        const relationTarget = document.querySelector("table.anime_detail_related_anime");
+        const relationLocalForage = localforage.createInstance({ name: "MalJS", storeName: "relations" });
+        const relationcacheTTL = 262974383;
+        let relationCache = await relationLocalForage.getItem(entryId+"-"+entryType);
+        const priorityOrder = {"ADAPTATION": 0,"PREQUEL": 1,"SEQUEL": 2,"ALTERNATIVE": 3,"SIDE_STORY": 4,"SPIN_OFF": 5,"CHARACTER": 6};
+        if (!relationCache || relationCache.time + relationcacheTTL < +new Date()) {
+          const relationQuery = `query {Media(idMal:${entryId} type:${entryType}) {relations {edges {relationType node {status startDate {year} seasonYear type title {romaji} coverImage {medium} idMal}}}}}`;
+          relationData = await AnilistAPI(relationQuery);
+          relationData = relationData.data.Media.relations.edges.filter(node => node.node.idMal !== null);
+          if (relationData.length > 0) {
+            const sortedRelations = relationData.sort((a, b) => {
+              const orderA = priorityOrder[a.relationType];
+              const orderB = priorityOrder[b.relationType];
+                if (orderA === orderB) {
+                  const yearA = (a.node.seasonYear ? a.node.seasonYear : (a.node.startDate ? a.node.startDate.year : Number.MAX_SAFE_INTEGER));
+                  const yearB = (b.node.seasonYear ? b.node.seasonYear : (b.node.startDate ? b.node.startDate.year : Number.MAX_SAFE_INTEGER));
+                  return yearA - yearB;
+                }
+              return orderA - orderB;
+            });
+            await relationLocalForage.setItem(entryId+"-"+entryType, {
+              relations: sortedRelations,
+              time: +new Date(),
+            });
+            relationCache = await relationLocalForage.getItem(entryId+"-"+entryType);
+          }
+        }
+        if (relationCache && relationTarget) {
+        $('h2:contains("Related Anime"):last, h2:contains("Related Manga"):last').text("Relations");
+        document.querySelector("#content > table > tbody > tr > td:nth-child(2) > div.rightside.js-scrollfix-bottom-rel > table").style.overflow = "visible";
+        relationTarget.classList.add("relationsTarget");
+        relationTarget.style.gap= "14px";
+        relationTarget.innerHTML = relationCache.relations
+          .map((node) => "<div class='relationEntry'><a class='link' href='/" + (node.node.type === "MANGA" ? "manga" : "anime") + "/" + node.node.idMal  + "/" + "'>" +
+               "<img class='relationImg' src='" + (node.node.coverImage && node.node.coverImage.medium ? node.node.coverImage.medium : "") + "'>" +
+               "<span class='relationTitle' style='border-color:" + (node.node.type === "MANGA" ? "#92d493!important" : "var(--color-link)!important") + ";'>" + node.relationType.split("_").join(" ") +
+               "</span><div class='relationDetails'style='color:" + (node.node.type === "MANGA" ? "#92d493!important" : "var(--color-link)!important") + ";'>" + node.relationType.split("_").join(" ") +
+               "<br><div class='relationDetailsTitle'>" + (node.node.title && node.node.title.romaji ? node.node.title.romaji : "") + "</div>" + node.node.type + ' · ' +
+               (node.node.type === "MANGA" && node.node.startDate && node.node.startDate.year ? node.node.startDate.year + ' · ' : node.node.seasonYear ? node.node.seasonYear + ' · ' : "") +
+               (node.node.status ? node.node.status : "") + "</div></div></a>").toString().split(",").join("");
+          $(".relationEntry").on('mouseenter', async function() {
+            const el = $(this);
+            const elDetails = $(this).find(".relationDetails");
+            const viewportWidth = window.innerWidth;
+            const divRect = elDetails[0].getBoundingClientRect();
+            const isOverflowing = divRect.left < 0 || divRect.right > viewportWidth;
+            if (isOverflowing) {
+              $(el).addClass("relationEntryRight");
+              $(elDetails).addClass("relationDetailsRight");
+            } else {
+              $(el).removeClass("relationEntryRight");
+              $(elDetails).removeClass("relationDetailsRight");
+            }
+          })
+          $(".relationEntry").on('mouseleave', async function() {
+            const el = $(this);
+            const elDetails = $(this).find(".relationDetails");
+            $(el).removeClass("relationEntryRight");
+            $(elDetails).removeClass("relationDetailsRight");
+          })
         }
       }
     }
@@ -2138,7 +2382,7 @@ function delay(ms) {
   //Anime and Manga Header Position Change //--START--//
   headerPosChange();
   function headerPosChange(v){
-    if (/\/(anime|manga)\/.?([\w-]+)?\/?/.test(current) && (svar.animeHeader || v) && !/\/(anime|manga)\/producer|genre|magazine\/.?([\w-]+)?\/?/.test(current)) {
+    if (/\/(anime|manga)\/.?([\w-]+)?\/?/.test(current) && (svar.animeHeader || v) && !/\/(anime|manga)\/producer|genre|magazine\/.?([\w-]+)?\/?/.test(current) && !document.querySelector("#content > .error404")) {
       set(1, ".h1.edit-info", { sa: { 0: "margin:0;width:97.5%" } });
       set(1, "#content > table > tbody > tr > td:nth-child(2) > .js-scrollfix-bottom-rel", { pp: { 0: ".h1.edit-info" } });
       const titleOldDiv = document.querySelector("#contentWrapper > div:nth-child(1)");
@@ -2163,7 +2407,7 @@ function delay(ms) {
   }
 
   //Anime-Manga Background Color from Cover Image //--START--//
-  if (/myanimelist.net\/(anime|manga|character|people)\/?([\w-]+)?\/?/.test(location.href)) {
+  if (/myanimelist.net\/(anime|manga|character|people)\/?([\w-]+)?\/?/.test(location.href) && !document.querySelector("#content > .error404")) {
     let m;
     if (
       /\/(character.php)\/?([\w-]+)?/.test(current) ||
@@ -2361,7 +2605,7 @@ function delay(ms) {
               .replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').replace(/<.*>/g, '').replace(/[^\w\s]/gi, '').trim();
               let title2 =  vid.song.title ? vid.song.title.replace(/\((?!.*(Ver\.|ver\.))(.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1')
               .replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').replace(/<.*>/g, '').replace(/[^\w\s]/gi, '').trim() : null;
-              let ep = cleanTitle(e).replace(/(.*).(eps (\w.*\ |)(.*)\))/gm,'$4').replace(/\s/g, '');
+              let ep = cleanTitle(e).replace(/(.*).((eps|ep) (\w.*\ |)(.*)\))/gm,'$5').replace(/\s/g, '');
               let epdata = vid.animethemeentries[0].episodes;
               let ep2 = epdata && (epdata.constructor !== Array || epdata.length === 1) ? (epdata.constructor !== Array ? epdata.replace(/\s/g, '') : epdata) : null;
               let eps = [];
