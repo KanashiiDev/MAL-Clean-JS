@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.25
+// @version     1.25.5
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -182,15 +182,6 @@ async function episodesBehind(c, w) {
     }
 }
 
-function checkImageLoad(image) {
-  return new Promise(resolve => {
-    if (image.complete) {
-      resolve();
-    } else {
-      image.onload = resolve;
-    }
-  });
-}
 let svar = {
   animebg: true,
   charbg: true,
@@ -2079,7 +2070,7 @@ function delay(ms) {
   //Character Section //--END--//
 
   //Anime/Manga Section//--START--//
-  if (/\/(anime|manga)\/.?([\w-]+)?\/?/.test(current) && !/\/(anime|manga)\/producer|genre|magazine\/.?([\w-]+)?\/?/.test(current) &&!/\/(ownlist|season)/.test(current) && !document.querySelector("#content > .error404")) {
+  if (/\/(anime|manga)\/.?([\w-]+)?\/?/.test(current) && !/\/(anime|manga)\/producer|genre|magazine\/.?([\w-]+)?\/?/.test(current) &&!/\/(ownlist|season|recommendations)/.test(current) && !document.querySelector("#content > .error404")) {
     const entryId = current.split("/")[2];
     const entryType = current.split("/")[1].toUpperCase();
     let text = create('div', {
@@ -2245,7 +2236,7 @@ function delay(ms) {
         const relationLocalForage = localforage.createInstance({ name: "MalJS", storeName: "relations" });
         const relationcacheTTL = 262974383;
         let relationCache = await relationLocalForage.getItem(entryId+"-"+entryType);
-        const priorityOrder = {"ADAPTATION": 0,"PREQUEL": 1,"SEQUEL": 2,"ALTERNATIVE": 3,"SIDE_STORY": 4,"SPIN_OFF": 5,"CHARACTER": 6};
+        const priorityOrder = {"ADAPTATION": 0,"PREQUEL": 1,"SEQUEL": 2,"PARENT": 3,"ALTERNATIVE": 4,"SIDE_STORY": 5,"SPIN_OFF": 6,"CHARACTER": 7,"OTHER": 8};
         if (!relationCache || relationCache.time + relationcacheTTL < +new Date()) {
           const relationQuery = `query {Media(idMal:${entryId} type:${entryType}) {relations {edges {relationType node {status startDate {year} seasonYear type title {romaji} coverImage {medium} idMal}}}}}`;
           relationData = await AnilistAPI(relationQuery);
@@ -2280,7 +2271,7 @@ function delay(ms) {
                "</span><div class='relationDetails'style='color:" + (node.node.type === "MANGA" ? "#92d493!important" : "var(--color-link)!important") + ";'>" + node.relationType.split("_").join(" ") +
                "<br><div class='relationDetailsTitle'>" + (node.node.title && node.node.title.romaji ? node.node.title.romaji : "") + "</div>" + node.node.type + ' · ' +
                (node.node.type === "MANGA" && node.node.startDate && node.node.startDate.year ? node.node.startDate.year + ' · ' : node.node.seasonYear ? node.node.seasonYear + ' · ' : "") +
-               (node.node.status ? node.node.status : "") + "</div></div></a>").toString().split(",").join("");
+               (node.node.status ? node.node.status.split("_").join(" ") : "") + "</div></div></a>").toString().split(",").join("");
           $(".relationEntry").on('mouseenter', async function() {
             const el = $(this);
             const elDetails = $(this).find(".relationDetails");
@@ -2390,9 +2381,6 @@ function delay(ms) {
         titleOldDiv.remove();
       }
     }
-    if (/\/(anime|manga)\/producer\/.?([\w-]+)?\/?/.test(current)) {
-      set(1, ".h1.edit-info", { sa: { 0: "margin:0;width:100%" } });
-    }
   }
   //Anime and Manga Header Position Change //--END--//
 
@@ -2422,50 +2410,54 @@ function delay(ms) {
     if(!m) {
       styleSheet2.innerText = styles2;
       document.head.appendChild(styleSheet2);
-      let img = document.querySelector('div:nth-child(1) > a > img');
-      let colorThief = new ColorThief();
-      let dominantColor,Palette,t;
+      const colorThief = new ColorThief();
+      let img,dominantColor,Palette,t;
       let colors = [];
-      async function r () {
-        if(!t) {
-          if(!Palette) {
+      async function r() {
+        if (!t) {
+          if (!Palette) {
             try {
               img.setAttribute('crossorigin', 'anonymous');
               Palette = colorThief.getPalette(img, 10, 5);
-              await delay(25);
-              img.removeAttribute('crossorigin');}
-            catch {
+              img.removeAttribute('crossorigin');
+            } catch {
               await delay(100);
               return r();
             }
             await delay(100);
             return r();
-          }
-          else {
+          } else {
             t = 1;
+            for (let i = 0; i < Palette.length; i++) {
+              let color = tinycolor('rgba(' + Palette[i][0] + ',' + Palette[i][1] + ',' + Palette[i][2] + ', .8)');
+              while(color.getLuminance() > 0.08) {
+                color = color.darken(1)
+              }
+              while(color.getLuminance() < 0.01) {
+                color = color.brighten(5);
+              }
+              colors.push(color);
+            }
+            document.querySelector('body').style
+              .setProperty('background', 'linear-gradient(180deg, ' + colors[2].toString() + ' 0%,' + colors[1].toString() + ' 50%, ' + colors[0].toString() + ' 100%)', 'important');
           }
         }
       }
       $(document).ready( async function () {
-        await checkImageLoad(img);
-        await r();
-        //Single Color
-        // colorThief.getColor(img) ? dominantColor = colorThief.getColor(img) : dominantColor = null;
-        // document.querySelector("body").style.setProperty("background-color", "rgba("+dominantColor[0]+","+dominantColor[1]+","+dominantColor[2]+")", "important");
-        //Linear Color
-        for (let i = 0; i < Palette.length; i++) {
-          let color = tinycolor('rgba(' + Palette[i][0] + ',' + Palette[i][1] + ',' + Palette[i][2] + ', .8)');
-          while(color.getLuminance() > 0.08) {
-            color = color.darken(1)
+       await imgLoad();
+        async function imgLoad() {
+          img = document.querySelector('div:nth-child(1) > a > img');
+          set(0, img, { sa: { 0: "position: fixed;opacity:0!important;" }});
+          if (img && img.src) {
+            set(0, img, { sa: { 0: "position: relative;opacity:1!important;" }});
+            await r();
           }
-          while(color.getLuminance() < 0.01) {
-            color = color.brighten(5);
+          else {
+            await delay(250);
+            await imgLoad();
           }
-          colors.push(color);
         }
-        document.querySelector('body').style
-          .setProperty('background', 'linear-gradient(180deg, ' + colors[2].toString() + ' 0%,' + colors[1].toString() + ' 50%, ' + colors[0].toString() + ' 100%)', 'important');
-    });
+      });
     }
   }
   //Anime-Manga Background Color from Cover Image //--END--//
