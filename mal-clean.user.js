@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.25.5
+// @version     1.25.6
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -775,13 +775,9 @@ buttonclose.onclick = () => {
 //Reload Button
 var buttonreload = create("button", { class: "mainbtns", id: "reloadbtn" }, "Refresh");
 buttonreload.onclick = () => {
-  reload();
+  window.location.reload();
 };
 
-//Refresh Page
-function reload() {
-  window.location.href = window.location.href;
-}
 //Refresh Page Button Animation
 function reloadset() {
   reloadbtn.setAttribute('style', 'animation:reloadLoop 2.5s infinite');
@@ -2108,7 +2104,7 @@ function delay(ms) {
     document.querySelector('.InformationDiv').nextElementSibling.setAttribute('style', 'border-top-left-radius:var(--br);border-top-right-radius:var(--br);');
     $('h2:contains("Statistics"):last').addClass('StatisticsDiv');
     $(".StatisticsDiv").nextUntil('br').addClass("spaceit-shadow");
-    $(".StatisticsDiv").nextUntil('br').not(".clearfix").last().removeClass("spaceit-shadow").addClass("spaceit-shadow-end").css({ borderBottomLeftRadius:"var(--br)",borderBottomRightRadius:"var(--br)"});;
+    $(".StatisticsDiv").nextUntil('br').not(".clearfix").last().removeClass("spaceit-shadow").addClass("spaceit-shadow-end").css({ borderBottomLeftRadius:"var(--br)",borderBottomRightRadius:"var(--br)"});
     document.querySelector('.StatisticsDiv').nextElementSibling.setAttribute('style', 'border-top-left-radius:var(--br);border-top-right-radius:var(--br)');
     document
       .querySelector('.StatisticsDiv')
@@ -2123,13 +2119,13 @@ function delay(ms) {
     }
     if ($('h2:contains("Streaming Platforms")').length > 0) {
       $('h2:contains("Streaming Platforms"):last').addClass('StreamingAtDiv');
-    $(".StreamingAtDiv").next().addClass("spaceit-shadow");
+      $(".StreamingAtDiv").next(".pb16.broadcasts").attr('style', 'padding-bottom: 12px!important');
+      $(".StreamingAtDiv").next().addClass("spaceit-shadow-end");
       document.querySelector('.StreamingAtDiv').nextElementSibling.style.borderRadius = 'var(--br)';
     }
     if ($('h2:contains("Available At")').length > 0) {
       $('h2:contains("Available At"):last').addClass('AvailableAtDiv');
-    $(".AvailableAtDiv").nextUntil('br').addClass("spaceit-shadow");
-    $(".AvailableAtDiv").nextUntil('br').last().removeClass("spaceit-shadow").addClass("spaceit-shadow-end");
+      $(".AvailableAtDiv").next().addClass("spaceit-shadow-end");
       document.querySelector('.AvailableAtDiv').nextElementSibling.style.borderRadius = 'var(--br)';
       document
         .querySelector('.AvailableAtDiv')
@@ -2207,7 +2203,7 @@ function delay(ms) {
         if (!tagCache || tagCache.time + tagcacheTTL < +new Date()) {
           const tagQuery = `query {Media(idMal:${entryId} type:${entryType}) {tags {isMediaSpoiler name rank description}}}`;
           tagData = await AnilistAPI(tagQuery);
-          if (tagData.data.Media && tagData.data.Media.tags) {
+          if (tagData.data.Media && tagData.data.Media.tags && tagData.data.Media.tags.length > 0) {
             await tagLocalForage.setItem(entryId+"-"+entryType, {
               tags: tagData.data.Media.tags,
               time: +new Date(),
@@ -2216,12 +2212,18 @@ function delay(ms) {
           }
         }
         if (tagCache) {
-        tagDiv.innerHTML = tagCache.tags
-          .filter((item) => item.isMediaSpoiler === false)
-          .map((node) => "<div class='aniTag'><a title='"+(node.description ? node.description : null)+"'><div class='aniTag-name'>" + node.name.replace(/'/g, " ") +
-               "</div></a>" + "<div class='aniTag-percent'>" + "(" + node.rank + "%)</div></div>").toString().split(",").join("");
-        tagTarget.innerHTML += '<h2>Tags</h2>';
-        tagTarget.append(tagDiv);
+          if (tagTarget.lastChild.lastElementChild.className === "clearfix mauto mt16") {
+            tagTarget.lastChild.lastElementChild.remove();
+          }
+          if (tagTarget.lastChild.lastElementChild.className !== "pb16") {
+            tagDiv.style.paddingTop = "16px"
+          }
+          tagDiv.innerHTML = '<h2 style="margin-bottom:-2px;">Tags</h2>';
+          tagDiv.innerHTML += tagCache.tags
+            .filter((item) => item.isMediaSpoiler === false)
+            .map((node) => "<div class='aniTag'><a title='"+(node.description ? node.description : null)+"'><div class='aniTag-name'>" + node.name.replace(/'/g, " ") +
+                 "</div></a>" + "<div class='aniTag-percent'>" + "(" + node.rank + "%)</div></div>").toString().split(",").join("");
+          tagTarget.append(tagDiv);
         }
       }
     }
