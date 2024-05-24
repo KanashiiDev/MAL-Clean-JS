@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.27
+// @version     1.27.1
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -14,7 +14,7 @@
 // @require     https://cdn.jsdelivr.net/npm/colorthief@2.4.0/dist/color-thief.min.js
 // @require     https://cdn.jsdelivr.net/npm/tinycolor2@1.6.0/cjs/tinycolor.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js
-// @require     https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js
+// @require     https://cdn.jsdelivr.net/npm/dompurify@3.1.4/dist/purify.min.js
 // ==/UserScript==
 
 //Create Element Shorthand Function
@@ -232,15 +232,6 @@ function emptyInfoAddDiv(title) {
   newDiv.append(...siblings);
   $(title).after(newDiv);
 }
-
-//Remove anime.php
-window.onload = function() {
-  const phpUrl = window.location.href;
-  if (phpUrl.includes('/anime.php?id=')) {
-    const newUrl = phpUrl.replace('/anime.php?id=', '/anime/');
-    window.location.href = newUrl;
-  }
-};
 
 let svar = {
   animebg: true,
@@ -686,16 +677,24 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     color: rgb(var(--color-link))!important;
 }
 .mainDivHeader {
-    margin-bottom: 5px;
-    margin-left: 5px;
-    display: grid;
+    display: -ms-inline-grid;
+    display: inline-grid;
+    -ms-grid-columns: 4fr 1fr 1fr;
     grid-template-columns: 4fr 1fr 1fr;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    -ms-flex-align: center;
     align-items: center;
     font-size: medium;
     position: fixed;
     background: var(--color-foreground);
     width: 505px;
+    border-top-left-radius: 10px;
+    margin-top: 1px;
     padding: 10px;
+    height: 35px;
+    top: inherit;
+    right: 25px
 }
 .mainbtns {
     -webkit-transition:0.25s;
@@ -1144,20 +1143,6 @@ function closeDiv() {
   active = !1;
 }
 
-//Add MalClean Settings to header dropdown
-function add() {
-  var header = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit.link-bg.pl8.pr8.on > div > ul > li:nth-child(9)");
-  if (!header) {
-    setTimeout(add, 100);
-    return;
-  }
-  var gear = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit.link-bg.pl8.pr8.on > div > ul > li:nth-child(9) > a > i");
-  var gear1 = gear.cloneNode(!0);
-  stLink.prepend(gear1);
-  stButton.append(stLink);
-  header.insertAdjacentElement("afterend", stButton);
-}
-
 //Settings Open & Close
 function Settings() {
   active = !active;
@@ -1178,7 +1163,29 @@ function delay(ms) {
 (function () {
   "use strict";
 
-  add();
+//onload Function
+  function on_load() {
+  //Replace anime.php
+    const phpUrl = window.location.href;
+    if (phpUrl.includes('/anime.php?id=')) {
+      const newUrl = phpUrl.replace('/anime.php?id=', '/anime/');
+      window.location.href = newUrl+'/';
+    }
+    //Add MalClean Settings to header dropdown
+    var header = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit > div > ul > li:nth-child(9)");
+    var gear = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit > div > ul > li:nth-child(9) > a > i");
+    var gear1 = gear.cloneNode(!0);
+    stLink.prepend(gear1);
+    stButton.append(stLink);
+    header.insertAdjacentElement("afterend", stButton);
+  };
+  if(document.readyState === 'loading') {
+    document.addEventListener( 'DOMContentLoaded', on_load );
+  }
+  else if( document.readyState === 'interactive' || document.readyState === 'complete' ) {
+    on_load();
+}
+
   var current = location.pathname;
   styleSheet.innerText = styles;
   document.head.appendChild(styleSheet);
@@ -1659,10 +1666,6 @@ function delay(ms) {
 
   //Profile Section //--START--//
   if (/\/(profile)\/.?([\w-]+)?\/?/.test(current)) {
-    if (svar.alstyle) {
-      document.querySelector('#contentWrapper').setAttribute('style', 'opacity:0');
-    }
-    let username = current.split('/')[2];
     let banner = create('div', {
       class: 'banner',
       id: 'banner',
@@ -1671,11 +1674,14 @@ function delay(ms) {
       class: 'banner',
       id: 'shadow',
     });
+    const pfloading = create("div", { class: "actloading",style:{position:"fixed",top:"50%",left:"0",right:"0",fontSize:"16px"}},
+                           "Loading"+'<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>');
+    let username = current.split('/')[2];
     let custombg;
     let custompf;
-    const loading = create("div", { class: "actloading",style:{position:"fixed",top:"50%",left:"0",right:"0",fontSize:"16px"}},
-                         "Loading"+'<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>');
-    document.body.append(loading);
+    document.querySelector('#contentWrapper').setAttribute('style', 'opacity:0');
+    document.body.append(pfloading);
+    document.body.style.overflow = "hidden";
     shadow.setAttribute('style', 'background: linear-gradient(180deg,rgba(6,13,34,0) 40%,rgba(6,13,34,.6));height: 100%;left: 0;position: absolute;top: 0;width: 100%;');
     banner.append(shadow);
     findbg();
@@ -1782,6 +1788,12 @@ function delay(ms) {
       if (svar.alstyle) {
         //CSS Fix for Anilist Style
         let fixstyle = `
+        .l-listitem-3_2_items{margin-right:0}
+        .l-listitem-list.row1{margin-right: 0px;margin-left: -46px;}
+        .l-listitem-list.row2{margin-left: 24px;}
+        .l-listitem .c-aboutme-ttl-lv2{max-width: 420px;}
+        .l-ranking-list_portrait-item{flex-basis: 66px;}
+        div#modern-about-me-expand-button,.c-aboutme-accordion-btn-icon{display:none}
         #banner a.header-right.mt4.mr0{z-index: 2;position: relative;margin: 60px 10px 0px !important;}
         .loadmore,.actloading {font-size: .8rem;font-weight: 700;padding: 14px;text-align: center;}
         .loadmore {cursor: pointer;background: var(--color-foreground);border-radius: var(--border-radius);}
@@ -1928,7 +1940,7 @@ function delay(ms) {
         if (set(0, modernabout, { sa: { 0: "margin-bottom: 20px;width: auto;background: var(--color-foreground);padding: 10px;border-radius: var(--br);" } })) {
           document.querySelector("#content > div > div.container-left > div > ul.user-status.border-top.pb8.mb4").insertAdjacentElement("beforebegin", modernabout);
           let l = document.querySelectorAll(".l-listitem");
-          let a = "max-width:492px;max-height:492px";
+          let a = "max-width:420px";
           set(2, ".l-listitem", { sal: { 0: "-webkit-box-pack: center;display: flex;-ms-flex-pack: center;justify-content: center;flex-wrap: wrap;flex-direction: row;" } });
           set(1, ".l-mainvisual", { sa: { 0: a } });
           set(1, ".intro-mylinks-wrap", { sa: { 0: a } });
@@ -1983,8 +1995,9 @@ function delay(ms) {
         }
         set(1, "#content > table > tbody > tr > td.pl8 > #horiznav_nav", { r: { 0: 0 } });
         set(1, ".container-right #horiznav_nav", { r: { 0: 0 } });
-        document.querySelector("#contentWrapper").setAttribute("style", "width: 1375px;max-width: 1375px!important;min-width:500px; margin: auto;top: -40px;transition:.6s");
-        loading.remove();
+        document.querySelector("#contentWrapper").setAttribute("style", "width: 1375px;max-width: 1375px!important;min-width:500px; margin: auto;top: -40px;transition:.6s;opacity:1");
+        pfloading.remove();
+        document.body.style.removeProperty("overflow");
         let more = document.querySelector(".btn-truncate.js-btn-truncate");
         if (more) {
           more.setAttribute("data-height", '{"outer":1000,"inner":90000}');
@@ -2081,6 +2094,10 @@ function delay(ms) {
           $('.navbar a:contains(' + n + ')').addClass('navactive');
         }
         set(0, navel, { sal: { 0: "margin: 0 30px;font-size: .9rem;box-shadow: none!important;" } });
+      } else {
+        pfloading.remove();
+        document.body.style.removeProperty("overflow");
+        document.querySelector('#contentWrapper').setAttribute('style', 'opacity:1');
       }
     }
     if (svar.profileHeader) {
@@ -2663,7 +2680,9 @@ function delay(ms) {
   anisong();
   function anisong() {
     const songCache = localforage.createInstance({ name: "MalJS", storeName: "anisongs" });
-    let currentpath = current.match(/(anime|manga)\/([0-9]+)\/[^/]*\/?(.*)/);
+    let currentpath = current.match(/(anime|manga)\/([0-9]+)\/[^/]*\/?(.*)/) &&
+        !/\/(ownlist|season|recommendations)/.test(current) &&
+        !/\/(anime|manga)\/producer|genre|magazine\/.?([\w-]+)?\/?/.test(current) ? current.match(/(anime|manga)\/([0-9]+)\/[^/]*\/?(.*)/) : null;
     let currentid;
     let location;
     if (currentpath && currentpath[1] === "anime") {
@@ -2782,7 +2801,7 @@ function delay(ms) {
             let u = null;
             for (let x = 0; x < videos.length;x++) {
               let vid = videos[x];
-              let link = vid.animethemeentries[0].videos[0].link;
+              let link = vid.animethemeentries[0].videos[0] && vid.animethemeentries[0].videos[0].link ? vid.animethemeentries[0].videos[0].link : null;
               let m = 0;
               let title = cleanTitle(e).replace(/(\w\d+\: |)/gm,'').replace(/\((?!.*(Ver\.|ver\.))(.*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$1')
               .replace(/(.*)( feat. | ft. )(.*)/g,'$1').replace(/["']/g, '').replace(/<.*>/g, '').replace(/[^\w\s]/gi, '').trim();
