@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.27.1
+// @version     1.27.2
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -241,6 +241,7 @@ let svar = {
   animeBanner: true,
   animeTag: true,
   animeRelation: true,
+  animeSongs: true,
   characterHeader: true,
   characterNameAlt: true,
   profileHeader: true,
@@ -988,6 +989,13 @@ button16.onclick = () => {
   getSettings();
   reloadset();
 };
+var button20 = create("button", { class: "mainbtns", id: "animesongsbtn" });
+button20.onclick = () => {
+  svar.animeSongs = !svar.animeSongs;
+  svar.save();
+  getSettings();
+  reloadset();
+};
 //Custom Profile Background
 let bginput = create("input", { class: "bginput", id: "bginput" });
 bginput.placeholder = "Paste your Background Image Url";
@@ -1001,7 +1009,8 @@ button11.onclick = () => {
     bginput.value = "[url=https://custombg/" + LZString.compressToBase64(JSON.stringify(bginput.value)) + "]‎ [/url]";
     bginput.select();
     bginput.addEventListener(`focus`, () => bginput.select());
-    bginfo.innerHTML ="Background Image Converted. Please copy and paste to your " +"<a class='embedLink' href='https://myanimelist.net/editprofile.php'>About Me</a>" + " section.";
+    bginfo.innerHTML ="Background Image Converted. Please copy and paste to your " +"<a class='embedLink' href='https://myanimelist.net/editprofile.php'>About Me</a>" + " section." +
+      '<br>'+"if you are using modern about please create a blog post and paste it there.";
   } else {
     bginfo.innerText = "Background Image url empty.";
   }
@@ -1016,7 +1025,8 @@ button12.onclick = () => {
     pfinput.value = "[url=https://custompf/" + LZString.compressToBase64(JSON.stringify(pfinput.value)) + "]‎ [/url]";
     pfinput.select();
     pfinput.addEventListener(`focus`, () => pfinput.select());
-    pfinfo.innerHTML ="Avatar Image Converted. Please copy and paste to your " +"<a class='embedLink' href='https://myanimelist.net/editprofile.php'>About Me</a>" + " section.";
+    pfinfo.innerHTML ="Avatar Image Converted. Please copy and paste to your " +"<a class='embedLink' href='https://myanimelist.net/editprofile.php'>About Me</a>" + " section." +
+      '<br>'+"if you are using modern about please create a blog post and paste it there.";
   } else {
     pfinfo.innerText = "Avatar Image url empty.";
   }
@@ -1034,7 +1044,8 @@ button8.onclick = () => {
     cssinput.value = "[url=https://customcss/" + LZString.compressToBase64(JSON.stringify(cssinput.value)) + "]‎ [/url]";
     cssinput.select();
     cssinput.addEventListener(`focus`, () => cssinput.select());
-    cssinfo.innerHTML = "Css Converted. Please copy and paste to your " +"<a class='embedLink' href='https://myanimelist.net/editprofile.php'>About Me</a>" + " section.";
+    cssinfo.innerHTML = "Css Converted. Please copy and paste to your " +"<a class='embedLink' href='https://myanimelist.net/editprofile.php'>About Me</a>" + " section." +
+      '<br>'+"if you are using modern about please create a blog post and paste it there.";
   } else {
     cssinfo.innerText = "Css empty.";
   }
@@ -1061,6 +1072,7 @@ function getSettings() {
   embedbtn.classList.toggle('btn-active', svar.embed);
   currentlybtn.classList.toggle('btn-active', svar.currentlywatching);
   airingdatebtn.classList.toggle('btn-active', svar.airingDate);
+  animesongsbtn.classList.toggle('btn-active', svar.animeSongs);
 }
 
 //Create Settings Div
@@ -1101,6 +1113,7 @@ function createDiv() {
         {b:button17,t:"Add banner image from Anilist"},
         {b:button18,t:"Add tags from Anilist"},
         {b:button19,t:"Replace relations"},
+        {b:button20,t:"Replace Anime OP/ED with animethemes.moe"},
         {b:button2,t:"Change title position"}
       ]),
     createListDiv(
@@ -1172,12 +1185,17 @@ function delay(ms) {
       window.location.href = newUrl+'/';
     }
     //Add MalClean Settings to header dropdown
-    var header = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit > div > ul > li:nth-child(9)");
-    var gear = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit > div > ul > li:nth-child(9) > a > i");
-    var gear1 = gear.cloneNode(!0);
-    stLink.prepend(gear1);
-    stButton.append(stLink);
-    header.insertAdjacentElement("afterend", stButton);
+    let pfHeader = $('li:contains("Account Settings")')[0];
+    if (!pfHeader) {
+      pfHeader = document.querySelector(".header-profile-dropdown > ul > li:nth-last-child(3)");
+    }
+    if (pfHeader) {
+      var gear = pfHeader.querySelector("a > i");
+      var gearClone = gear.cloneNode(!0);
+      stLink.prepend(gearClone);
+      stButton.append(stLink);
+      pfHeader.insertAdjacentElement("afterend", stButton);
+    }
   };
   if(document.readyState === 'loading') {
     document.addEventListener( 'DOMContentLoaded', on_load );
@@ -1603,7 +1621,6 @@ function delay(ms) {
             (data.data.score ? '<span class="embedscore">' + " · " + Math.floor(data.data.score * 10) + "%" + "</span>" : "");
           const dat = document.createElement("div");
           dat.classList.add("embeddiv");
-          dat.classList.add("spaceit-shadow-end");
           dat.innerHTML = '<a></a>';
           const namediv = document.createElement("div");
           namediv.classList.add("detailsDiv");
@@ -1666,82 +1683,139 @@ function delay(ms) {
 
   //Profile Section //--START--//
   if (/\/(profile)\/.?([\w-]+)?\/?/.test(current)) {
-    let banner = create('div', {
-      class: 'banner',
-      id: 'banner',
-    });
-    let shadow = create('div', {
-      class: 'banner',
-      id: 'shadow',
-    });
+    let banner = create('div', {class: 'banner',id: 'banner',});
+    let shadow = create('div', {class: 'banner',id: 'shadow',});
     const pfloading = create("div", { class: "actloading",style:{position:"fixed",top:"50%",left:"0",right:"0",fontSize:"16px"}},
                            "Loading"+'<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>');
     let username = current.split('/')[2];
-    let custombg;
-    let custompf;
-    document.querySelector('#contentWrapper').setAttribute('style', 'opacity:0');
-    document.body.append(pfloading);
-    document.body.style.overflow = "hidden";
-    shadow.setAttribute('style', 'background: linear-gradient(180deg,rgba(6,13,34,0) 40%,rgba(6,13,34,.6));height: 100%;left: 0;position: absolute;top: 0;width: 100%;');
-    banner.append(shadow);
-    findbg();
-    async function findbg() {
-      //Get Custom Background Image and Custom Profile Image Data from About Section
-      let regex = /(custombg)\/([^"]+)/gm;
-      let regex2 = /(custompf)\/([^"]+)/gm;
-      let about = document.querySelector('.user-profile-about.js-truncate-outer');
-      if (document.querySelector('.user-image.mb8 > img')) {
-        if (!document.querySelector('.user-image.mb8 > img').src) {
-          setTimeout(findbg, 100);
-          return;
+    let custombg,custompf,customcss,userimg,customFounded;
+    let bgRegex = /(custombg)\/([^"]+)/gm;
+    let pfRegex = /(custompf)\/([^"]+)/gm;
+    let cssRegex = /(customcss)\/([^"]+)/gm;
+    //Wait for user image
+    async function imgLoad() {
+      userimg = document.querySelector('.user-image.mb8 > img');
+      set(0, userimg, { sa: { 0: "position: fixed;opacity:0!important;" }});
+      if (userimg && userimg.src) {
+        set(0, userimg, { sa: { 0: "position: relative;opacity:1!important;" }});
+      }
+      else {
+        await delay(250);
+        await imgLoad();
+      }
+    }
+
+    async function startCustomProfile () {
+      await imgLoad();
+      await findCustomAbout();
+      if (!customFounded) {
+        await findCustomBlogPost();
+      }
+      if (customcss && svar.customcss) {
+        svar.alstyle = false;
+        applyAl();
+      } else if(customFounded || svar.alstyle === true) {
+        svar.alstyle = true;
+        applyAl();
+      }
+      else {
+        pfloading.remove();
+        document.body.style.removeProperty("overflow");
+        document.querySelector('#contentWrapper').setAttribute('style', 'opacity:1');
+      }
+    }
+
+    if(document.readyState === 'loading') {
+      document.addEventListener( 'DOMContentLoaded', startCustomProfile );
+    }
+    else if (document.readyState === 'interactive' || document.readyState === 'complete') {
+      document.querySelector('#contentWrapper').setAttribute('style', 'opacity:0');
+      document.body.append(pfloading);
+      document.body.style.overflow = "hidden";
+      history.scrollRestoration = "manual";
+      window.scrollTo(0, 0);
+      shadow.setAttribute('style', 'background: linear-gradient(180deg,rgba(6,13,34,0) 40%,rgba(6,13,34,.6));height: 100%;left: 0;position: absolute;top: 0;width: 100%;');
+      banner.append(shadow);
+      startCustomProfile();
+    }
+
+    //Get Custom Background Image and Custom Profile Image Data from About Section
+    async function findCustomAbout() {
+      const aboutSection = document.querySelector('.user-profile-about.js-truncate-outer');
+      const processAboutSection = (aboutContent) => {
+      const bgMatch = aboutContent.match(bgRegex);
+      const pfMatch = aboutContent.match(pfRegex);
+      const cssMatch = aboutContent.match(cssRegex);
+        if (bgMatch) {
+          const bgData = bgMatch[0].replace(bgRegex, '$2');
+          custombg = JSON.parse(LZString.decompressFromBase64(bgData));
+          banner.setAttribute(
+          'style',
+          `background-color: var(--color-foreground); background: url(${custombg}); background-position: 50% 35%; background-repeat: no-repeat; background-size: cover; height: 330px; position: relative;`
+          );
+          customFounded = 1;
+        }
+        if (pfMatch) {
+          const pfData = pfMatch[0].replace(pfRegex, '$2');
+          custompf = JSON.parse(LZString.decompressFromBase64(pfData));
+          document.querySelector('.user-image.mb8 > img').setAttribute('src', custompf);
+          customFounded = 1;
+        }
+        if (cssMatch) {
+          const cssData = cssMatch[0].replace(cssRegex, '$2');
+          customcss = JSON.parse(LZString.decompressFromBase64(cssData));
+        }
+      };
+      if (aboutSection) {
+        processAboutSection(aboutSection.innerHTML);
+      } else {
+        // If current page not have about section get user about from jikanAPI
+        const apiUrl = `https://api.jikan.moe/v4/users/${username}/about`;
+        try {
+          const response = await fetch(apiUrl);
+          const data = await response.json();
+          if (data && data.data.about) {
+            processAboutSection(data.data.about);
+          }
+        } catch (e) {
+          console.error('Error fetching user about data:', e);
         }
       }
-      if (about) {
-        let m = about.innerHTML.match(regex);
-        let m2 = about.innerHTML.match(regex2);
-        if (m) {
-          let dat = m[0].replace(regex, '$2');
-          custombg = JSON.parse(LZString.decompressFromBase64(dat));
+    }
+
+    // for modern about, user can use blog post to add custom pf bg and css
+    async function findCustomBlogPost() {
+      let custompfLink, custombgLink;
+      const rssUrl = 'https://myanimelist.net/rss.php?type=blog&u=' + username;
+      const response = await fetch(rssUrl);
+      const str = await response.text();
+      const data = new window.DOMParser().parseFromString(str, "text/xml");
+      const items = data.querySelectorAll('item');
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const description = item.querySelector('description').textContent;
+        const custompfMatch = description.match(pfRegex);
+        const custombgMatch = description.match(bgRegex);
+        const customcssMatch = description.match(cssRegex);
+        if (custompfMatch) {
+          custompfLink = custompfMatch[0].replace(pfRegex, '$2').replace('https://', '');
+          custompf = LZString.decompressFromBase64(custompfLink).replace(/"/gm, '');
+          document.querySelector('.user-image.mb8 > img').setAttribute('src', custompf);
+          customFounded = 1;
+        }
+        if (custombgMatch) {
+          custombgLink = custombgMatch[0].replace(bgRegex, '$2').replace('https://', '');
+          custombg = LZString.decompressFromBase64(custombgLink).replace(/"/gm, '');
           banner.setAttribute(
-            'style',
-            'background-color: var(--color-foreground);background:url(' + custombg + ');background-position: 50% 35%; background-repeat: no-repeat;background-size: cover;height: 330px;position: relative;',
-          );
-          svar.alstyle = true;
+          'style',
+          `background-color: var(--color-foreground);background:url(${custombg});background-position: 50% 35%; background-repeat: no-repeat;background-size: cover;height: 330px;position: relative;`
+        );
+        customFounded = 1;
         }
-        if (m2) {
-          let dat2 = m2[0].replace(regex2, '$2');
-          custompf = JSON.parse(LZString.decompressFromBase64(dat2));
-          document.querySelector('.user-image.mb8 > img').setAttribute('src', '' + custompf + '');
-          svar.alstyle = true;
+        if (customcssMatch) {
+          const cssData = customcssMatch[0].replace(cssRegex, '$2');
+          customcss = LZString.decompressFromBase64(cssData).substring(1).slice(0, -1);
         }
-        applyAl();
-      } else {
-        //If current page don't have about section get about from JikanAPI
-        const apiUrl = `https://api.jikan.moe/v4/users/${username}/about`;
-        await fetch(apiUrl)
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.data.about) {
-              let match = data.data.about.match(regex);
-              let match2 = data.data.about.match(regex2);
-              if (match) {
-                let dat = match[0].replace(regex, '$2');
-                custombg = JSON.parse(LZString.decompressFromBase64(dat));
-                banner.setAttribute(
-                  'style',
-                  'background-color: var(--color-foreground);background:url(' + custombg + ');background-position: 50% 35%; background-repeat: no-repeat;background-size: cover;height: 330px;position: relative;',
-                );
-                svar.alstyle = true;
-              }
-              if (match2) {
-                let dat2 = match2[0].replace(regex2, '$2');
-                custompf = JSON.parse(LZString.decompressFromBase64(dat2));
-                document.querySelector('.user-image.mb8 > img').setAttribute('src', '' + custompf + '');
-                svar.alstyle = true;
-              }
-            }
-            applyAl();
-          });
       }
     }
     //Apply Anilist Style Profile
@@ -1749,15 +1823,7 @@ function delay(ms) {
     if (svar.customcss) {
       findcss();
       function findcss() {
-        var details = document.querySelector('.user-profile-about.js-truncate-outer');
-        if (!details) {
-          setTimeout(findcss, 100);
-          return;
-        }
-        let regex = /(customcss)\/([^()]+)/gm;
-        let match = details.innerHTML.match(regex);
-        if (match) {
-          svar.alstyle = false;
+        if (customcss) {
           $('style:contains(--fg: #161f2f;)').html('');
           styleSheet3.innerText = styles3;
           document.getElementsByTagName("head")[0].appendChild(styleSheet3);
@@ -1766,18 +1832,16 @@ function delay(ms) {
           getdata();
           function getdata() {
             let css = document.createElement('style');
-            const data = match[0].replace(regex, '$2');
-            const cssdata = JSON.parse(LZString.decompressFromBase64(data));
-            if(cssdata.match(/^https.*\.css$/)){
+            if(customcss.match(/^https.*\.css$/)){
               let cssLink = document.createElement("link");
               cssLink.rel = "stylesheet";
               cssLink.type = "text/css";
-              cssLink.href = cssdata;
+              cssLink.href = customcss;
               document.getElementsByTagName("head")[0].appendChild(cssLink);
             }
             else {
-              if(cssdata.length < 1e6){
-                css.innerText = cssdata;
+              if(customcss.length < 1e6){
+                css.innerText = customcss;
                 document.getElementsByTagName("head")[0].appendChild(css);
               }
             }
@@ -2111,17 +2175,6 @@ function delay(ms) {
         table.prepend(title);
       }
     }
-    if (document.readyState !== 'loading') {
-      setTimeout(() => {
-        window.scrollTo(0, 0);
-      },1000);
-    } else {
-      document.addEventListener('DOMContentLoaded', function () {
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-        },1000);
-      });
-    }
   }
   //Profile Section //--END--//
 
@@ -2267,7 +2320,7 @@ function delay(ms) {
       } else {
         $(".AlternativeTitlesDiv").nextUntil('br').addClass("spaceit-shadow-end");
       }
-      document.querySelector('.AlternativeTitlesDiv').nextElementSibling.setAttribute('style', 'border-radius:var(--br)');
+      document.querySelector('.AlternativeTitlesDiv').nextElementSibling.setAttribute('style', 'border-radius:var(--br);margin-bottom:4px');
       $('span:contains("Synonyms")').parent().next().css({
         borderRadius: 'var(--br)'
       });
@@ -2670,6 +2723,7 @@ function delay(ms) {
   }
   //Anime-Manga Background Color from Cover Image //--END--//
 
+  if (svar.animeSongs) {
   //Anisongs for MAL //--START--//
   //fork of anisongs by morimasa
   //https://greasyfork.org/en/scripts/374785-anisongs
@@ -2837,6 +2891,7 @@ function delay(ms) {
               }
               if (m === 0 && vid.song.artists !== null && vid.song.artists[0] && vid.song.title !== null) {
                 let artist = cleanTitle(e).replace(/\(([^CV: ].*?)\).?/g,'').replace(/(.*)( by )(.*)/g,'$3').replace(/( feat\. | feat\.| ft\. )/g,', ').replace(/["']/g, '').replace(/\s\[.*\]/gm, '').trim();
+                let artist2 = cleanTitle(e).replace(/(.*)by \w.*\(([^eps ].*?)\)(.*(eps |ep ).*)/g, '$2').replace(/( feat\. | feat\.| ft\. )/g,', ').replace(/["']/g, '').replace(/\s\[.*\]/gm, '').trim();
                 let artists = [];
                 let matches = [];
                 let match;
@@ -2851,7 +2906,7 @@ function delay(ms) {
                   }
                   matches = matches.join(", ");
                 }
-                if (m === 0 && (stringSimilarity(artist, artists) > .85 || matches.length > 0 && stringSimilarity(artists, matches) > .85)) {
+                if (m === 0 && (stringSimilarity(artist, artists) > .85 || stringSimilarity(artist2, artists) > .9 || matches.length > 0 && stringSimilarity(artists, matches) > .85)) {
                   artistmatch = 1;
                   if (stringSimilarity(title, vid.song.title) > .8 || i === vid.sequence && stringSimilarity(title, title2) > .8 || !vid.sequence && stringSimilarity(title, title2) > .8) {
                     u = link;
@@ -3022,4 +3077,5 @@ function delay(ms) {
     }
   }
   //Anisongs for MAL //--END--//
+}
 })();
