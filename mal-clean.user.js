@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.27.2
+// @version     1.27.3
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -244,13 +244,13 @@ let svar = {
   animeSongs: true,
   characterHeader: true,
   characterNameAlt: true,
-  profileHeader: true,
-  customcss: true,
-  alstyle: true,
-  animeinfo:true,
-  embed:true,
-  currentlywatching:true,
-  airingDate:true,
+  profileHeader: false,
+  customcss: false,
+  alstyle: false,
+  animeinfo: true,
+  embed: true,
+  currentlywatching: true,
+  airingDate: true,
 };
 
 svar.save = function () {
@@ -267,7 +267,8 @@ if (svar) {
 
 //Settings CSS
 let styles = `
-.relationsTarget {
+.relationsTarget,
+.relationsExpanded{
     display: -webkit-box!important;
     display: -webkit-flex!important;
     display: -ms-flexbox!important;
@@ -276,6 +277,17 @@ let styles = `
     -ms-flex-wrap: wrap;
     flex-wrap: wrap;
     gap:14px
+}
+.relationsExpanded{
+    padding: 0px 8px
+}
+.relations-accordion-button {
+    text-align:right;
+    cursor: pointer;
+    display: block;
+    width: 85px;
+    margin-left: auto;
+    margin-right: 5px
 }
 .relationEntry{
     background-repeat: no-repeat;
@@ -568,23 +580,23 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     -ms-user-select: none;
     user-select: none;
 }
-.embeddiv.no-genre .genres{
+.embedDiv.no-genre .genres{
    display:none
 }
-.embeddiv:not(.no-genre) div{
+.embedDiv:not(.no-genre) div{
     transition: opacity 0.3s ease-in-out;
 }
-.embeddiv:not(.no-genre) .genres{
+.embedDiv:not(.no-genre) .genres{
     margin-bottom:-18.5px;
     opacity:0
 }
-.embeddiv:not(.no-genre):hover .genres {
+.embedDiv:not(.no-genre):hover .genres {
     opacity:1
 }
-.embeddiv:not(.no-genre):hover .details {
+.embedDiv:not(.no-genre):hover .details {
     opacity:0
 }
-.embedname{
+.embedName{
     font-weight:bold;
     display:block;
     overflow: hidden;
@@ -596,14 +608,14 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     -ms-grid-row-align: center;
     align-self: center;
 }
-.embedimg{
+.embedImage{
     background-size: cover;
     height: 58px;
     width: 41px;
     margin-right: 10px;
     margin-left: -10px;
 }
-.embeddiv{
+.embedDiv{
     color: var(--color-text);
     align-items: center;
     text-align:center;
@@ -623,8 +635,8 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     justify-content: space-between;
     overflow: hidden;
 }
-.forum .replied.show .embeddiv,
-.quotetext .embeddiv {
+.forum .replied.show .embedDiv,
+.quotetext .embedDiv {
     background-color: var(--color-foreground);
 }
 .tooltipBody {
@@ -708,12 +720,12 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     margin: 4px;
     cursor: pointer;
     background-color: var(--color-background);
-    color: var(--color-text);
+    color: var(--color-text)
 }
 .mainbtns:hover{
     -webkit-transform:scale(1.04);
     -ms-transform:scale(1.04);
-    transform:scale(1.04);
+    transform:scale(1.04)
 }
 .btn-active {
     background-color: var(--color-foreground4)!important;
@@ -721,7 +733,7 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
 }
 .btn-active:before{
     font-family: 'Font Awesome 6 Pro';
-    content: "\\f00c";
+    content: "\\f00c"
 }
 @keyframes reloadLoop {
     0% {
@@ -731,38 +743,46 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     background-color: var(--color-foreground4);
     }
     100% {
-    background-color: var(--color-background);
+    background-color: var(--color-background)
   }
 }
 button#customcss,
 button#custombg,
 button#custompf{
     height: 40px;
-    width: 45%;
+    width: 45%
 }
 input#cssinput,
 input#bginput,
 input#pfinput{
     width: 47%;
     height: 15px;
-    margin-right: 5px;
+    margin-right: 5px
 }
 .mainDiv .mainListDiv h2{
     background: var(--fg2);
     border-radius: var(--br);
-    padding: 5px;
+    padding: 5px
 }
 .mainDiv .mainListDiv h3 {
     font-weight:500
 }`;
 let styles1 = `
+.anisong-accordion-button {
+    text-align:right;
+    cursor: pointer;
+    display: block;
+    width: 85px;
+    margin-left: auto;
+    margin-right: 5px
+}
 .anisongs .theme-songs.js-theme-songs {
     margin-bottom:5px
-    }
+}
 .anisongs video {
-    width: 379px;
+    width: 100%;
     margin-top: 10px
-    }
+}
 .anisongs .oped-preview-button.oped-preview-button-gray {
     cursor: pointer;
     display: inline-block;
@@ -770,7 +790,7 @@ let styles1 = `
     margin-bottom: -3px;
     width: 15px;
     -webkit-filter: invert(100%) hue-rotate(180deg) brightness(75%)!important;
-    filter: invert(100%) hue-rotate(180deg) brightness(75%)!important;
+    filter: invert(100%) hue-rotate(180deg) brightness(75%)!important
     }`;
 let styles2 = `
 .lazyloading {
@@ -1202,7 +1222,7 @@ function delay(ms) {
   }
   else if( document.readyState === 'interactive' || document.readyState === 'complete' ) {
     on_load();
-}
+  }
 
   var current = location.pathname;
   styleSheet.innerText = styles;
@@ -1425,7 +1445,7 @@ function delay(ms) {
         }
       }
     }
-    //info button hover event
+    //info button click event
     $(".widget.seasonal.left i").on('click', async function () {
         exit();
         if ($(".tooltipBody").length === 0) {
@@ -1611,25 +1631,24 @@ function delay(ms) {
           details.classList.add("details");
           details.innerHTML =
             (data.data.type ? data.data.type + " · " : "") +
-            (data.data.status ? data.data.status.split("Airing").join("") + " · " : "") +
-            (data.data.season ? data.data.season.charAt(0).toUpperCase() + data.data.season.slice(1) : "") +
-            " " +
+            (data.data.status ? data.data.status.split("Airing").join("") : "") +
+            (data.data.season ? " · " + data.data.season.charAt(0).toUpperCase() + data.data.season.slice(1) + " " : "") +
             (cached && data.data.year ? data.data.year :
                     data.data.type !== "Anime" && publishedYear ? publishedYear :
                     airedYear ? airedYear :
                     data.data.type === "Anime" && airedYear ? airedYear : "") +
             (data.data.score ? '<span class="embedscore">' + " · " + Math.floor(data.data.score * 10) + "%" + "</span>" : "");
           const dat = document.createElement("div");
-          dat.classList.add("embeddiv");
+          dat.classList.add("embedDiv");
           dat.innerHTML = '<a></a>';
           const namediv = document.createElement("div");
           namediv.classList.add("detailsDiv");
           const name = document.createElement("a");
           name.innerText = data.data.title;
-          name.classList.add("embedname");
+          name.classList.add("embedName");
           name.href = data.data.url;
           const historyimg = document.createElement("a");
-          historyimg.classList.add("embedimg");
+          historyimg.classList.add("embedImage");
           historyimg.style.backgroundImage = `url(${imgdata})`;
           historyimg.href = data.data.url;
           data.data.genres.length > 0 ? (genres.style.display = "block") : dat.classList.add("no-genre");
@@ -2166,7 +2185,7 @@ function delay(ms) {
     }
     if (svar.profileHeader) {
       let title = document.querySelector('#contentWrapper > div:nth-child(1)');
-      title.children[0].setAttribute('style', 'padding-left: 2px');
+      title.children[0].setAttribute('style', 'padding-left: 2px;margin-bottom:12px');
       let table = document.querySelector('.user-profile-about.js-truncate-outer');
       if (!table) {
         table = document.querySelector('#content > div > div.container-right > div > div:nth-child(1)');
@@ -2355,15 +2374,11 @@ function delay(ms) {
       document.querySelector('.AvailableAtDiv').previousElementSibling.previousElementSibling.setAttribute('style', 'border-bottom-left-radius:var(--br);border-bottom-right-radius:var(--br)');
     }
     if($('.SummaryStatsDiv').length){
-      $('.SummaryStatsDiv').nextUntil('br').addClass("spaceit-shadow-stats");
-      $('.SummaryStatsDiv').nextUntil('br').css({
-        display: 'inline-block',
-        width: '47.5%'
-      });
-      $('.SummaryStatsDiv').nextUntil('br').first()[0].style.borderTopLeftRadius="var(--br)";
-      $('.SummaryStatsDiv').nextUntil('br').first().next()[0].style.borderTopRightRadius="var(--br)";
-      $('.SummaryStatsDiv').nextUntil('br').last().prev()[0].style.borderBottomLeftRadius="var(--br)";
-      $('.SummaryStatsDiv').nextUntil('br').last()[0].style.borderBottomRightRadius="var(--br)";
+      const statsDiv = create("div", { class: "statsDiv spaceit-shadow-end" });
+      const statElements = $('.SummaryStatsDiv').nextUntil('br');
+      $('.SummaryStatsDiv').after(statsDiv);
+      statsDiv.setAttribute('style', 'border-radius:var(--br);overflow:hidden;display: -ms-grid;display: grid;-ms-grid-columns: 1fr 1fr 1fr;grid-template-columns: 1fr 1fr 1fr;');
+      $(statsDiv).append(statElements);
     }
     if($('.score-stats').length){
       $('.score-stats').addClass("spaceit-shadow-end");
@@ -2382,6 +2397,10 @@ function delay(ms) {
     }
     if($('.RecentNewsDiv').length && !$('.RecentNewsDiv').next().is('div')){
       $('.RecentNewsDiv').remove();
+    }
+    if($('.page-forum:contains("No discussion topic was found.")')[0]){
+      $('.page-forum:contains("No discussion topic was found.")')[0].remove();
+      $('.RecentForumDiscussionDiv').remove();
     }
 
     //Background info Fix
@@ -2414,12 +2433,26 @@ function delay(ms) {
           }
         }
         if(bannerData && bannerData.bannerImage && bannerTarget) {
+          let bgColor = getComputedStyle(document.body);
+          bgColor = tinycolor(bgColor.getPropertyValue('--bg'));
+          const leftSide = document.querySelector("#content > table > tbody > tr > td:nth-child(1)");
+          const bannerHover = create("div", { class: "bannerHover",style: {width: '220px',height: '45%',position: 'absolute',bottom: '0',left: '15px'}});
+          const bannerShadowColor = [bgColor.setAlpha(.1).toRgbString(),bgColor.setAlpha(.0).toRgbString(),bgColor.setAlpha(.6).toRgbString()];
+          bannerShadow.style.background = `linear-gradient(180deg,${bannerShadowColor[0]},${bannerShadowColor[1]} 50%,${bannerShadowColor[2]})`;
+          leftSide.style.transition = ".3s";
           bannerImage.style.background = "url("+bannerData.bannerImage+")";
-          bannerImage.append(bannerShadow);
+          bannerImage.append(bannerHover,bannerShadow);
           bannerDiv.append(bannerImage);
           bannerTarget.prepend(bannerDiv);
-          document.querySelector("#content > table > tbody > tr > td:nth-child(1)").style.paddingTop = "125px";
+          leftSide.style.paddingTop = "125px";
+          svar.animeHeader = true;
           headerPosChange(1);
+          $(bannerHover).on('mouseenter', async function() {
+            leftSide.style.paddingTop="215px"
+          });
+          $(bannerHover).on('mouseleave', async function() {
+            leftSide.style.paddingTop="125px"
+          });
         }
       }
     }
@@ -2466,7 +2499,7 @@ function delay(ms) {
     if(svar.animeRelation) {
       getRelations();
       async function getRelations() {
-        let relationData;
+        let relationData,sortedRelations;
         const relationDiv = create("div", { class: "aniTagDiv"});
         const relationTarget = document.querySelector(".related-entries");
         const relationLocalForage = localforage.createInstance({ name: "MalJS", storeName: "relations" });
@@ -2478,16 +2511,31 @@ function delay(ms) {
           relationData = await AnilistAPI(relationQuery);
           relationData.data.Media ? relationData = relationData.data.Media.relations.edges.filter(node => node.node.idMal !== null) : null;
           if (relationData.length > 0) {
-            const sortedRelations = relationData.sort((a, b) => {
+            // Sort by priorityOrder
+            sortedRelations = relationData.sort((a, b) => {
               const orderA = priorityOrder[a.relationType];
               const orderB = priorityOrder[b.relationType];
-                if (orderA === orderB) {
-                  const yearA = (a.node.seasonYear ? a.node.seasonYear : (a.node.startDate ? a.node.startDate.year : Number.MAX_SAFE_INTEGER));
-                  const yearB = (b.node.seasonYear ? b.node.seasonYear : (b.node.startDate ? b.node.startDate.year : Number.MAX_SAFE_INTEGER));
-                  return yearA - yearB;
-                }
               return orderA - orderB;
             });
+            // Group by relationType
+            let groupedRelations = sortedRelations.reduce((acc, curr) => {
+              if (!acc[curr.relationType]) {
+                acc[curr.relationType] = [];
+              }
+              acc[curr.relationType].push(curr);
+              return acc;
+            }, {});
+            // Sort each group by year
+            for (let type in groupedRelations) {
+              groupedRelations[type].sort((a, b) => {
+                const yearA = a.node.seasonYear ?? a.node.startDate?.year ?? 0;
+                const yearB = b.node.seasonYear ?? b.node.startDate?.year ?? 0;
+                return yearA - yearB;
+              });
+            }
+            // Flatten the grouped and sorted relations into a single array
+            sortedRelations = Object.values(groupedRelations).flat();
+            // relationLocalForage Set Item
             await relationLocalForage.setItem(entryId+"-"+entryType, {
               relations: sortedRelations,
               time: +new Date(),
@@ -2496,19 +2544,40 @@ function delay(ms) {
           }
         }
         if (relationCache && relationTarget) {
-        $('h2:contains("Related Anime"):last, h2:contains("Related Manga"):last').text("Relations");
+        $('h2:contains("Related Entries"):last').text("Relations");
         document.querySelector("#content > table > tbody > tr > td:nth-child(2) > div.rightside.js-scrollfix-bottom-rel > table").style.overflow = "visible";
         relationTarget.classList.add("relationsTarget");
         relationTarget.style.setProperty('padding', '10px', 'important');
         relationTarget.classList.add("spaceit-shadow-end");
-        relationTarget.innerHTML = relationCache.relations
-          .map((node) => "<div class='relationEntry'><a class='link' href='/" + (node.node.type === "MANGA" ? "manga" : "anime") + "/" + node.node.idMal  + "/" + "'>" +
-               "<img class='relationImg' src='" + (node.node.coverImage && node.node.coverImage.medium ? node.node.coverImage.medium : "") + "'>" +
-               "<span class='relationTitle' style='border-color:" + (node.node.type === "MANGA" ? "#92d493!important" : "var(--color-link)!important") + ";'>" + node.relationType.split("_").join(" ") +
-               "</span><div class='relationDetails'style='color:" + (node.node.type === "MANGA" ? "#92d493!important" : "var(--color-link)!important") + ";'>" + node.relationType.split("_").join(" ") +
-               "<br><div class='relationDetailsTitle'>" + (node.node.title && node.node.title.romaji ? node.node.title.romaji : "") + "</div>" + node.node.type + ' · ' +
-               (node.node.type === "MANGA" && node.node.startDate && node.node.startDate.year ? node.node.startDate.year + ' · ' : node.node.seasonYear ? node.node.seasonYear + ' · ' : "") +
-               (node.node.status ? node.node.status.split("_").join(" ") : "") + "</div></div></a>").toString().split(",").join("");
+          relationTarget.innerHTML = relationCache.relations
+            .map((node) => {
+            const isManga = node.node.type === "MANGA";
+            const typePath = isManga ? "manga" : "anime";
+            const coverImage = node.node.coverImage && node.node.coverImage.medium ? node.node.coverImage.medium : "";
+            const borderColor = isManga ? "#92d493" : "#afc7ee";
+            const relationType = node.relationType.split("_").join(" ");
+            const title = node.node.title && node.node.title.romaji ? node.node.title.romaji : "";
+            const year = node.node.type === "MANGA" && node.node.startDate && node.node.startDate.year
+            ? node.node.startDate.year + ' · '
+            : node.node.seasonYear
+            ? node.node.seasonYear + ' · '
+            : node.node.startDate && node.node.startDate.year
+            ? node.node.startDate.year + ' · '
+            : "";
+            const status = node.node.status ? node.node.status.split("_").join(" ") : "";
+            return `
+            <div class='relationEntry'><a class='link' href='/${typePath}/${node.node.idMal}/'>
+            <img class='relationImg' src='${coverImage}' />
+            <span class='relationTitle' style='border-color: ${borderColor}!important;'>${relationType}</span>
+            <div class='relationDetails' style='color: ${borderColor}!important;'>
+            ${relationType}
+            <br>
+            <div class='relationDetailsTitle'>${title}</div>
+            ${node.node.type} · ${year}${status}
+            </div></a></div>`;
+            })
+            .join("");
+
           $(".relationEntry").on('mouseenter', async function() {
             const el = $(this);
             const elDetails = $(this).find(".relationDetails");
@@ -2529,6 +2598,35 @@ function delay(ms) {
             $(el).removeClass("relationEntryRight");
             $(elDetails).removeClass("relationDetailsRight");
           })
+          if(relationTarget.clientHeight > 140) {
+            const relationTargetExpand = create('a', { class: 'relations-accordion-button' });
+            const extraRelationsDiv = create('div', { class: 'relationsExpanded', style: { display: "none" } });
+            const extraRelations = relationTarget.querySelectorAll(".relationEntry");
+            relationTargetExpand.innerHTML = '<i class="fas fa-chevron-down mr4"></i>\nShow More\n';
+            for (let i = 0; i < extraRelations.length; i++) {
+              if(relationTarget.clientHeight > 144) {
+                extraRelationsDiv.appendChild(relationTarget.querySelector(".relationEntry:last-child"));
+              }
+            }
+            relationTarget.append(extraRelationsDiv);
+            const extraDivs = Array.from(extraRelationsDiv.children);
+            const reversedDivs = extraDivs.reverse();
+            extraRelationsDiv.innerHTML = '';
+            reversedDivs.forEach(div => extraRelationsDiv.appendChild(div));
+            relationTarget.insertAdjacentElement("afterend", relationTargetExpand);
+            relationTarget.querySelector("div:nth-child(1)").style.marginLeft="8px";
+            extraRelationsDiv.setAttribute('style', 'display:none!important');
+            relationTarget.setAttribute('style', 'margin-bottom:5px;padding:12px 4px!important');
+            relationTargetExpand.addEventListener('click', function () {
+              if (extraRelationsDiv.style.display === 'none') {
+                extraRelationsDiv.setAttribute('style', 'display:flex!important');
+                relationTargetExpand.innerHTML = '<i class="fas fa-chevron-up mr4"></i>\nShow Less\n';
+              } else {
+                extraRelationsDiv.setAttribute('style', 'display:none!important');
+                relationTargetExpand.innerHTML = '<i class="fas fa-chevron-down mr4"></i>\nShow More\n';
+              }
+            });
+          }
         }
       }
     }
@@ -3023,6 +3121,32 @@ function delay(ms) {
       }
       insert(data.opening_themes, op);
       insert(data.ending_themes, ed);
+
+      function addAccordion(div) {
+        const aniSongsDiv = document.querySelector(div);
+        const themeSongs = aniSongsDiv.querySelectorAll(".theme-songs");
+        if (themeSongs.length > 4) {
+          const accordionButton = create('a', { class: 'anisong-accordion-button', style: { display: "none" } });
+          const extraSongs = create('div', { class: 'anisong-extra-songs', style: { display: "none" } });
+          accordionButton.innerHTML = '<i class="fas fa-chevron-down mr4"></i>\nShow More\n';
+          for (let i = 4; i < themeSongs.length; i++) {
+            extraSongs.appendChild(themeSongs[i]);
+          }
+          aniSongsDiv.append(extraSongs, accordionButton);
+          accordionButton.style.display = 'block';
+          accordionButton.addEventListener('click', function () {
+            if (extraSongs.style.display === 'none') {
+              extraSongs.style.display = 'block';
+              accordionButton.innerHTML = '<i class="fas fa-chevron-up mr4"></i>\nShow Less\n';
+            } else {
+              extraSongs.style.display = 'none';
+              accordionButton.innerHTML = '<i class="fas fa-chevron-down mr4"></i>\nShow More\n';
+            }
+          });
+        }
+      }
+      addAccordion('div.di-t > div.anisongs:nth-child(1)');
+      addAccordion('div.di-t > div.anisongs:nth-child(2)');
     }
     async function launch(currentid) {
       // get from cache and check TTL
