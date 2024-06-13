@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.27.4
+// @version     1.27.5
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -233,6 +233,133 @@ function emptyInfoAddDiv(title) {
   $(title).after(newDiv);
 }
 
+// Anime/Manga Edit Popup
+async function editPopup(id, type) {
+  return new Promise((resolve, reject) => {
+    const url = location.pathname === "/" ? null : 1;
+    const popup = create("div", { id: "currently-popup" });
+    const popupClose = create("a", { id: "currently-closePopup", class: "fa-solid fa-xmark", href: "javascript:void(0);" });
+    const popupId = "/ownlist/" + (type ? type.toLocaleLowerCase() : "anime") + "/" + id + "/edit?hideLayout=1";
+    const popupBack = create("a", { class: "popupBack fa-solid fa-arrow-left", href: "javascript:void(0);" });
+    const popupLoading = create("div",{
+      class: "actloading",
+      style: { position: "fixed", top: "50%", left: "0", right: "0", fontSize: "16px" },},
+      "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>'
+    );
+    const popupMask = create("div", {
+      class: "fancybox-overlay",
+      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "1" },
+    });
+    const iframe = create("iframe", { src: popupId });
+    iframe.style.opacity = 0;
+    const close = () => {
+      if ($(iframe).contents().find(".goodresult").length && url) {
+        window.location.reload();
+      }
+      popup.remove();
+      popupMask.remove();
+      document.body.style.removeProperty("overflow");
+      resolve();
+    };
+    if (type === "manga") {
+      popup.style.height = "472px";
+    }
+
+    popup.append(popupClose, iframe, popupLoading);
+    document.body.append(popup, popupMask);
+    document.body.style.overflow = "hidden";
+
+    $(iframe).on("load", function () {
+      iframe.style.opacity = 1;
+      popupLoading.remove();
+
+      if (svar.autoAddDate) {
+        //close advanced section
+        if ($(iframe).contents().find("#hide-advanced-button")[0].style.display === "") {
+          $(iframe).contents().find("#hide-advanced-button")[0].click();
+        }
+
+        let decreaseEp = $(iframe).contents().find("#add_anime_num_watched_episodes,#add_manga_num_read_chapters").next().clone().text("-").css({ marginRight: "0" });
+        $(decreaseEp).prependTo($(iframe).contents().find("#add_anime_num_watched_episodes,#add_manga_num_read_chapters").parent());
+
+        function checkEp() {
+          let ep = parseInt($(iframe).contents().find("#add_anime_num_watched_episodes,#add_manga_num_read_chapters").val());
+          let lastEp = parseInt($(iframe).contents().find("#totalEpisodes,#totalChap").text());
+          let day = $(iframe).contents().find("#add_anime_finish_date_day,#add_manga_finish_date_day")[0];
+          let month = $(iframe).contents().find("#add_anime_finish_date_month,#add_manga_finish_date_month")[0];
+          let year = $(iframe).contents().find("#add_anime_finish_date_year,#add_manga_finish_date_year")[0];
+          let startDate = $(iframe).contents().find("#add_anime_start_date_month,#add_manga_start_date_month").val();
+          let endDate = $(iframe).contents().find("#add_anime_finish_date_month,#add_manga_finish_date_month").val();
+
+          // if episode count is greater than 0 and the start date is not entered
+          if (ep > 0 && !startDate) {
+            $(iframe).contents().find("#start_date_insert_today")[0].click();
+          }
+
+          // if episode count equals or exceeds the total episodes and the end date is not entered, add end date
+          if (ep >= lastEp && !endDate) {
+            $(iframe).contents().find("#end_date_insert_today")[0].click();
+          }
+
+          //if episode count less than total episodes and the end date is entered, clear end date
+          if (ep < lastEp && endDate) {
+            day.value = 0;
+            month.value = 0;
+            year.value = 0;
+          }
+        }
+
+        //if episode count changed
+        $(iframe).contents().find("#add_anime_num_watched_episodes,#add_manga_num_read_chapters").on("input", function () {
+          checkEp();
+        });
+
+        //if increment episode (+) clicked
+        $(iframe).contents().find("#add_anime_num_watched_episodes,#add_manga_num_read_chapters").next().on("click", function () {
+          checkEp();
+        });
+
+        //if entry status is completed
+        $(iframe).contents().find("#add_anime_status,#add_manga_status")[0].addEventListener("change", function () {
+          if (this.value == "2") {
+            checkEp();
+          }
+        });
+
+        //if decrease ep clicked
+        $(decreaseEp).on("click", function () {
+          let ep = $(iframe).contents().find("#add_anime_num_watched_episodes,#add_manga_num_read_chapters")[0];
+          ep.value = ep.value > 0 ? ep.value - 1 : ep.value;
+          checkEp();
+        });
+      }
+
+      //if history clicked
+      $(iframe).contents().find("#totalEpisodes,#totalChap").next().children().on("click", function () {
+        iframe.style.opacity = 0;
+        popup.append(popupLoading);
+        popup.prepend(popupBack);
+      });
+
+      //if history back clicked
+      $(popupBack).on("click", function () {
+        iframe.style.opacity = 0;
+        popup.append(popupLoading);
+        iframe.src = popupId;
+        popupBack.remove();
+      });
+    });
+
+    // close popup
+    popupMask.onclick = () => {
+      close();
+    };
+    popupClose.onclick = () => {
+      close();
+    };
+  });
+}
+
 let svar = {
   animebg: true,
   charbg: true,
@@ -249,8 +376,11 @@ let svar = {
   alstyle: false,
   animeinfo: true,
   embed: true,
-  currentlywatching: true,
+  currentlyWatching: true,
+  currentlyReading: true,
   airingDate: true,
+  autoAddDate: true,
+  editPopup: true,
 };
 
 svar.save = function () {
@@ -518,6 +648,8 @@ let styles = `
     text-shadow: rgb(0 0 0 / 70%) 0px 0px 2px;
 }
 #currently-popup {
+    height: 425px;
+    width: 674px;
     position: fixed;
     top: 50%;
     left: 50%;
@@ -530,11 +662,18 @@ let styles = `
     border-radius: var(--br)
 }
 #currently-popup iframe {
-    width: 680px;
-    height: 422px;
+    width: 100%;
+    height: 100%;
     -webkit-border-radius: var(--br);
     border-radius: var(--br);
     border:1px solid
+}
+#currently-popup .popupBack {
+    left: 6px;
+    right: inherit!important;
+    font-family: FontAwesome;
+    float: left;
+    padding: 0px 0px 5px 0px;
 }
 .widget.seasonal.left .btn-anime i:hover{
     width:160px;
@@ -544,21 +683,19 @@ let styles = `
 }
 #widget-currently-watching > div.widget-slide-outer > ul > li:hover span.epBehind,
 .widget.seasonal.left .btn-anime:hover i,
-#widget-currently-watching .btn-anime:hover i{
+#widget-currently-watching .btn-anime:hover i,
+#widget-currently-reading .btn-anime:hover i {
     opacity:.9!important
 }
 #currently-watching span{
     width:93%
 }
+#currently-popup .popupBack,
 #currently-closePopup {
     position: absolute;
     top: 5px;
-    right: 5px;
-    cursor: pointer;
-    background: var(--color-foreground);
-    padding: 5px;
-    border-radius: 5px;
-    -webkit-border-radius: 5px
+    right: 6px;
+    cursor: pointer
 }
 .airingInfo {
     color: var(--color-text);
@@ -597,14 +734,18 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     height: 3px;
     width: 0
 }
+.widget.anime_suggestions.left #widget-currently-reading a:hover .behindWarn,
+.widget.anime_suggestions.left #widget-currently-reading a:hover .airingInfo,
 .widget.anime_suggestions.left #widget-currently-watching a:hover .behindWarn,
 .widget.anime_suggestions.left #widget-currently-watching a:hover .airingInfo {
     opacity:0;
 }
+.widget-slide-block:hover #current-left-manga.active,
 .widget-slide-block:hover #current-left.active{
     left:0!important;
     opacity:1!important
 }
+.widget-slide-block:hover #current-right-manga.active,
 .widget-slide-block:hover #current-right.active{
     right:0!important;
     opacity:1!important
@@ -938,121 +1079,142 @@ function reloadset() {
 }
 
 //Other Buttons
-var button1 = create("button", { class: "mainbtns", id: "animebgbtn" });
+var button1 = create("button", { class: "mainbtns", id: "animeBgBtn" });
 button1.onclick = () => {
   svar.animebg = !svar.animebg;
   svar.save();
   getSettings();
   reloadset();
 };
-var button2 = create("button", { class: "mainbtns", id: "animeHeaderbtn" });
+var button2 = create("button", { class: "mainbtns", id: "animeHeaderBtn" });
 button2.onclick = () => {
   svar.animeHeader = !svar.animeHeader;
   svar.save();
   getSettings();
   reloadset();
 };
-var button17 = create("button", { class: "mainbtns", id: "animeBannerbtn" });
+var button17 = create("button", { class: "mainbtns", id: "animeBannerBtn" });
 button17.onclick = () => {
   svar.animeBanner = !svar.animeBanner;
   svar.save();
   getSettings();
   reloadset();
 };
-var button18 = create("button", { class: "mainbtns", id: "animeTagbtn" });
+var button18 = create("button", { class: "mainbtns", id: "animeTagBtn" });
 button18.onclick = () => {
   svar.animeTag = !svar.animeTag;
   svar.save();
   getSettings();
   reloadset();
 };
-var button19 = create("button", { class: "mainbtns", id: "animeRelationbtn" });
+var button19 = create("button", { class: "mainbtns", id: "animeRelationBtn" });
 button19.onclick = () => {
   svar.animeRelation = !svar.animeRelation;
   svar.save();
   getSettings();
   reloadset();
 };
-var button3 = create("button", { class: "mainbtns", id: "charbgbtn" });
+var button3 = create("button", { class: "mainbtns", id: "charBgBtn" });
 button3.onclick = () => {
   svar.charbg = !svar.charbg;
   svar.save();
   getSettings();
   reloadset();
 };
-var button4 = create("button", { class: "mainbtns", id: "characterHeaderbtn" });
+var button4 = create("button", { class: "mainbtns", id: "characterHeaderBtn" });
 button4.onclick = () => {
   svar.characterHeader = !svar.characterHeader;
   svar.save();
   getSettings();
   reloadset();
 };
-var button5 = create("button", { class: "mainbtns", id: "characterNameAltbtn" });
+var button5 = create("button", { class: "mainbtns", id: "characterNameAltBtn" });
 button5.onclick = () => {
   svar.characterNameAlt = !svar.characterNameAlt;
   svar.save();
   getSettings();
   reloadset();
 };
-var button6 = create("button", { class: "mainbtns", id: "peopleHeaderbtn" });
+var button6 = create("button", { class: "mainbtns", id: "peopleHeaderBtn" });
 button6.onclick = () => {
   svar.peopleHeader = !svar.peopleHeader;
   svar.save();
   getSettings();
   reloadset();
 };
-var button7 = create("button", { class: "mainbtns", id: "customcssbtn" });
+var button7 = create("button", { class: "mainbtns", id: "customCssBtn" });
 button7.onclick = () => {
   svar.customcss = !svar.customcss;
   svar.save();
   getSettings();
   reloadset();
 };
-var button9 = create("button", { class: "mainbtns", id: "profileheaderbtn" });
+var button9 = create("button", { class: "mainbtns", id: "profileHeaderBtn" });
 button9.onclick = () => {
   svar.profileHeader = !svar.profileHeader;
   svar.save();
   getSettings();
   reloadset();
 };
-var button10 = create("button", { class: "mainbtns", id: "alstylebtn" });
+var button10 = create("button", { class: "mainbtns", id: "alStyleBtn" });
 button10.onclick = () => {
   svar.alstyle = !svar.alstyle;
   svar.save();
   getSettings();
   reloadset();
 };
-var button13 = create("button", { class: "mainbtns", id: "animeinfobtn" });
+var button13 = create("button", { class: "mainbtns", id: "animeInfoBtn" });
 button13.onclick = () => {
   svar.animeinfo = !svar.animeinfo;
   svar.save();
   getSettings();
   reloadset();
 };
-var button14 = create("button", { class: "mainbtns", id: "embedbtn" });
+var button14 = create("button", { class: "mainbtns", id: "embedBtn" });
 button14.onclick = () => {
   svar.embed = !svar.embed;
   svar.save();
   getSettings();
   reloadset();
 };
-var button15 = create("button", { class: "mainbtns", id: "currentlybtn" });
+var button15 = create("button", { class: "mainbtns", id: "currentlyWatchingBtn" });
 button15.onclick = () => {
-  svar.currentlywatching = !svar.currentlywatching;
+  svar.currentlyWatching = !svar.currentlyWatching;
   svar.save();
   getSettings();
   reloadset();
 };
-var button16 = create("button", { class: "mainbtns", id: "airingdatebtn" });
+var button16 = create("button", { class: "mainbtns", id: "airingDateBtn" });
 button16.onclick = () => {
   svar.airingDate = !svar.airingDate;
   svar.save();
   getSettings();
   reloadset();
 };
-var button20 = create("button", { class: "mainbtns", id: "animesongsbtn" });
+var button20 = create("button", { class: "mainbtns", id: "animeSongsBtn" });
 button20.onclick = () => {
   svar.animeSongs = !svar.animeSongs;
+  svar.save();
+  getSettings();
+  reloadset();
+};
+var button21 = create("button", { class: "mainbtns", id: "autoAddDateBtn" });
+button21.onclick = () => {
+  svar.autoAddDate = !svar.autoAddDate;
+  svar.save();
+  getSettings();
+  reloadset();
+};
+var button22 = create("button", { class: "mainbtns", id: "editPopupBtn" });
+button22.onclick = () => {
+  svar.editPopup = !svar.editPopup;
+  svar.save();
+  getSettings();
+  reloadset();
+};
+var button23 = create("button", { class: "mainbtns", id: "currentlyReadingBtn" });
+button23.onclick = () => {
+  svar.currentlyReading = !svar.currentlyReading;
   svar.save();
   getSettings();
   reloadset();
@@ -1117,23 +1279,26 @@ cssinput.placeholder = "Paste your CSS here";
 
 // Toggle enabled Buttons
 function getSettings() {
-  animebgbtn.classList.toggle('btn-active', svar.animebg);
-  charbgbtn.classList.toggle('btn-active', svar.charbg);
-  peopleHeaderbtn.classList.toggle('btn-active', svar.peopleHeader);
-  animeHeaderbtn.classList.toggle('btn-active', svar.animeHeader);
-  animeBannerbtn.classList.toggle('btn-active', svar.animeBanner);
-  animeTagbtn.classList.toggle('btn-active', svar.animeTag);
-  animeRelationbtn.classList.toggle('btn-active', svar.animeRelation);
-  characterHeaderbtn.classList.toggle('btn-active', svar.characterHeader);
-  characterNameAltbtn.classList.toggle('btn-active', svar.characterNameAlt);
-  customcssbtn.classList.toggle('btn-active', svar.customcss);
-  profileheaderbtn.classList.toggle('btn-active', svar.profileHeader);
-  alstylebtn.classList.toggle('btn-active', svar.alstyle);
-  animeinfobtn.classList.toggle('btn-active', svar.animeinfo);
-  embedbtn.classList.toggle('btn-active', svar.embed);
-  currentlybtn.classList.toggle('btn-active', svar.currentlywatching);
-  airingdatebtn.classList.toggle('btn-active', svar.airingDate);
-  animesongsbtn.classList.toggle('btn-active', svar.animeSongs);
+  animeBgBtn.classList.toggle('btn-active', svar.animebg);
+  charBgBtn.classList.toggle('btn-active', svar.charbg);
+  peopleHeaderBtn.classList.toggle('btn-active', svar.peopleHeader);
+  animeHeaderBtn.classList.toggle('btn-active', svar.animeHeader);
+  animeBannerBtn.classList.toggle('btn-active', svar.animeBanner);
+  animeTagBtn.classList.toggle('btn-active', svar.animeTag);
+  animeRelationBtn.classList.toggle('btn-active', svar.animeRelation);
+  characterHeaderBtn.classList.toggle('btn-active', svar.characterHeader);
+  characterNameAltBtn.classList.toggle('btn-active', svar.characterNameAlt);
+  customCssBtn.classList.toggle('btn-active', svar.customcss);
+  profileHeaderBtn.classList.toggle('btn-active', svar.profileHeader);
+  alStyleBtn.classList.toggle('btn-active', svar.alstyle);
+  animeInfoBtn.classList.toggle('btn-active', svar.animeinfo);
+  embedBtn.classList.toggle('btn-active', svar.embed);
+  currentlyWatchingBtn.classList.toggle('btn-active', svar.currentlyWatching);
+  currentlyReadingBtn.classList.toggle('btn-active', svar.currentlyReading);
+  airingDateBtn.classList.toggle('btn-active', svar.airingDate);
+  animeSongsBtn.classList.toggle('btn-active', svar.animeSongs);
+  autoAddDateBtn.classList.toggle('btn-active', svar.autoAddDate);
+  editPopupBtn.classList.toggle('btn-active', svar.editPopup);
 }
 
 //Create Settings Div
@@ -1165,7 +1330,9 @@ function createDiv() {
       "My Panel",
       [{b:button13,t:"Add info to seasonal anime (hover over anime to make it appear)"},
        {b:button15,t:"Show currently watching anime"},
-       {b:button16,t:"Add  next episode countdown to currently watching anime"}
+       {b:button23,t:"Show currently reading manga"},
+       {b:button16,t:"Add next episode countdown to currently watching anime"},
+       {b:button21,t:"Auto add start/finish date to watching anime & reading manga"},
       ]),
     createListDiv(
       "Anime / Manga",
@@ -1175,6 +1342,7 @@ function createDiv() {
         {b:button18,t:"Add tags from Anilist"},
         {b:button19,t:"Replace relations"},
         {b:button20,t:"Replace Anime OP/ED with animethemes.moe"},
+        {b:button22,t:"Replace edit details with edit popup"},
         {b:button2,t:"Change title position"}
       ]),
     createListDiv(
@@ -1270,7 +1438,7 @@ function delay(ms) {
   document.head.appendChild(styleSheet);
 
   //Currently Watching //--START--//
-  if (svar.currentlywatching && location.pathname === "/") {
+  if (svar.currentlyWatching && location.pathname === "/") {
     //Create Currently Watching Div
     getWatching();
     async function getWatching() {
@@ -1387,8 +1555,10 @@ function delay(ms) {
                   "</a>";
                 wDiv.appendChild(ib);
                 document.querySelector("#widget-currently-watching ul").append(wDiv);
-                ib.onclick = () => {
-                  editpopup(ib.id);
+                ib.onclick = async () => {
+                  await editPopup(ib.id);
+                  watchdiv.remove();
+                  getWatching();
                 };
               }
               // sort by time until airing
@@ -1408,32 +1578,7 @@ function delay(ms) {
               document.querySelector("#currently-watching > div > div.widget-header > i").remove();
               document.querySelector("#widget-currently-watching > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#current-right").classList.add("active") : "";
             }
-            //Open Edit Popup Menu
-            function editpopup(id) {
-              const popupmask = create("div", {
-                class: "fancybox-overlay",
-                style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0" },
-              });
-              const popup = create("div", { id: "currently-popup" });
-              const popupclose = create("div", { id: "currently-closePopup", class: "fa fa-x" });
-              const iframe = create("iframe", { src: "/ownlist/anime/" + id + "/edit?hideLayout=1" });
-              const close = () => {
-                popup.remove();
-                popupmask.remove();
-                watchdiv.remove();
-                document.body.style.removeProperty("overflow");
-                getWatching();
-              };
-              popup.append(popupclose, iframe);
-              document.body.append(popup, popupmask);
-              document.body.style.overflow = "hidden";
-              popupmask.onclick = () => {
-                close();
-              };
-              popupclose.onclick = () => {
-                close();
-              };
-            }
+
             //Currently Watching - Slider Left
             document.querySelector("#current-left").addEventListener("click", function () {
               const slider = document.querySelector(".widget-slide");
@@ -1463,10 +1608,129 @@ function delay(ms) {
             });
           }
         });
-    }
+      }
     }
   }
     //Currently Watching //--END--//
+
+  //Currently Reading //--START--//
+  if (svar.currentlyReading && location.pathname === "/") {
+    //Create Currently Reading Div
+    getreading();
+    async function getreading() {
+      if (svar.airingDate) {
+        let s = document.createElement("style");
+        s.innerText = `.widget.anime_suggestions.left #widget-currently-reading > div.widget-slide-outer ul > li > a span{opacity: 0;transition: .4s}
+        .widget.anime_suggestions.left div#widget-currently-reading > div.widget-slide-outer ul > li > a:hover span{opacity: 1}`;
+        document.head.appendChild(s);
+      }
+      let idArray = [];
+      let ep, left, infoData;
+      let user = document.querySelector("#header-menu > div.header-menu-unit.header-profile.js-header-menu-unit.link-bg.pl8.pr8 > a");
+      user = user ? user.innerText : null;
+      if(user) {
+      const readdiv = create("article", { class: "widget-container left", id: "currently-reading" });
+      readdiv.innerHTML =
+        '<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span><h2 class="index_h2_seo"><a href="https://myanimelist.net/mangalist/' +
+        user +
+        '?status=1">Currently Reading</a>' +
+        '</h2><i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-size:12px;font-family:FontAwesome"></i></div>' +
+        '<div class="widget-content"><div class="mt4"><div class="widget-slide-block" id="widget-currently-reading">' +
+        '<div id="current-left-manga" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div>' +
+        '<div id="current-right-manga" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;">' +
+        '<span class="btn-inner" style="display: none;"></span></div><div class="widget-slide-outer">' +
+        '<ul class="widget-slide js-widget-slide manga" data-slide="4" style="width: 3984px; margin-left: 0px;-webkit-transition:margin-left 0.4s ease-in-out;transition:margin-left 0.4s ease-in-out"></ul></div></div></div></div></div>';
+      //Get reading anime data from user's list
+      const html = await fetch("https://myanimelist.net/mangalist/" + user + "?status=1")
+        .then((response) => response.text())
+        .then((data) => {
+          var newDocument = new DOMParser().parseFromString(data, "text/html");
+          let list = JSON.parse(newDocument.querySelector("#list-container > div.list-block > div > table").getAttribute("data-items"));
+          if (list) {
+            if(document.querySelector("#currently-watching")) {
+              document.querySelector("#currently-watching").insertAdjacentElement("afterend", readdiv);
+            } else {
+              document.querySelector("#content > div.left-column").prepend(readdiv);
+            }
+            processList();
+            async function processList() {
+              for (let x = 0; x < list.length; x++) {
+                let nextchap = '<div id="700000" class="airingInfo" style="padding: 8px 0px"><div style="padding-top:3px">' + list[x].num_read_chapters +
+                    (list[x].manga_num_chapters !== 0 ? " / " + list[x].manga_num_chapters : "") + '</div></div>';
+                let ib = create("i", {
+                  class: "fa fa-pen",
+                  id: list[x].manga_id,
+                  style: {
+                    fontFamily: '"Font Awesome 6 Pro"',
+                    position: "absolute",
+                    right: "3px",
+                    top: "3px",
+                    background: "var(--color-foreground2)",
+                    padding: "4px",
+                    borderRadius: "5px",
+                    opacity: "0.3",
+                    transition: ".4s",
+                  },
+                });
+                // Create Reading Manga Div
+                let rDiv = create("li", { class: "btn-anime" });
+                rDiv.innerHTML =
+                  '<a class="link" href=' +
+                  list[x].manga_url +
+                  ">" +
+                  '<img width="124" height="170" class="lazyloaded" src=' +
+                  list[x].manga_image_path +
+                  ">" +
+                  '<span class="title js-color-pc-constant color-pc-constant">' +
+                  list[x].manga_title +
+                  "</span>" +
+                  nextchap +
+                  "</a>";
+                rDiv.appendChild(ib);
+                document.querySelector("#widget-currently-reading ul").append(rDiv);
+                ib.onclick = async () => {
+                  await editPopup(ib.id,'manga');
+                  readdiv.remove();
+                  getreading();
+                };
+              }
+              document.querySelector("#currently-reading > div > div.widget-header > i").remove();
+              document.querySelector("#widget-currently-reading > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#current-right-manga").classList.add("active") : "";
+            }
+
+            //Currently Reading - Slider Left
+            document.querySelector("#current-left-manga").addEventListener("click", function () {
+              const slider = document.querySelector(".widget-slide.js-widget-slide.manga");
+              const slideWidth = slider.children[0].offsetWidth + 12;
+              if (parseInt(slider.style.marginLeft) < 0) {
+                slider.style.marginLeft = parseInt(slider.style.marginLeft) + slideWidth + "px";
+                document.querySelector("#widget-currently-reading > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#current-right-manga").classList.add("active") : "";
+              }
+              if (parseInt(slider.style.marginLeft) > 0) {
+                slider.style.marginLeft = -slideWidth + "px";
+              }
+              if (parseInt(slider.style.marginLeft) === 0) {
+                document.querySelector("#current-left-manga").classList.remove("active");
+              }
+            });
+            //Currently Reading - Slider Right
+            document.querySelector("#current-right-manga").addEventListener("click", function () {
+              const slider = document.querySelector(".widget-slide.js-widget-slide.manga");
+              const slideWidth = slider.children[0].offsetWidth + 12;
+              if (parseInt(slider.style.marginLeft) > -slideWidth * (slider.children.length - 5)) {
+                slider.style.marginLeft = parseInt(slider.style.marginLeft) - slideWidth + "px";
+                document.querySelector("#current-left-manga").classList.add("active");
+              }
+              if (parseInt(slider.style.marginLeft) === -slideWidth * (slider.children.length - 5)) {
+                document.querySelector("#current-right-manga").classList.remove("active");
+              }
+            });
+          }
+        });
+      }
+    }
+  }
+    //Currently Reading //--END--//
 
     //Seasonal Info //--START--//
   if (svar.animeinfo && location.pathname === "/") {
@@ -2483,6 +2747,17 @@ function delay(ms) {
     if($('.page-forum:contains("No discussion topic was found.")')[0]){
       $('.page-forum:contains("No discussion topic was found.")')[0].remove();
       $('.RecentForumDiscussionDiv').remove();
+    }
+    if(svar.editPopup && $('#addtolist a:contains("Edit Details")').length){
+      let editDetails = $('#addtolist a:contains("Edit Details")')[0]
+      editDetails.className = 'fa fa-pen';
+      editDetails.style.fontFamily = 'fontAwesome';
+      editDetails.style.padding = '5px';
+      editDetails.innerText = "";
+      editDetails.href = 'javascript:void(0);';
+      editDetails.onclick = async () => {
+        await editPopup(entryId,entryType);
+      }
     }
 
     //Background info Fix
