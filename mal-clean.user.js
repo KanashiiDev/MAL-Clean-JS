@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.27.5
+// @version     1.27.6
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -274,7 +274,7 @@ async function editPopup(id, type) {
       popupLoading.remove();
 
       if (svar.autoAddDate) {
-        //close advanced section
+        // close advanced section
         if ($(iframe).contents().find("#hide-advanced-button")[0].style.display === "") {
           $(iframe).contents().find("#hide-advanced-button")[0].click();
         }
@@ -292,17 +292,17 @@ async function editPopup(id, type) {
           let endDate = $(iframe).contents().find("#add_anime_finish_date_month,#add_manga_finish_date_month").val();
 
           // if episode count is greater than 0 and the start date is not entered
-          if (ep > 0 && !startDate) {
+          if (ep > 0 && lastEp > 0 && !startDate) {
             $(iframe).contents().find("#start_date_insert_today")[0].click();
           }
 
           // if episode count equals or exceeds the total episodes and the end date is not entered, add end date
-          if (ep >= lastEp && !endDate) {
+          if (ep >= lastEp && lastEp > 0 && !endDate) {
             $(iframe).contents().find("#end_date_insert_today")[0].click();
           }
 
           //if episode count less than total episodes and the end date is entered, clear end date
-          if (ep < lastEp && endDate) {
+          if (ep < lastEp && lastEp > 0 && endDate) {
             day.value = 0;
             month.value = 0;
             year.value = 0;
@@ -381,6 +381,7 @@ let svar = {
   airingDate: true,
   autoAddDate: true,
   editPopup: true,
+  forumDate: true,
 };
 
 svar.save = function () {
@@ -599,6 +600,7 @@ let styles = `
 .aniTag,
 .spaceit-shadow,
 .spaceit-shadow-people,
+.spaceit-shadow-studio,
 .spaceit-shadow-stats,
 .spaceit-shadow-end {
     -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
@@ -619,6 +621,9 @@ let styles = `
 .spaceit-shadow-people{
     max-width: 225px
 }
+.spaceit-shadow-studio{
+    max-width: 280px
+}
 .spaceit-shadow-people:after {
     background-color: var(--color-foreground);
     height: 6px;
@@ -628,6 +633,17 @@ let styles = `
     bottom: -13px;
     display: block;
     width: 245px;
+    z-index: 5
+}
+.spaceit-shadow-studio:after {
+    background-color: var(--color-foreground);
+    height: 6px;
+    content: "";
+    position: relative;
+    left: -10px;
+    bottom: -13px;
+    display: block;
+    width: 300px;
     z-index: 5
 }
 .spaceit-shadow-stats{
@@ -1219,6 +1235,13 @@ button23.onclick = () => {
   getSettings();
   reloadset();
 };
+var button24 = create("button", { class: "mainbtns", id: "forumDateBtn" });
+button24.onclick = () => {
+  svar.forumDate = !svar.forumDate;
+  svar.save();
+  getSettings();
+  reloadset();
+};
 //Custom Profile Background
 let bginput = create("input", { class: "bginput", id: "bginput" });
 bginput.placeholder = "Paste your Background Image Url";
@@ -1299,6 +1322,7 @@ function getSettings() {
   animeSongsBtn.classList.toggle('btn-active', svar.animeSongs);
   autoAddDateBtn.classList.toggle('btn-active', svar.autoAddDate);
   editPopupBtn.classList.toggle('btn-active', svar.editPopup);
+  forumDateBtn.classList.toggle('btn-active', svar.forumDate);
 }
 
 //Create Settings Div
@@ -1342,7 +1366,7 @@ function createDiv() {
         {b:button18,t:"Add tags from Anilist"},
         {b:button19,t:"Replace relations"},
         {b:button20,t:"Replace Anime OP/ED with animethemes.moe"},
-        {b:button22,t:"Replace edit details with edit popup"},
+        {b:button22,t:"Replace the edit details with the edit popup"},
         {b:button2,t:"Change title position"}
       ]),
     createListDiv(
@@ -1359,6 +1383,7 @@ function createDiv() {
       "Forum",
       [
        {b:button14,t:"Make Anime/Manga links like Anilist"},
+       {b:button24,t:"Change date format"},
       ]),
     createListDiv(
       "Profile",
@@ -1405,7 +1430,29 @@ function delay(ms) {
 (function () {
   "use strict";
 
-//onload Function
+  // News and Forum - Load iframe only when the spoiler button is clicked
+  if (/\/(forum)\/.?topicid([\w-]+)?\/?/.test(location.href) || /\/(news)\/\d/.test(location.href)) {
+    const spoilers = document.querySelectorAll(".spoiler:has(.movie)");
+    spoilers.forEach(spoiler => {
+      const showButton = spoiler.querySelector(".show_button");
+      const iframe = spoiler.querySelector("iframe");
+      showButton.setAttribute("data-src", iframe.src);
+      iframe.src = "";
+      showButton.addEventListener("click", function() {
+        iframe.src = showButton.getAttribute("data-src");
+        spoiler.querySelector(".spoiler_content").style.display = 'inline-block';
+        showButton.style.display = 'none';
+      });
+      const hideButton = spoiler.querySelector(".hide_button");
+      hideButton.addEventListener("click", function() {
+        spoiler.querySelector(".spoiler_content").style.display = 'none';
+        showButton.style.display = 'inline-block';
+        iframe.src = "";
+      });
+    });
+  }
+
+  //onload Function
   function on_load() {
   //Replace anime.php
     const phpUrl = window.location.href;
@@ -1871,6 +1918,52 @@ function delay(ms) {
   }
   //Seasonal Info //--END--//
 
+  // Forum Change Date Format //--START--//
+  if (svar.forumDate && (/\/(forum)\/.?(topicid|animeid|board)([\w-]+)?\/?/.test(location.href))) {
+    changeDate();
+    function changeDate() {
+      let dateData = document.querySelectorAll(".message-header > .date").length > 0 ? document.querySelectorAll(".message-header > .date") : document.querySelectorAll(".content > div.user > div.item.update");
+      let lastPost = document.querySelectorAll("#forumTopics tr[data-topic-id] td:nth-child(4)");
+      if(lastPost) {
+        for (let x = 0; x < lastPost.length; x++) {
+          let t = $(lastPost[x]).find('br').get(0).nextSibling.nodeValue;
+          let t2 = t.replace(/(\w.*\d.*) (\d.*\:\d{2}.*\W.\w)/gm, '$1').replace(',',' ');
+          lastPost[x].innerHTML = lastPost[x].innerHTML.replace(t,'<span>'+t2+'</span>');
+        }
+      }
+      let topicDate = Array.prototype.slice.call(document.querySelectorAll("#forumTopics tr[data-topic-id] .lightLink")).concat(Array.prototype.slice.call(document.querySelectorAll("#forumTopics tr[data-topic-id] td:nth-child(4) span")));
+      dateData = topicDate.length ? topicDate : dateData;
+      let date,datenew;
+      const yearRegex = /\b\d{4}\b/;
+      for (let x = 0; x < dateData.length; x++) {
+        if(!dateData[x].getAttribute('dated')) {
+          date = topicDate.length ? dateData[x].innerText + ', 00:00 AM' : dateData[x].innerText;
+          datenew = date.includes("Yesterday") || date.includes("Today")|| date.includes("hour") || date.includes("minutes") ? true : false;
+          date = yearRegex.test(date) ? date : date.replace(/(\,)/, ' ' + new Date().getFullYear());
+          datenew ? date = dateData[x].innerText : date;
+          let timestamp = new Date(date).getTime();
+          const timestampSeconds = dateData[x].getAttribute('data-time') ? dateData[x].getAttribute('data-time') : Math.floor(timestamp / 1000);
+          dateData[x].title = dateData[x].innerText;
+          dateData[x].innerText = datenew ? date : nativeTimeElement(timestampSeconds);
+          dateData[x].setAttribute('dated',1);
+        }
+      }
+    }
+      if (document.querySelectorAll(".content > div.user > div.item.update").length) {
+        let target = document.querySelector('.messages.replies.parents')
+        let observer = new MutationObserver(function (mutationsList, observer) {
+          for (let mutation of mutationsList) {
+            changeDate();
+          }
+        });
+        observer.observe(target, {
+          childList: true,
+          subtree: true,
+        });
+      }
+    }
+  // Forum Change Date Format //--END--//
+  //
   //Forum Anime-Manga Embed //--START--//
   if (svar.embed && /\/(forum)\/.?topicid([\w-]+)?\/?/.test(location.href)) {
     const embedCache = localforage.createInstance({ name: "MalJS", storeName: "embed" });
@@ -1989,7 +2082,8 @@ function delay(ms) {
       for (let x = 0; x < c.length; x++) {
         let content = c[x].innerHTML;
         content = content.replace(/http:\/\/|https:\/\/(myanimelist\.net\/(anime|manga)\.php\?id=)([0-9]+)/gm , 'https://myanimelist.net/$2/$3');
-        let matches = content.match(/(?<!Div">)<a href="\b(http:\/\/|https:\/\/)(myanimelist\.net\/(anime|manga)\/)([0-9]+)([^"'<]+)(?=".\w)/gm);
+        let matches = content.match(/(?<!Div">)(?<!\w">)<a href="\b(http:\/\/|https:\/\/)(myanimelist\.net\/(anime|manga)\/)([0-9]+)([^"'<]+)(?=".\w)/gm);
+        matches = matches ? matches.filter(link => !link.includes('/video')) : matches;
         if (matches) {
           let uniqueMatches = Array.from(new Set(matches));
           for (let i = 0; i < uniqueMatches.length; i++) {
@@ -2862,7 +2956,7 @@ function delay(ms) {
         let relationCache = await relationLocalForage.getItem(entryId+"-"+entryType);
         const priorityOrder = {"ADAPTATION": 0,"PREQUEL": 1,"SEQUEL": 2,"PARENT": 3,"ALTERNATIVE": 4,"SIDE_STORY": 5,"SPIN_OFF": 6,"CHARACTER": 7,"OTHER": 8};
         if (!relationCache || relationCache.time + relationcacheTTL < +new Date()) {
-          const relationQuery = `query {Media(idMal:${entryId} type:${entryType}) {relations {edges {relationType node {status startDate {year} seasonYear type format title {romaji} coverImage {medium} idMal}}}}}`;
+          const relationQuery = `query {Media(idMal:${entryId} type:${entryType}) {relations {edges {relationType node {status startDate {year} seasonYear type format title {romaji} coverImage {medium large} idMal}}}}}`;
           relationData = await AnilistAPI(relationQuery);
           relationData.data.Media ? relationData = relationData.data.Media.relations.edges.filter(node => node.node.idMal !== null) : null;
           if (relationData.length > 0) {
@@ -2909,7 +3003,7 @@ function delay(ms) {
             const isManga = node.node.type === "MANGA";
             const typePath = isManga ? "manga" : "anime";
             const format = node.node.format ? (node.node.format === "NOVEL" ? node.node.format = "LIGHT NOVEL" : node.node.format) : node.node.type;
-            const coverImage = node.node.coverImage && node.node.coverImage.medium ? node.node.coverImage.medium : "";
+            const coverImage = node.node.coverImage && node.node.coverImage.large ? node.node.coverImage.large : node.node.coverImage.medium ? node.node.coverImage.medium :  "";
             const borderColor = isManga ? "#92d493" : "#afc7ee";
             const relationType = node.relationType.split("_").join(" ");
             const title = node.node.title && node.node.title.romaji ? node.node.title.romaji : "";
@@ -3051,6 +3145,14 @@ function delay(ms) {
       $('div:contains("Website:"):last').html() === 'Website: <a href="http://"></a>' ? $('div:contains("Website:"):last').remove() : null;
       $('div:contains("Family name:"):last').html() === 'Family name: ' ? $('div:contains("Family name:"):last').remove() : null;
       $('span:contains("More:"):last').css({display: 'block',padding: '2px'});
+    }
+  }
+
+  //Companies add border and shadow
+  if(/\/(anime|manga)\/producer\/\d.?([\w-]+)?\/?/.test(current)) {
+    let studioDivShadow = document.querySelector("#content > div.content-left > div.mb16:nth-last-child(3");
+    if ($(studioDivShadow).length && $(studioDivShadow).children().css('flex') !== '1 1 0%') {
+      $('#content > div.content-left > div.mb16:nth-last-child(3)').children().addClass("spaceit-shadow-studio");
     }
   }
 
