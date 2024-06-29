@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.27.6
+// @version     1.27.7
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -360,6 +360,81 @@ async function editPopup(id, type) {
   });
 }
 
+// Block User Popup
+async function blockUser(id) {
+  return new Promise((resolve, reject) => {
+    const url = location.pathname === "/" ? null : 1;
+    const popup = create("div", { id: "currently-popup" });
+    const popupClose = create("a", { id: "currently-closePopup", class: "fa-solid fa-xmark", href: "javascript:void(0);" });
+    const popupId = "/editprofile.php?go=privacy";
+    const popupBack = create("a", { class: "popupBack fa-solid fa-arrow-left", href: "javascript:void(0);" });
+    const popupLoading = create("div",{
+      class: "actloading",
+      style: { position: "fixed", top: "50%", left: "0", right: "0", fontSize: "16px" },},
+      "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>'
+    );
+    const popupMask = create("div", {
+      class: "fancybox-overlay",
+      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "1" },
+    });
+    const iframe = create("iframe", { src: popupId });
+    iframe.style.opacity = 0;
+    const close = () => {
+      popup.remove();
+      popupMask.remove();
+      document.body.style.removeProperty("overflow");
+      resolve();
+    };
+
+    popup.append(popupClose, iframe, popupLoading);
+    document.body.append(popup, popupMask);
+    document.body.style.overflow = "hidden";
+
+    $(iframe).on("load", function () {
+      iframe.style.opacity = 1;
+      popupLoading.remove();
+      if ($(iframe).contents().find("form > input.inputtext")[0]) {
+        $(iframe).contents().find("#headerSmall")[0].remove();
+        $(iframe).contents().find("#menu")[0].remove();
+        $(iframe).contents().find("#horiznav_nav")[0].remove();
+        $(iframe).contents().find(".h1")[0].remove();
+        $(iframe).contents().find("form > input.inputtext")[0].value = id;
+        $(iframe).contents().find('a[href*=profile]').removeAttr("href");
+        $(iframe).contents().find('html')[0].style.overflowX = 'hidden';
+        $(iframe).contents().find('#content')[0].style.padding = '0';
+        $(iframe).contents().find("#contentWrapper")[0].setAttribute('style', 'top: 0px;min-height: auto;padding: 0;');
+        $(iframe).contents().find("#myanimelist")[0].setAttribute('style', 'width: auto;padding: 0px 5px;');
+        $(iframe).contents().find("form:has(input.inputtext)")[0].style.width = "auto";
+        $(iframe).contents().find("#content > div > div")[0].style.width = "auto";
+      }
+      if ($(iframe).contents().find(".goodresult")[0]) {
+        popup.append($(iframe).contents().find(".goodresult")[0]);
+        iframe.remove();
+      }
+      if ($(iframe).contents().find(".badresult")[0]) {
+        popup.append($(iframe).contents().find(".badresult")[0]);
+        iframe.remove();
+      }
+      $(iframe).contents().find("input[name='bsub']").on("click", function () {
+        iframe.style.opacity = 0;
+        popup.append(popupLoading);
+      });
+      $(iframe).contents().find("span:has(form)").on("click", function () {
+        iframe.style.opacity = 0;
+        popup.append(popupLoading);
+      });
+    });
+
+    // close popup
+    popupMask.onclick = () => {
+      close();
+    };
+    popupClose.onclick = () => {
+      close();
+    };
+  });
+}
+
 let svar = {
   animebg: true,
   charbg: true,
@@ -531,6 +606,17 @@ let styles = `
     -webkit-box-pack: justify;
     justify-content: space-between
 }
+.aniTag.spoiler {
+    display:none
+}
+.showSpoilers {
+    cursor:pointer
+}
+.showSpoilers,
+.aniTag.spoiler .aniTag-name {
+    color: #d98080;
+    font-weight: 600
+}
 .aniTag-percent {
     color:var(--color-main-text-light)
 }
@@ -618,10 +704,10 @@ let styles = `
     width: 224px;
     z-index: 5
 }
-.spaceit-shadow-people{
+.spaceit-shadow-people {
     max-width: 225px
 }
-.spaceit-shadow-studio{
+.spaceit-shadow-studio {
     max-width: 280px
 }
 .spaceit-shadow-people:after {
@@ -898,7 +984,7 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     background: var(--color-foreground);
     width: 505px;
     border-top-left-radius: 10px;
-    margin-top: 1px;
+    margin-top: 0px;
     padding: 10px;
     height: 35px;
     top: inherit;
@@ -1918,6 +2004,70 @@ function delay(ms) {
   }
   //Seasonal Info //--END--//
 
+  // Forum Hide Blocked Users //--START--//
+  if (/\/(forum)\/.?(topicid|animeid|board)([\w-]+)?\/?/.test(location.href)) {
+    let blockedUsers = [];
+    getBlockedUsers();
+    async function getBlockedUsers() {
+      const html = await fetch("https://myanimelist.net/editprofile.php?go=privacy")
+        .then((response) => response.text())
+        .then((data) => {
+          let newDocument = new DOMParser().parseFromString(data, "text/html");
+          let findUser = newDocument.querySelectorAll("#content > div:nth-child(2) a[href*=profile]");
+          for (let x = 0; x < findUser.length; x++) {
+            blockedUsers.push(findUser[x].innerText);
+          }
+          removeBlockedUsers();
+        });
+    }
+    function removeBlockedUsers() {
+      //Remove Blocked User's Forum Reply
+      let forumReply = document.querySelectorAll(".message-wrapper > div.profile");
+      for (let x = 0; x < forumReply.length; x++) {
+        for (let y = 0; y < blockedUsers.length; y++) {
+          if (forumReply[x].children[0].innerText === blockedUsers[y]) {
+            forumReply[x].parentElement.parentElement.remove();
+          }
+        }
+      }
+      //Remove Blocked User's Forum Topics
+      let ForumTopic = document.querySelectorAll("#forumTopics tr[data-topic-id]");
+      for (let x = 0; x < ForumTopic.length; x++) {
+        for (let y = 0; y < blockedUsers.length; y++) {
+          if (ForumTopic[x].children[1].children[4].innerText === blockedUsers[y]) {
+            ForumTopic[x].remove();
+          }
+        }
+      }
+      //Remove Blocked User's Forum Reply (Conversation View)
+      let forumReplyV = document.querySelectorAll(".messages.replies.parents .message");
+      for (let x = 0; x < forumReplyV.length; x++) {
+        if (!forumReplyV[x].getAttribute('checked')) {
+          for (let y = 0; y < blockedUsers.length; y++) {
+            if (forumReplyV[x].children[0].children[1].children[0].children[0].innerText === blockedUsers[y]) {
+              forumReplyV[x].remove();
+            }
+          }
+          forumReplyV[x].setAttribute('checked',1);
+        }
+      }
+    }
+    //Conversation View - If new forum reply loaded, check blockedUsers
+    if (document.querySelectorAll(" .content > div.user > div.item.update").length) {
+      let target = document.querySelector(".messages.replies.parents");
+      let observer = new MutationObserver(function (mutationsList, observer) {
+        for (let mutation of mutationsList) {
+          removeBlockedUsers();
+        }
+      });
+      observer.observe(target, {
+        childList: true,
+        subtree: true,
+      });
+    }
+  }
+  // Forum Hide Blocked Users //--End--//
+
   // Forum Change Date Format //--START--//
   if (svar.forumDate && (/\/(forum)\/.?(topicid|animeid|board)([\w-]+)?\/?/.test(location.href))) {
     changeDate();
@@ -1938,7 +2088,7 @@ function delay(ms) {
       for (let x = 0; x < dateData.length; x++) {
         if(!dateData[x].getAttribute('dated')) {
           date = topicDate.length ? dateData[x].innerText + ', 00:00 AM' : dateData[x].innerText;
-          datenew = date.includes("Yesterday") || date.includes("Today")|| date.includes("hour") || date.includes("minutes") ? true : false;
+          datenew = date.includes("Yesterday") || date.includes("Today")|| date.includes("hour") || date.includes("minutes") || date.includes("seconds") ? true : false;
           date = yearRegex.test(date) ? date : date.replace(/(\,)/, ' ' + new Date().getFullYear());
           datenew ? date = dateData[x].innerText : date;
           let timestamp = new Date(date).getTime();
@@ -1963,7 +2113,7 @@ function delay(ms) {
       }
     }
   // Forum Change Date Format //--END--//
-  //
+
   //Forum Anime-Manga Embed //--START--//
   if (svar.embed && /\/(forum)\/.?topicid([\w-]+)?\/?/.test(location.href)) {
     const embedCache = localforage.createInstance({ name: "MalJS", storeName: "embed" });
@@ -2120,6 +2270,7 @@ function delay(ms) {
   if (/\/(profile)\/.?([\w-]+)?\/?/.test(current)) {
     let banner = create('div', {class: 'banner',id: 'banner',});
     let shadow = create('div', {class: 'banner',id: 'shadow',});
+
     const pfloading = create("div", { class: "actloading",style:{position:"fixed",top:"50%",left:"0",right:"0",fontSize:"16px"}},
                            "Loading"+'<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>');
     let username = current.split('/')[2];
@@ -2127,14 +2278,34 @@ function delay(ms) {
     let bgRegex = /(custombg)\/([^"]+)/gm;
     let pfRegex = /(custompf)\/([^"]+)/gm;
     let cssRegex = /(customcss)\/([^"]+)/gm;
+     let blockU = create("i", {
+      class: "fa fa-ban",
+      style: {
+        fontFamily: '"Font Awesome 6 Pro"',
+        position: 'absolute',
+        right: '65px',
+        color: 'var(--color-link) !important',
+        fontWeight: 'bold',
+        fontSize: '12px',
+        cursor: 'pointer',
+        margin: '60px 10px 0px'},
+    });
+    blockU.onclick = () => {
+      blockUser(username);
+    }
+    if(username === $(".header-profile-link").text()) {
+      blockU.style.display = "none";
+    }
+
     //Wait for user image
     async function imgLoad() {
       userimg = document.querySelector('.user-image.mb8 > img');
       set(0, userimg, { sa: { 0: "position: fixed;opacity:0!important;" }});
+
       if (userimg && userimg.src) {
         set(0, userimg, { sa: { 0: "position: relative;opacity:1!important;" }});
       }
-      else {
+      else if(!document.querySelector(".btn-detail-add-picture.nolink")) {
         await delay(250);
         await imgLoad();
       }
@@ -2171,6 +2342,13 @@ function delay(ms) {
       window.scrollTo(0, 0);
       shadow.setAttribute('style', 'background: linear-gradient(180deg,rgba(6,13,34,0) 40%,rgba(6,13,34,.6));height: 100%;left: 0;position: absolute;top: 0;width: 100%;');
       banner.append(shadow);
+      if (svar.alstyle) {
+        banner.append(blockU);
+      } else{
+        document.querySelector('#contentWrapper').prepend(blockU);
+        blockU.style.right= "75px";
+        blockU.style.margin= "8.5px 0 0 0";
+      }
       startCustomProfile();
     }
 
@@ -2359,7 +2537,7 @@ function delay(ms) {
               title = item[x].querySelector("a").outerHTML;
               ep = item[x].querySelector("strong").innerText;
               date = item[x].parentElement.children[1].innerText.split("Edit").join("");
-              datenew = date.includes("Yesterday") || date.includes("Today")|| date.includes("hour") || date.includes("minutes") ? true : false;
+              datenew = date.includes("Yesterday") || date.includes("Today")|| date.includes("hour") || date.includes("minutes") || date.includes("seconds") ? true : false;
               date = datenew ? date : date.split(",").join(" "+new Date().getFullYear());
               let dat = create("div", { class: "historydiv" });
               let name = create("div", { class: "historyname" });
@@ -2822,7 +3000,7 @@ function delay(ms) {
     if($('.RecommendationsDiv').length && $('.RecommendationsDiv')[0].nextSibling.nodeValue && $('.RecommendationsDiv')[0].nextSibling.nodeValue.includes("No recommendations have been made")){
       emptyInfoAddDiv('.RecommendationsDiv');
     }
-    if($('.CharactersDiv').length && $('.CharactersDiv')[0].nextSibling.innerText && $('.CharactersDiv')[0].nextSibling.innerText.includes("No characters ")){
+    if($('.CharactersDiv').length && $('.CharactersDiv')[0].nextSibling.nodeValue && $('.CharactersDiv')[0].nextSibling.nodeValue.includes("No characters ")){
       emptyInfoAddDiv('.CharactersDiv');
       $('.CharactersDiv')[0].nextSibling.innerHTML = $('.CharactersDiv')[0].nextSibling.innerHTML.replace('<br>', '');
     }
@@ -2928,18 +3106,31 @@ function delay(ms) {
           }
         }
         if (tagCache) {
-          if (tagTarget.lastChild.lastElementChild.className === "clearfix mauto mt16") {
+          if (tagTarget.lastChild.lastElementChild && tagTarget.lastChild.lastElementChild.className === "clearfix mauto mt16") {
             tagTarget.lastChild.lastElementChild.remove();
           }
-          if (tagTarget.lastChild.lastElementChild.className !== "pb16") {
+          if (tagTarget.lastChild.lastElementChild && tagTarget.lastChild.lastElementChild.className !== "pb16") {
             tagDiv.style.paddingTop = "16px"
           }
           tagDiv.innerHTML = '<h2 style="margin-bottom:-2px;">Tags</h2>';
           tagDiv.innerHTML += tagCache.tags
-            .filter((item) => item.isMediaSpoiler === false)
-            .map((node) => "<div class='aniTag'><a title='"+(node.description ? node.description : null)+"'><div class='aniTag-name'>" + node.name.replace(/'/g, " ") +
-                 "</div></a>" + "<div class='aniTag-percent'>" + "(" + node.rank + "%)</div></div>").toString().split(",").join("");
+            .map((node) => `
+            <div class="${node.isMediaSpoiler === true ? 'aniTag spoiler' : 'aniTag'}"><a title="${node.description ? node.description : ''}"><div class="aniTag-name">${node.name.replace(/'/g, " ")}</div></a>
+            <div class="aniTag-percent">(${node.rank}%)</div></div>`).join('');
           tagTarget.append(tagDiv);
+          if($(".aniTagDiv .spoiler").length) {
+            let showSpoilers = create("div", { class: "showSpoilers" },"Show " + $(".aniTagDiv .spoiler").length.toString() + " spoiler tags");
+              showSpoilers.onclick = () => {
+                if($(".aniTagDiv .spoiler").css("display") !== "none") {
+                  $(".aniTagDiv .spoiler").css("display","none");
+                  $(showSpoilers).text("Show " + $(".aniTagDiv .spoiler").length.toString() + " spoiler tags");
+                } else {
+                  $(".aniTagDiv .spoiler").css("display","flex");
+                  $(showSpoilers).text("Hide spoiler tags");
+                }
+              }
+              tagDiv.append(showSpoilers);
+          }
         }
       }
     }
