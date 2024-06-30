@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.27.7
+// @version     1.27.8
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -402,7 +402,7 @@ async function blockUser(id) {
         $(iframe).contents().find('a[href*=profile]').removeAttr("href");
         $(iframe).contents().find('html')[0].style.overflowX = 'hidden';
         $(iframe).contents().find('#content')[0].style.padding = '0';
-        $(iframe).contents().find("#contentWrapper")[0].setAttribute('style', 'top: 0px;min-height: auto;padding: 0;');
+        $(iframe).contents().find("#contentWrapper")[0].setAttribute('style', 'top: 5px!important;min-height: auto;padding: 0;width:auto;margin-left:0!important');
         $(iframe).contents().find("#myanimelist")[0].setAttribute('style', 'width: auto;padding: 0px 5px;');
         $(iframe).contents().find("form:has(input.inputtext)")[0].style.width = "auto";
         $(iframe).contents().find("#content > div > div")[0].style.width = "auto";
@@ -457,6 +457,7 @@ let svar = {
   autoAddDate: true,
   editPopup: true,
   forumDate: true,
+  headerSlide: false,
 };
 
 svar.save = function () {
@@ -568,7 +569,7 @@ let styles = `
     max-width: 300px;
     height: 100px;
     padding: 10px;
-    background: var(--color-foreground2);
+    background: var(--color-foregroundOP2);
     z-index: 5;
     border-top-right-radius: var(--br);
     border-bottom-right-radius: var(--br)
@@ -685,13 +686,17 @@ let styles = `
 }
 .aniTag,
 .spaceit-shadow,
-.spaceit-shadow-people,
-.spaceit-shadow-studio,
-.spaceit-shadow-stats,
-.spaceit-shadow-end {
+.spaceit-shadow-end,
+.spaceit-shadow-end-div {
     -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
     box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
     border: var(--border) solid var(--border-color);
+    border-radius:var(--br);
+    overflow: hidden
+}
+.spaceit-shadow-end-div {
+    padding: 2px;
+    background: var(--color-foreground)
 }
 .spaceit-shadow:after {
     background-color: var(--color-foreground);
@@ -702,48 +707,6 @@ let styles = `
     bottom: -13px;
     display: block;
     width: 224px;
-    z-index: 5
-}
-.spaceit-shadow-people {
-    max-width: 225px
-}
-.spaceit-shadow-studio {
-    max-width: 280px
-}
-.spaceit-shadow-people:after {
-    background-color: var(--color-foreground);
-    height: 6px;
-    content: "";
-    position: relative;
-    left: -10px;
-    bottom: -13px;
-    display: block;
-    width: 245px;
-    z-index: 5
-}
-.spaceit-shadow-studio:after {
-    background-color: var(--color-foreground);
-    height: 6px;
-    content: "";
-    position: relative;
-    left: -10px;
-    bottom: -13px;
-    display: block;
-    width: 300px;
-    z-index: 5
-}
-.spaceit-shadow-stats{
-    max-width: 384px
-}
-.spaceit-shadow-stats:after {
-    background-color: var(--color-foreground);
-    height: 6px;
-    content: "";
-    position: relative;
-    left: -10px;
-    bottom: -3px;
-    display: block;
-    width: 390px;
     z-index: 5
 }
 .fa-info-circle:before {
@@ -757,7 +720,7 @@ let styles = `
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 9999;
-    background-color: var(--color-foreground2);
+    background-color: var(--color-foregroundOP2);
     padding: 15px;
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
     -webkit-border-radius: var(--br);
@@ -825,7 +788,7 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     position: absolute;
     left: 3px;
     top: 3px;
-    background: var(--color-foreground2);
+    background: var(--color-foregroundOP2);
     padding: 2px 4px !important;
     border-radius: 5px;
     width: auto !important
@@ -942,7 +905,7 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     position: fixed;
     top:55px;
     z-index:11;
-    background-color: var(--color-foreground)!important;
+    background: var(--color-foregroundOP);
     overflow-y: scroll;
     display: -ms-grid;
     display: grid;
@@ -981,7 +944,7 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     align-items: center;
     font-size: medium;
     position: fixed;
-    background: var(--color-foreground);
+    background: var(--color-foregroundOP);
     width: 505px;
     border-top-left-radius: 10px;
     margin-top: 0px;
@@ -1328,6 +1291,13 @@ button24.onclick = () => {
   getSettings();
   reloadset();
 };
+var button25 = create("button", { class: "mainbtns", id: "headerSlideBtn" });
+button25.onclick = () => {
+  svar.headerSlide = !svar.headerSlide;
+  svar.save();
+  getSettings();
+  reloadset();
+};
 //Custom Profile Background
 let bginput = create("input", { class: "bginput", id: "bginput" });
 bginput.placeholder = "Paste your Background Image Url";
@@ -1409,6 +1379,7 @@ function getSettings() {
   autoAddDateBtn.classList.toggle('btn-active', svar.autoAddDate);
   editPopupBtn.classList.toggle('btn-active', svar.editPopup);
   forumDateBtn.classList.toggle('btn-active', svar.forumDate);
+  headerSlideBtn.classList.toggle('btn-active', svar.headerSlide);
 }
 
 //Create Settings Div
@@ -1443,6 +1414,7 @@ function createDiv() {
        {b:button23,t:"Show currently reading manga"},
        {b:button16,t:"Add next episode countdown to currently watching anime"},
        {b:button21,t:"Auto add start/finish date to watching anime & reading manga"},
+       {b:button25,t:"Auto Hide/Show header"},
       ]),
     createListDiv(
       "Anime / Manga",
@@ -1515,6 +1487,29 @@ function delay(ms) {
 //Main
 (function () {
   "use strict";
+
+  //Auto Hide/Show Header
+  if(svar.headerSlide) {
+    let lastScrollTop = 0;
+    const header = document.querySelector('#headerSmall');
+    const menu = document.querySelector('#menu');
+    menu.style.transition = "top 0.3s ease-in-out";
+    header.style.transition = "top 0.3s ease-in-out";
+    window.addEventListener('scroll', () => {
+      let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      if (scrollTop > lastScrollTop) {
+        // Scrolling down
+        header.style.top = '-50px';
+        menu.style.top = '-50px';
+      } else {
+        // Scrolling up
+        header.style.top = '0';
+        menu.style.top = '5px';
+
+      }
+      lastScrollTop = scrollTop;
+    });
+  }
 
   // News and Forum - Load iframe only when the spoiler button is clicked
   if (/\/(forum)\/.?topicid([\w-]+)?\/?/.test(location.href) || /\/(news)\/\d/.test(location.href)) {
@@ -1665,7 +1660,7 @@ function delay(ms) {
                     position: "absolute",
                     right: "3px",
                     top: "3px",
-                    background: "var(--color-foreground2)",
+                    background: "var(--color-foregroundOP2)",
                     padding: "4px",
                     borderRadius: "5px",
                     opacity: "0.3",
@@ -1798,7 +1793,7 @@ function delay(ms) {
                     position: "absolute",
                     right: "3px",
                     top: "3px",
-                    background: "var(--color-foreground2)",
+                    background: "var(--color-foregroundOP2)",
                     padding: "4px",
                     borderRadius: "5px",
                     opacity: "0.3",
@@ -2327,7 +2322,7 @@ function delay(ms) {
       else {
         pfloading.remove();
         document.body.style.removeProperty("overflow");
-        document.querySelector('#contentWrapper').setAttribute('style', 'opacity:1');
+        document.querySelector('#contentWrapper').style.opacity = "1";
       }
     }
 
@@ -2335,7 +2330,7 @@ function delay(ms) {
       document.addEventListener( 'DOMContentLoaded', startCustomProfile );
     }
     else if (document.readyState === 'interactive' || document.readyState === 'complete') {
-      document.querySelector('#contentWrapper').setAttribute('style', 'opacity:0');
+        document.querySelector('#contentWrapper').style.opacity = "0";
       document.body.append(pfloading);
       document.body.style.overflow = "hidden";
       history.scrollRestoration = "manual";
@@ -2349,6 +2344,11 @@ function delay(ms) {
         blockU.style.right= "75px";
         blockU.style.margin= "8.5px 0 0 0";
       }
+      if ($("#contentWrapper > div:nth-child(2) > h1 > a").css("z-index") === '1') {
+        blockU.style.right= "82px";
+        blockU.style.margin= "9px 0 0 0";
+      }
+      document.querySelector("#contentWrapper").style.top = "60px";
       startCustomProfile();
     }
 
@@ -2499,6 +2499,7 @@ function delay(ms) {
         .historydiv {height: 50px;background-color: var(--color-foreground);margin: 10px 5px;padding: 10px;border:var(--border) solid var(--border-color);-webkit-border-radius: var(--br);border-radius: var(--br);display: -webkit-box;display: -webkit-flex;
         display: -ms-flexbox;display: flex;-webkit-box-pack: justify;-webkit-justify-content: space-between;-ms-flex-pack: justify;justify-content: space-between;overflow: hidden;}
         #horiznav_nav .navactive {color: var(--color-text)!important;background: var(--color-foreground2)!important;padding: 5px!important;}
+        .dark-mode .page-common #horiznav_nav ul li,.page-common #horiznav_nav ul li {background: 0 !important}
         .favTooltip {text-indent:0;-webkit-transition:.4s;-o-transition:.4s;transition:.4s;position: absolute;background-color: var(--color-foreground4);color: var(--color-text);
         padding: 5px;-webkit-border-radius: 6px;border-radius: 6px;opacity:0;width: -webkit-max-content;width: -moz-max-content;width: max-content;left: 0;right: 0;margin: auto;max-width: 420px;}
         .favs .btn-fav, .user-badge, .icon-friend {overflow:hidden}
@@ -2510,7 +2511,9 @@ function delay(ms) {
         var fixstylesheet = document.createElement('style');
         fixstylesheet.innerText = fixstyle.replace(/\n/g, '');
         document.head.appendChild(fixstylesheet);
-
+        document.body.style.setProperty('background', 'var(--color-background)','important');
+        document.body.style.setProperty('--color-foreground', 'var(--color-foregroundOP)','important');
+        document.body.style.setProperty('--color-foreground2', 'var(--color-foregroundOP2)','important');
         //Get Activity History from MAL and Cover Image from Jikan API
         async function gethistory(l) {
           let title,ep,date,datenew,id,url,type,historyimg,oldimg;
@@ -2680,7 +2683,7 @@ function delay(ms) {
         }
         set(1, "#content > table > tbody > tr > td.pl8 > #horiznav_nav", { r: { 0: 0 } });
         set(1, ".container-right #horiznav_nav", { r: { 0: 0 } });
-        document.querySelector("#contentWrapper").setAttribute("style", "width: 1375px;max-width: 1375px!important;min-width:500px; margin: auto;top: -40px;transition:.6s;opacity:1");
+        document.querySelector("#contentWrapper").setAttribute("style", "width: 1375px;max-width: 1375px!important;min-width:500px; margin: auto;top: -40px;transition:.6s;opacity:1;top: -40px!important;border:0!important;box-shadow:none!important");
         pfloading.remove();
         document.body.style.removeProperty("overflow");
         let more = document.querySelector(".btn-truncate.js-btn-truncate");
@@ -2782,7 +2785,7 @@ function delay(ms) {
       } else {
         pfloading.remove();
         document.body.style.removeProperty("overflow");
-        document.querySelector('#contentWrapper').setAttribute('style', 'opacity:1');
+        document.querySelector('#contentWrapper').style.opacity = "1";
       }
     }
     if (svar.profileHeader) {
@@ -2947,7 +2950,7 @@ function delay(ms) {
       } else {
         $(".AlternativeTitlesDiv").nextUntil('br').addClass("spaceit-shadow-end");
       }
-      document.querySelector('.AlternativeTitlesDiv').nextElementSibling.setAttribute('style', 'border-radius:var(--br);margin-bottom:4px');
+      document.querySelector('.AlternativeTitlesDiv').nextElementSibling.setAttribute('style', 'margin-bottom:4px');
       $('span:contains("Synonyms")').parent().next().css({
         borderRadius: 'var(--br)'
       });
@@ -2956,15 +2959,12 @@ function delay(ms) {
       document.querySelector('.js-alternative-titles.hide').setAttribute('style', 'border-radius:var(--br);overflow:hidden');
     }
     if ($('.InformationDiv').length) {
-      $(".InformationDiv").nextUntil('br').addClass("spaceit-shadow");
-      $(".InformationDiv").nextUntil('br').last().removeClass("spaceit-shadow").addClass("spaceit-shadow-end");
-      document.querySelector('.InformationDiv').nextElementSibling.setAttribute('style', 'border-top-left-radius:var(--br);border-top-right-radius:var(--br);');
+      $(".InformationDiv").nextUntil("br").not('h2').attr('style','background:0!important').addBack().wrapAll("<div class='spaceit-shadow-end-div'></div>");
     }
     if ($('.StatisticsDiv').length) {
-      $(".StatisticsDiv").nextUntil('br').addClass("spaceit-shadow");
-      $(".StatisticsDiv").nextUntil('br').not(".clearfix").last().removeClass("spaceit-shadow").addClass("spaceit-shadow-end").css({ borderBottomLeftRadius:"var(--br)",borderBottomRightRadius:"var(--br)"});
-      document.querySelector('.StatisticsDiv').nextElementSibling.setAttribute('style', 'border-top-left-radius:var(--br);border-top-right-radius:var(--br)');
-      document.querySelector('.StatisticsDiv').previousElementSibling.previousElementSibling.setAttribute('style', 'border-bottom-left-radius:var(--br);border-bottom-right-radius:var(--br)');
+      $(".StatisticsDiv").nextUntil("br").not('h2').attr('style','background:0!important').addBack().wrapAll("<div class='spaceit-shadow-end-div'></div>");
+      $(".statistics-info").css('opacity','0');
+      $(".spaceit_pad.po-r.js-statistics-info.di-ib sup").css('opacity','0');
     }
     if ($('.ResourcesDiv').length) {
       $(".ResourcesDiv").next().addClass("spaceit-shadow-end");
@@ -3012,9 +3012,6 @@ function delay(ms) {
     }
     if($('.RecentNewsDiv').length && !$('.RecentNewsDiv').next().is('div')){
       $('.RecentNewsDiv').remove();
-    }
-    if($(".leftside > div.clearfix.mauto.mt16.spaceit-shadow").length) {
-      $(".leftside > div.clearfix.mauto.mt16.spaceit-shadow").last().remove();
     }
     if($('.page-forum:contains("No discussion topic was found.")')[0]){
       $('.page-forum:contains("No discussion topic was found.")')[0].remove();
@@ -3328,11 +3325,8 @@ function delay(ms) {
     peopleDetailsAddDiv('Website:');
     let peopleDivShadow = document.querySelector("#content > table > tbody > tr > td.borderClass  .spaceit_pad");
     if (peopleDivShadow) {
-      $(peopleDivShadow).addClass("spaceit-shadow-people");
-      $(peopleDivShadow).nextUntil('div:not(.spaceit_pad)').addClass("spaceit-shadow-people");
-      $(peopleDivShadow).nextUntil('div:not(.spaceit_pad)').last().removeClass("spaceit-shadow-people").addClass("spaceit-shadow-people-end")
-        .css({ borderBottomLeftRadius:"var(--br)",borderBottomRightRadius:"var(--br)",marginBottom:"10px",border:"var(--border) solid var(--border-color)"});
-      $(peopleDivShadow).css({ borderTopLeftRadius:"var(--br)",borderTopRightRadius:"var(--br)",});
+      $(peopleDivShadow).attr('style','background:0!important');
+      $(peopleDivShadow).nextUntil('div:not(.spaceit_pad)').attr('style','background:0!important').addBack().wrapAll("<div class='spaceit-shadow-end-div'></div>");
       $('div:contains("Website:"):last').html() === 'Website: <a href="http://"></a>' ? $('div:contains("Website:"):last').remove() : null;
       $('div:contains("Family name:"):last').html() === 'Family name: ' ? $('div:contains("Family name:"):last').remove() : null;
       $('span:contains("More:"):last').css({display: 'block',padding: '2px'});
@@ -3343,7 +3337,7 @@ function delay(ms) {
   if(/\/(anime|manga)\/producer\/\d.?([\w-]+)?\/?/.test(current)) {
     let studioDivShadow = document.querySelector("#content > div.content-left > div.mb16:nth-last-child(3");
     if ($(studioDivShadow).length && $(studioDivShadow).children().css('flex') !== '1 1 0%') {
-      $('#content > div.content-left > div.mb16:nth-last-child(3)').children().addClass("spaceit-shadow-studio");
+      $(studioDivShadow).children().attr('style','background:0!important').wrapAll("<div class='spaceit-shadow-end-div'></div>");
     }
   }
 
