@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.27.8
+// @version     1.27.9
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -684,8 +684,13 @@ let styles = `
     padding-top:0!important;
     top:-85px
 }
+.spaceit-shadow {
+    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
+    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
+    border: var(--border) solid var(--border-color);
+    border-radius:var(--br)
+}
 .aniTag,
-.spaceit-shadow,
 .spaceit-shadow-end,
 .spaceit-shadow-end-div {
     -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
@@ -697,17 +702,6 @@ let styles = `
 .spaceit-shadow-end-div {
     padding: 2px;
     background: var(--color-foreground)
-}
-.spaceit-shadow:after {
-    background-color: var(--color-foreground);
-    height: 6px;
-    content: "";
-    position: relative;
-    left: -10px;
-    bottom: -13px;
-    display: block;
-    width: 224px;
-    z-index: 5
 }
 .fa-info-circle:before {
     text-shadow: rgb(0 0 0 / 70%) 0px 0px 2px;
@@ -3185,7 +3179,7 @@ function delay(ms) {
         document.querySelector("#content > table > tbody > tr > td:nth-child(2) > div.rightside.js-scrollfix-bottom-rel > table").style.overflow = "visible";
         relationTarget.classList.add("relationsTarget");
         relationTarget.style.setProperty('padding', '10px', 'important');
-        relationTarget.classList.add("spaceit-shadow-end");
+        relationTarget.classList.add("spaceit-shadow");
           relationTarget.innerHTML = relationCache.relations
             .map((node) => {
             const isManga = node.node.type === "MANGA";
