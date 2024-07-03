@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.27.9
+// @version     1.28
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -1487,22 +1487,23 @@ function delay(ms) {
     let lastScrollTop = 0;
     const header = document.querySelector('#headerSmall');
     const menu = document.querySelector('#menu');
-    menu.style.transition = "top 0.3s ease-in-out";
-    header.style.transition = "top 0.3s ease-in-out";
-    window.addEventListener('scroll', () => {
-      let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      if (scrollTop > lastScrollTop) {
-        // Scrolling down
-        header.style.top = '-50px';
-        menu.style.top = '-50px';
-      } else {
-        // Scrolling up
-        header.style.top = '0';
-        menu.style.top = '5px';
-
-      }
-      lastScrollTop = scrollTop;
-    });
+    if (header) {
+      menu.style.transition = "top 0.3s ease-in-out";
+      header.style.transition = "top 0.3s ease-in-out";
+      window.addEventListener('scroll', () => {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        if (scrollTop > lastScrollTop) {
+          // Scrolling down
+          header.style.top = '-50px';
+          menu.style.top = '-50px';
+        } else {
+          // Scrolling up
+          header.style.top = '0';
+          menu.style.top = '5px';
+        }
+        lastScrollTop = scrollTop;
+      });
+    }
   }
 
   // News and Forum - Load iframe only when the spoiler button is clicked
@@ -1510,20 +1511,15 @@ function delay(ms) {
     const spoilers = document.querySelectorAll(".spoiler:has(.movie)");
     spoilers.forEach(spoiler => {
       const showButton = spoiler.querySelector(".show_button");
+      const hideButton = spoiler.querySelector(".hide_button");
       const iframe = spoiler.querySelector("iframe");
       showButton.setAttribute("data-src", iframe.src);
       iframe.src = "";
-      showButton.addEventListener("click", function() {
-        iframe.src = showButton.getAttribute("data-src");
-        spoiler.querySelector(".spoiler_content").style.display = 'inline-block';
-        showButton.style.display = 'none';
-      });
-      const hideButton = spoiler.querySelector(".hide_button");
-      hideButton.addEventListener("click", function() {
-        spoiler.querySelector(".spoiler_content").style.display = 'none';
-        showButton.style.display = 'inline-block';
-        iframe.src = "";
-      });
+      $(iframe).contents().find("body").attr('style','background:0!important');
+      showButton.setAttribute("onclick", showButton.getAttribute('onclick') +
+                              'this.nextElementSibling.children[2].setAttribute("src",this.getAttribute("data-src"));' +
+                              'this.nextElementSibling.children[2].contentWindow.document.body.setAttribute("style","background:0!important");');
+      hideButton.setAttribute("onclick", hideButton.getAttribute('onclick')+'this.nextElementSibling.nextElementSibling.removeAttribute("src")');
     });
   }
 
