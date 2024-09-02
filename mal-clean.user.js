@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.28
+// @version     1.28.1
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -30,9 +30,103 @@ function create(e, t, n) {
   return n && (f.innerHTML = n), f;
 }
 
+function AdvancedCreate(HTMLtag, classes, text, appendLocation, cssText) {
+    var element = document.createElement(HTMLtag);
+    if (Array.isArray(classes)) {
+        element.classList.add(...classes);
+        if (classes.includes("newTab")) {
+            element.setAttribute("target", "_blank");
+        }
+    } else if (classes) {
+        if (classes[0] === "#") {
+            element.id = classes.substring(1);
+        } else {
+            element.classList.add(classes);
+            if (classes === "newTab") {
+                element.setAttribute("target", "_blank");
+            }
+        }
+    }
+    if (text || text === 0) {
+        element.innerText = text;
+    }
+    if (appendLocation && appendLocation.appendChild) {
+        appendLocation.appendChild(element);
+    }
+    if (cssText) {
+        element.style.cssText = cssText;
+    }
+    return element;
+}
+
+function createDisplayBox(cssProperties,windowTitle){
+  let displayBox = AdvancedCreate("div","maljsDisplayBox",false,document.querySelector("#myanimelist"));
+	if(windowTitle){
+		AdvancedCreate("span","maljsDisplayBoxTitle",windowTitle,displayBox)
+	}
+	let mousePosition;
+	let offset = [0,0];
+	let isDown = false;
+	let isDownResize = false;
+	let displayBoxClose = AdvancedCreate("span","maljsDisplayBoxClose","x",displayBox);
+    displayBoxClose.onclick = function(){
+		displayBox.remove();
+	};
+	let resizePearl = AdvancedCreate("span","maljsResizePearl",false,displayBox);
+	displayBox.addEventListener("mousedown",function(e){
+		let root = e.target;
+		while(root.parentNode){//don't annoy people trying to copy-paste
+			if(root.classList.contains("scrollableContent")){
+				return
+			}
+			root = root.parentNode
+		}
+		isDown = true;
+		offset = [
+			displayBox.offsetLeft - e.clientX,
+			displayBox.offsetTop - e.clientY
+		];
+	},true);
+	resizePearl.addEventListener("mousedown",function(event){
+		event.stopPropagation();
+		event.preventDefault();
+		isDownResize = true;
+		offset = [
+			displayBox.offsetLeft,
+			displayBox.offsetTop
+		];
+	},true);
+	document.addEventListener("mouseup",function(){
+		isDown = false;
+		isDownResize = false;
+	},true);
+	document.addEventListener("mousemove",function(event){
+		if(isDownResize){
+			mousePosition = {
+				x : event.clientX,
+				y : event.clientY
+			};
+			displayBox.style.width = (mousePosition.x - offset[0] + 5) + "px";
+			displayBox.style.height = (mousePosition.y - offset[1] + 5) + "px";
+			return;
+		}
+		if(isDown){
+			mousePosition = {
+				x : event.clientX,
+				y : event.clientY
+			};
+			displayBox.style.left = (mousePosition.x + offset[0]) + "px";
+			displayBox.style.top  = (mousePosition.y + offset[1]) + "px";
+		}
+	},true);
+	let innerSpace = AdvancedCreate("div","scrollableContent",false,displayBox);
+	return innerSpace;
+}
+
 //Time Calculate for Anilist Style Activities
 function nativeTimeElement(e) {
   let $ = new Date(1e3 * e);
+  if (isNaN($.valueOf())) return 'Now';
   return (function e() {
     let r = Math.round(new Date().valueOf() / 1e3) - Math.round($.valueOf() / 1e3);
     if (0 === r) return 'Now';
@@ -233,8 +327,83 @@ function emptyInfoAddDiv(title) {
   $(title).after(newDiv);
 }
 
+// MalClenSettings Edit About Popup
+async function editAboutPopup(data, type) {
+  return new Promise((resolve, reject) => {
+    const url = location.pathname === "/" ? null : 1;
+    const popup = create("div", { id: "currently-popup" });
+    const popupClose = create("a", { id: "currently-closePopup", class: "fa-solid fa-xmark", href: "javascript:void(0);" });
+    const popupBack = create("a", { class: "popupBack fa-solid fa-arrow-left", href: "javascript:void(0);" });
+    const popupMask = create("div", {
+      class: "fancybox-overlay",
+      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "1" },
+    });
+    const popupLoading = create("div", {
+      class: "actloading",
+      style: { position: "fixed", top: "50%", left: "0", right: "0", fontSize: "16px" },
+    }, "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome;word-break: break-word;"></i>');
+    const iframe = create("iframe", { src: 'https://myanimelist.net/editprofile.php' });
+    iframe.style.opacity = 0;
+
+    const close = () => {
+      popup.remove();
+      document.body.style.removeProperty("overflow");
+      resolve();
+    };
+
+    popup.append(popupClose, iframe, popupLoading);
+    document.body.append(popup,popupMask);
+    document.body.style.overflow = "hidden";
+    $('button#custombg,button#custompf,button#customcss').prop('disabled', true);
+
+    $(iframe).on("load", async function () {
+      let $iframeContents = $(iframe).contents();
+      let $about = $iframeContents.find("#classic-about-me-textarea");
+      let isClassic = $iframeContents.find("#about_me_setting_2").is(':checked');
+      let $submit = $iframeContents.find('.inputButton[type="submit"]');
+      let matchRegex = /(\[url=).*(malcleansettings)\/.*([^.]]+)/gm;
+      let replaceRegex = /(\[url=)(.*malcleansettings\/[^]]+).*([\/url].)/gm;
+      let custompfRegex = /(custompf)\/([^\/]+.)/gm;
+      let customBgRegex = /(custombg)\/([^\/]+.)/gm;
+      let customCssRegex = /(customcss)\/([^\/]+.)/gm;
+
+      popupLoading.innerHTML = "Updating" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
+
+      if ($iframeContents.find(".goodresult").length > 0) {
+        window.location.reload();
+      }
+
+      if (isClassic) {
+        let aboutText = $about.text();
+        if (!matchRegex.test(aboutText)) {
+          $about.text('[url=https://malcleansettings/custompf/.../custombg/.../customcss/.../]‎ [/url]' + aboutText);
+          aboutText = '[url=https://malcleansettings/custompf/.../custombg/.../customcss/.../]‎ [/url]' + aboutText;
+        }
+
+        if (type === 'pf') {
+          $about.text(aboutText.replace(custompfRegex, data+'/'));
+        } else if (type === 'bg') {
+          $about.text(aboutText.replace(customBgRegex, data+'/'));
+        } else if (type === 'css') {
+        $about.text(aboutText.replace(customCssRegex, data+'/'));
+        }
+        $submit.click();
+      } else{
+        iframe.remove();
+        popupLoading.innerHTML = "You are not using classic about.<br>Please create a blog post and paste this code there. <br>[url=https://" + data + "]";
+      }
+    });
+
+    // close popup
+    popupClose.onclick = () => {
+      close();
+    };
+  });
+}
+
+
 // Anime/Manga Edit Popup
-async function editPopup(id, type) {
+async function editPopup(id, type, add) {
   return new Promise((resolve, reject) => {
     const url = location.pathname === "/" ? null : 1;
     const popup = create("div", { id: "currently-popup" });
@@ -270,10 +439,15 @@ async function editPopup(id, type) {
     document.body.style.overflow = "hidden";
 
     $(iframe).on("load", function () {
-      iframe.style.opacity = 1;
-      popupLoading.remove();
-
-      if (svar.autoAddDate) {
+      if(!add){
+        popupLoading.remove();
+        iframe.style.opacity = 1;
+      } else{
+        popupLoading.innerHTML = "Updating" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
+      }
+      if(add && $(iframe).contents().find(".goodresult")[0]){
+        close();
+      }
         // close advanced section
         if ($(iframe).contents().find("#hide-advanced-button")[0].style.display === "") {
           $(iframe).contents().find("#hide-advanced-button")[0].click();
@@ -290,7 +464,7 @@ async function editPopup(id, type) {
           let year = $(iframe).contents().find("#add_anime_finish_date_year,#add_manga_finish_date_year")[0];
           let startDate = $(iframe).contents().find("#add_anime_start_date_month,#add_manga_start_date_month").val();
           let endDate = $(iframe).contents().find("#add_anime_finish_date_month,#add_manga_finish_date_month").val();
-
+          if (svar.autoAddDate) {
           // if episode count is greater than 0 and the start date is not entered
           if (ep > 0 && lastEp > 0 && !startDate) {
             $(iframe).contents().find("#start_date_insert_today")[0].click();
@@ -308,7 +482,7 @@ async function editPopup(id, type) {
             year.value = 0;
           }
         }
-
+      }
         //if episode count changed
         $(iframe).contents().find("#add_anime_num_watched_episodes,#add_manga_num_read_chapters").on("input", function () {
           checkEp();
@@ -325,15 +499,30 @@ async function editPopup(id, type) {
             checkEp();
           }
         });
-
-        //if decrease ep clicked
-        $(decreaseEp).on("click", function () {
-          let ep = $(iframe).contents().find("#add_anime_num_watched_episodes,#add_manga_num_read_chapters")[0];
-          ep.value = ep.value > 0 ? ep.value - 1 : ep.value;
-          checkEp();
-        });
+      if(add) {
+        let ep = $(iframe).contents().find("#add_anime_num_watched_episodes,#add_manga_num_read_chapters")[0];
+        let lastEp = parseInt($(iframe).contents().find("#totalEpisodes,#totalChap").text());
+        let mangaVol = $(iframe).contents().find("#add_manga_num_read_volumes")[0];
+        let mangaVolLast = parseInt($(iframe).contents().find("#totalVol").text());
+        let status = $(iframe).contents().find("#add_anime_status,#add_manga_status")[0];
+        let submit = $(iframe).contents().find(".inputButton.main_submit")[0];
+        ep.value =  parseInt(ep.value) + 1;
+        if(parseInt(ep.value) == lastEp) {
+          status.value = 2;
+          if(mangaVol) {
+            mangaVol.value = mangaVolLast;
+          }
+        }
+        checkEp();
+        $(submit).click();
       }
 
+        //if decrease ep clicked
+      $(decreaseEp).on("click", function () {
+        let ep = $(iframe).contents().find("#add_anime_num_watched_episodes,#add_manga_num_read_chapters")[0];
+        ep.value = ep.value > 0 ? ep.value - 1 : ep.value;
+        checkEp();
+      });
       //if history clicked
       $(iframe).contents().find("#totalEpisodes,#totalChap").next().children().on("click", function () {
         iframe.style.opacity = 0;
@@ -352,7 +541,9 @@ async function editPopup(id, type) {
 
     // close popup
     popupMask.onclick = () => {
-      close();
+      if(!add){
+        close()
+      };
     };
     popupClose.onclick = () => {
       close();
@@ -397,6 +588,7 @@ async function blockUser(id) {
         $(iframe).contents().find("#headerSmall")[0].remove();
         $(iframe).contents().find("#menu")[0].remove();
         $(iframe).contents().find("#horiznav_nav")[0].remove();
+        $(iframe).contents().find("footer")[0].remove();
         $(iframe).contents().find(".h1")[0].remove();
         $(iframe).contents().find("form > input.inputtext")[0].value = id;
         $(iframe).contents().find('a[href*=profile]').removeAttr("href");
@@ -443,6 +635,7 @@ let svar = {
   animeBanner: true,
   animeTag: true,
   animeRelation: true,
+  relationFilter:false,
   animeSongs: true,
   characterHeader: true,
   characterNameAlt: true,
@@ -458,6 +651,7 @@ let svar = {
   editPopup: true,
   forumDate: true,
   headerSlide: false,
+  replaceList: false,
 };
 
 svar.save = function () {
@@ -486,7 +680,7 @@ let styles = `
     gap:14px
 }
 .relationsExpanded{
-    padding: 0px 8px
+    padding-left:8px
 }
 .relations-accordion-button {
     text-align:right;
@@ -664,7 +858,7 @@ let styles = `
     position:relative;
     padding:0!important;
     margin-left: -13px;
-    margin-top:-7px;
+    margin-top: -17px;
     width: calc(100% + 25px);
     display: -webkit-box;
     display: -webkit-flex;
@@ -991,12 +1185,12 @@ button#customcss,
 button#custombg,
 button#custompf{
     height: 40px;
-    width: 45%
+    width: 32%
 }
 input#cssinput,
 input#bginput,
 input#pfinput{
-    width: 47%;
+    width: 60%;
     height: 15px;
     margin-right: 5px
 }
@@ -1292,37 +1486,45 @@ button25.onclick = () => {
   getSettings();
   reloadset();
 };
+var button26 = create("button", { class: "mainbtns", id: "relationFilterBtn" });
+button26.onclick = () => {
+  svar.relationFilter = !svar.relationFilter;
+  svar.save();
+  getSettings();
+  reloadset();
+};
+var button27 = create("button", { class: "mainbtns", id: "replaceListBtn" });
+button27.onclick = () => {
+  svar.replaceList = !svar.replaceList;
+  svar.save();
+  getSettings();
+  reloadset();
+};
 //Custom Profile Background
 let bginput = create("input", { class: "bginput", id: "bginput" });
-bginput.placeholder = "Paste your Background Image Url";
-var button11 = create("button", { class: "mainbtns", id: "custombg" }, "Convert Background to BBCode");
+bginput.placeholder = "Paste your Background Image Url here";
+var button11 = create("button", { class: "mainbtns", id: "custombg" }, "Update");
 var bginfo = create("p", { class: "textpb" }, "");
 
 button11.onclick = () => {
   if (bginput.value.slice(-1) === "]") {
     bginfo.innerText = "Background Image already converted.";
   } else if (bginput.value.length > 1) {
-    bginput.value = "[url=https://custombg/" + LZString.compressToBase64(JSON.stringify(bginput.value)) + "]‎ [/url]";
-    bginput.select();
+    editAboutPopup(`custombg/${LZString.compressToBase64(JSON.stringify(bginput.value))}`,'bg');
     bginput.addEventListener(`focus`, () => bginput.select());
-    bginfo.innerHTML ="Background Image Converted. Please copy and paste to your " +"<a class='embedLink' href='https://myanimelist.net/editprofile.php'>About Me</a>" + " section." +
-      '<br>'+"if you are using modern about please create a blog post and paste it there.";
   } else {
     bginfo.innerText = "Background Image url empty.";
   }
 };
 
 //Custom Avatar
-var button12 = create("button", { class: "mainbtns", id: "custompf" }, "Convert Avatar to BBCode");
+var button12 = create("button", { class: "mainbtns", id: "custompf" }, "Update");
 button12.onclick = () => {
   if (pfinput.value.slice(-1) === "]") {
     pfinfo.innerText = "Background Image already converted.";
   } else if (pfinput.value.length > 1) {
-    pfinput.value = "[url=https://custompf/" + LZString.compressToBase64(JSON.stringify(pfinput.value)) + "]‎ [/url]";
-    pfinput.select();
+    editAboutPopup(`custompf/${LZString.compressToBase64(JSON.stringify(pfinput.value))}`,'pf');
     pfinput.addEventListener(`focus`, () => pfinput.select());
-    pfinfo.innerHTML ="Avatar Image Converted. Please copy and paste to your " +"<a class='embedLink' href='https://myanimelist.net/editprofile.php'>About Me</a>" + " section." +
-      '<br>'+"if you are using modern about please create a blog post and paste it there.";
   } else {
     pfinfo.innerText = "Avatar Image url empty.";
   }
@@ -1332,16 +1534,13 @@ pfinput.placeholder = "Paste your Avatar Image Url here";
 var pfinfo = create("p", { class: "textpb" }, "");
 
 //Custom CSS
-var button8 = create("button", { class: "mainbtns", id: "customcss" }, "Convert CSS to BBCode");
+var button8 = create("button", { class: "mainbtns", id: "customcss" }, "Update");
 button8.onclick = () => {
   if (cssinput.value.slice(-1) === "]") {
     cssinfo.innerText = "Css already converted.";
   } else if (cssinput.value.length > 1) {
-    cssinput.value = "[url=https://customcss/" + LZString.compressToBase64(JSON.stringify(cssinput.value)) + "]‎ [/url]";
-    cssinput.select();
+    editAboutPopup(`customcss/${LZString.compressToBase64(JSON.stringify(cssinput.value))}`,'css');
     cssinput.addEventListener(`focus`, () => cssinput.select());
-    cssinfo.innerHTML = "Css Converted. Please copy and paste to your " +"<a class='embedLink' href='https://myanimelist.net/editprofile.php'>About Me</a>" + " section." +
-      '<br>'+"if you are using modern about please create a blog post and paste it there.";
   } else {
     cssinfo.innerText = "Css empty.";
   }
@@ -1359,6 +1558,7 @@ function getSettings() {
   animeBannerBtn.classList.toggle('btn-active', svar.animeBanner);
   animeTagBtn.classList.toggle('btn-active', svar.animeTag);
   animeRelationBtn.classList.toggle('btn-active', svar.animeRelation);
+  relationFilterBtn.classList.toggle('btn-active', svar.relationFilter);
   characterHeaderBtn.classList.toggle('btn-active', svar.characterHeader);
   characterNameAltBtn.classList.toggle('btn-active', svar.characterNameAlt);
   customCssBtn.classList.toggle('btn-active', svar.customcss);
@@ -1374,6 +1574,7 @@ function getSettings() {
   editPopupBtn.classList.toggle('btn-active', svar.editPopup);
   forumDateBtn.classList.toggle('btn-active', svar.forumDate);
   headerSlideBtn.classList.toggle('btn-active', svar.headerSlide);
+  replaceListBtn.classList.toggle('btn-active', svar.replaceList);
 }
 
 //Create Settings Div
@@ -1383,7 +1584,7 @@ function createDiv() {
     "div",
     { class: "mainListDiv", id: "profileDiv" },
     '<div class="profileHeader"><h2>' +
-      "Anilist Style - Custom Background Image" +
+      "Custom Background Image (Required Anilist Style Profile)" +
       "</h2><h3>" +
       "Add custom Background Image to your profile. This will be visible to others with the script." +
       "</h3></div>"
@@ -1391,7 +1592,7 @@ function createDiv() {
   let custompfDiv = create(
     "div",
     { class: "mainListDiv", id: "profileDiv" },
-    '<div class="profileHeader"><h2>' + "Anilist Style - Custom Avatar" + "</h2><h3>" + "Add custom Avatar to your profile. This will be visible to others with the script." + "</h3></div>"
+    '<div class="profileHeader"><h2>' + "Custom Avatar (Required Anilist Style Profile)" + "</h2><h3>" + "Add custom Avatar to your profile. This will be visible to others with the script." + "</h3></div>"
   );
   let customcssDiv = create(
     "div",
@@ -1417,6 +1618,7 @@ function createDiv() {
         {b:button17,t:"Add banner image from Anilist"},
         {b:button18,t:"Add tags from Anilist"},
         {b:button19,t:"Replace relations"},
+        {b:button26,t:"Add filter to replaced relations"},
         {b:button20,t:"Replace Anime OP/ED with animethemes.moe"},
         {b:button22,t:"Replace the edit details with the edit popup"},
         {b:button2,t:"Change title position"}
@@ -1440,7 +1642,8 @@ function createDiv() {
     createListDiv(
       "Profile",
       [
-       {b:button10,t:"Make profile like Anilist"},
+       {b:button10,t:"Make profile like Anilist (Anilist Style Profile)"},
+       {b:button27,t:"Make Anime/Manga List like Anilist (Required Anilist Style Profile)"},
        {b:button7,t:"Show custom CSS"},
        {b:button9,t:"Change username position"}
       ]),
@@ -1517,9 +1720,9 @@ function delay(ms) {
       iframe.src = "";
       $(iframe).contents().find("body").attr('style','background:0!important');
       showButton.setAttribute("onclick", showButton.getAttribute('onclick') +
-                              'this.nextElementSibling.children[2].setAttribute("src",this.getAttribute("data-src"));' +
-                              'this.nextElementSibling.children[2].contentWindow.document.body.setAttribute("style","background:0!important");');
-      hideButton.setAttribute("onclick", hideButton.getAttribute('onclick')+'this.nextElementSibling.nextElementSibling.removeAttribute("src")');
+                              'this.nextElementSibling.querySelector("iframe.movie").setAttribute("src",this.getAttribute("data-src"));' +
+                              'this.nextElementSibling.querySelector("iframe.movie").contentWindow.document.body.setAttribute("style","background:0!important");');
+      hideButton.setAttribute("onclick", hideButton.getAttribute('onclick')+'this.parentElement.querySelector("iframe.movie").removeAttribute("src")');
     });
   }
 
@@ -1657,6 +1860,21 @@ function delay(ms) {
                     transition: ".4s",
                   },
                 });
+                let increaseButton = create("i", {
+                  class: "fa fa-plus",
+                  id: list[x].anime_id,
+                  style: {
+                    fontFamily: '"Font Awesome 6 Pro"',
+                    position: "absolute",
+                    right: "3px",
+                    top: "26px",
+                    background: "var(--color-foregroundOP2)",
+                    padding: "4px",
+                    borderRadius: "5px",
+                    opacity: "0",
+                    transition: ".4s",
+                  },
+                });
                 // create watching anime div
                 let wDiv = create("li", { class: "btn-anime" });
                 wDiv.innerHTML =
@@ -1672,9 +1890,15 @@ function delay(ms) {
                   (nextep ? nextep : "") +
                   "</a>";
                 wDiv.appendChild(ib);
+                   wDiv.appendChild(increaseButton);
                 document.querySelector("#widget-currently-watching ul").append(wDiv);
                 ib.onclick = async () => {
                   await editPopup(ib.id);
+                  watchdiv.remove();
+                  getWatching();
+                };
+                increaseButton.onclick = async () => {
+                  await editPopup(ib.id,null,true);
                   watchdiv.remove();
                   getWatching();
                 };
@@ -1790,6 +2014,26 @@ function delay(ms) {
                     transition: ".4s",
                   },
                 });
+                let increaseButton = create("i", {
+                  class: "fa fa-plus",
+                  id: list[x].anime_id,
+                  style: {
+                    fontFamily: '"Font Awesome 6 Pro"',
+                    position: "absolute",
+                    right: "3px",
+                    top: "26px",
+                    background: "var(--color-foregroundOP2)",
+                    padding: "4px",
+                    borderRadius: "5px",
+                    opacity: "0",
+                    transition: ".4s",
+                  },
+                });
+                increaseButton.onclick = async () => {
+                  await editPopup(ib.id,'manga',true);
+                  readdiv.remove();
+                  getreading();
+                };
                 // Create Reading Manga Div
                 let rDiv = create("li", { class: "btn-anime" });
                 rDiv.innerHTML =
@@ -1805,6 +2049,7 @@ function delay(ms) {
                   nextchap +
                   "</a>";
                 rDiv.appendChild(ib);
+                rDiv.appendChild(increaseButton);
                 document.querySelector("#widget-currently-reading ul").append(rDiv);
                 ib.onclick = async () => {
                   await editPopup(ib.id,'manga');
@@ -2260,14 +2505,17 @@ function delay(ms) {
                            "Loading"+'<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>');
     let username = current.split('/')[2];
     let custombg,custompf,customcss,userimg,customFounded;
-    let bgRegex = /(custombg)\/([^"]+)/gm;
-    let pfRegex = /(custompf)\/([^"]+)/gm;
-    let cssRegex = /(customcss)\/([^"]+)/gm;
+    let bgRegex = /(custombg)\/([^"\/]+)/gm;
+    let pfRegex = /(custompf)\/([^"\/]+)/gm;
+    let cssRegex = /(customcss)\/([^"\/]+)/gm;
+
+    //block user icon
      let blockU = create("i", {
       class: "fa fa-ban",
       style: {
         fontFamily: '"Font Awesome 6 Pro"',
         position: 'absolute',
+        zIndex:'10',
         right: '65px',
         color: 'var(--color-link) !important',
         fontWeight: 'bold',
@@ -2275,6 +2523,7 @@ function delay(ms) {
         cursor: 'pointer',
         margin: '60px 10px 0px'},
     });
+    //block user icon click
     blockU.onclick = () => {
       blockUser(username);
     }
@@ -2351,22 +2600,28 @@ function delay(ms) {
       const cssMatch = aboutContent.match(cssRegex);
         if (bgMatch) {
           const bgData = bgMatch[0].replace(bgRegex, '$2');
-          custombg = JSON.parse(LZString.decompressFromBase64(bgData));
-          banner.setAttribute(
-          'style',
-          `background-color: var(--color-foreground); background: url(${custombg}); background-position: 50% 35%; background-repeat: no-repeat; background-size: cover; height: 330px; position: relative;`
-          );
-          customFounded = 1;
+          if(bgData !== '...'){
+            custombg = JSON.parse(LZString.decompressFromBase64(bgData));
+            banner.setAttribute(
+              'style',
+              `background-color: var(--color-foreground); background: url(${custombg}); background-position: 50% 35%; background-repeat: no-repeat; background-size: cover; height: 330px; position: relative;`
+            );
+            customFounded = 1;
+          }
         }
         if (pfMatch) {
           const pfData = pfMatch[0].replace(pfRegex, '$2');
-          custompf = JSON.parse(LZString.decompressFromBase64(pfData));
-          document.querySelector('.user-image.mb8 > img').setAttribute('src', custompf);
-          customFounded = 1;
+          if(pfData !== '...'){
+            custompf = JSON.parse(LZString.decompressFromBase64(pfData));
+            document.querySelector('.user-image.mb8 > img').setAttribute('src', custompf);
+            customFounded = 1;
+          }
         }
         if (cssMatch) {
           const cssData = cssMatch[0].replace(cssRegex, '$2');
+          if(cssData !== '...'){
           customcss = JSON.parse(LZString.decompressFromBase64(cssData));
+          }
         }
       };
       if (aboutSection) {
@@ -2455,15 +2710,82 @@ function delay(ms) {
       if (svar.alstyle) {
         //CSS Fix for Anilist Style
         let fixstyle = `
+        .user-profile-about a[href*="/custombg"],
+        .user-profile-about a[href*="/custompf"],
+        .user-profile-about a[href*="/customcss"]{
+        display:none
+        }
+       .filterList_TagsContainer .tag-link{cursor: pointer;word-break: break-word;display: block;width: 97%;background: var(--color-foreground3);padding: 10px;
+       border-radius: 5px;margin-bottom: 10px;margin-left: -5px;-webkit-transition:.3s;-o-transition:.3s;transition:.3s}
+       .filterList_TagsContainer .tag-link:hover{background:var(--color-foreground2)}
+       .filterList_GenresFilter input[type="checkbox"] {cursor: pointer;vertical-align: middle;bottom: 2px;left: -5px;-webkit-appearance: inherit;position: relative;-webkit-box-sizing: border-box;box-sizing: border-box}
+       .filterList_GenresFilter input[type="checkbox"]:checked:after {content: "";position: absolute;-webkit-border-radius: 10px;border-radius: 10px;top: 0;bottom: 0;
+       left: 0;right: 0;margin: auto!important;height: 10px;width: 10px;background: var(--color-link2)!important}
+       .filterList_GenresFilter input[type="checkbox"]:checked:after {font-family: fontAwesome;content: "\\f00c";margin-left: 4px!important;color: var(--color-link)!important;background: none!important}
+        i.tags-container-clear.fa.fa-close,i.year-filter-clear.fa.fa-close {display:none;font-family: 'FontAwesome';background: var(--color-foreground4);
+        padding: 5px;-webkit-border-radius: 5px;border-radius: 5px;float: right;cursor: pointer;margin-right: 86%;margin-top: -2px;margin-bottom: 0px}
+        .year-filter-slider-container{margin-top: -4px;display: -webkit-box;display: -webkit-flex;display: -ms-flexbox;display: flex;-webkit-box-align: center;-webkit-align-items: center;-ms-flex-align: center;align-items: center;gap: 10px}
+        input#year-filter-slider{-webkit-box-flex:1;-webkit-flex-grow:1;-ms-flex-positive:1;flex-grow:1;padding: 0 !important}
+        .genreDropBtn {width:100%;border:0;background: var(--color-foreground2);padding: 8px;cursor: pointer;-webkit-border-radius: var(--border-radius);border-radius: var(--border-radius);margin: 5px 0px}
+        .genreDropBtn:hover{background:var(--color-foreground4)}
+        #maljs-dropdown-content{display: none;-ms-grid-columns: 1fr 1fr;grid-template-columns: 1fr 1fr;width:410px;: absolute;background: var(--color-foreground);
+        -webkit-border-radius: var(--border-radius);border-radius: var(--border-radius);min-width: 160px;
+        -webkit-box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);z-index: 1;height: 175px;overflow: scroll;}
+        .maljs-dropdown-content label {padding: 12px 16px;display: block;}
+        .maljs-dropdown-content label:hover {background: var(--color-foreground4)}
+        .maljs-dropdown-content label:has(input.genre-filter:checked){background:var(--color-foreground2);border-bottom: 1px solid}
+        .list-entries .status-section {background: var(--color-foreground);border-radius: var(--border-radius)}
+        .filterLists-back{width: 25px;text-align: center;margin-top: -65px;font-family: 'FontAwesome';margin-bottom: 10px;cursor: pointer;position: absolute;background: var(--color-foreground);padding: 6px;
+        -webkit-border-top-left-radius: var(--border-radius);border-top-left-radius: var(--border-radius);-webkit-border-top-right-radius: var(--border-radius);border-top-right-radius: var(--border-radius);}
+        .filterListsDivContainer {display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex}
+        .filterListsDiv {width: 70px;display: block;margin-top:-5px}
+        .filterListsCount {width: 90px;line-height: 19px;color: var(--color-main-text-light);margin-top:-5px}
+        .list-entries .entry .edit {height: 40px;width: 40px;position: absolute;background: #00000070;display: block;
+        -webkit-align-content: center;-ms-flex-line-pack: center;align-content: center;font-family: fontAwesome;opacity: 0;cursor: pointer;
+        -webkit-border-radius: var(--border-radius);border-radius: var(--border-radius);-webkit-transition:.3s;-o-transition:.3s;transition:.3s}
+        .list-entries .entry .edit:hover{opacity:1}
+        .maljsDisplayBox {overflow:hidden;position: fixed;top: 65px;left: 20px;z-index: 9999;padding: 20px;background-color: rgb(var(--color-foreground));border: solid 1px;
+        border-radius: 4px;box-shadow: black 2px 2px 20px;background: var(--color-background);height: 85%;}
+        .maljsDisplayBoxTitle{font-size: 15px;border-bottom: 1px solid;display: block;margin-bottom: 10px;padding: 3px}
+        input.maljsNativeInput{margin-bottom:5px}
+        .maljsDisplayBox .scrollableContent p {margin: 10px 0px !important}
+        .maljsDisplayBox .scrollableContent {box-sizing: border-box;overflow: auto;height: 100%;scrollbar-width: thin;margin-top: 5px;padding: 30px;padding-top: 15px;scrollbar-width: auto}
+        .maljsDisplayBoxClose{position: absolute;right: 15px;top: 15px;cursor: pointer;width: 15px;height: 18px;text-align: center;
+        background-color: #852325;font-weight: bold;border: solid;border-width: 1px;border-radius: 2px;color: var(--color-main-text-normal);z-index: 20;}
+        .maljsResizePearl{position: absolute;right: 2px;bottom: 2px;width: 20px;height: 20px;border: solid;border-radius: 10px;background: rgb(var(--color-foreground));cursor: se-resize}
+        .container-left > #filter{margin-top:5px;background: var(--color-foreground);padding: 15px;border-radius: var(--border-radius)}
+        .container-left > #filter .filterLists{display:block;cursor:pointer;padding:3px;width:70px}
+        #maljsDraw3x3,.compareBtn{background: var(--color-foreground2);padding:10px;border-radius: var(--border-radius);display: block;margin-top: 5px;cursor:pointer;width: 55px}
+        .compareBtn{float:right;text-align:center}
+        #filter > input#filter-input{width: 94%}
+        .list-entries .entry .cover,.list-entries .row{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox}
+        .list-entries .row{display:flex;-webkit-box-pack:justify;-webkit-justify-content:space-between;-ms-flex-pack:justify;justify-content:space-between;
+        -webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center}
+        .list-entries .entry .cover{-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;display:flex;-webkit-box-flex:1;
+        -webkit-flex:1;-ms-flex:1;flex:1;-webkit-box-pack:end;-webkit-justify-content:flex-end;
+        -ms-flex-pack:end;justify-content:flex-end;max-width:60px;min-width:60px;padding:0}
+        .list-entries .entry .cover .image{background-position:50%;background-repeat:no-repeat;background-size:cover;-webkit-border-radius:3px;border-radius:3px;height:40px;width:40px}
+        .list-entries .entry .title{-webkit-box-flex:5;-webkit-flex:5;-ms-flex:5;flex:5;padding-left:15px;text-align:left;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;
+        display:flex;-webkit-box-pack:end;-webkit-justify-content:flex-end;
+        -ms-flex-pack:end;justify-content:flex-end;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;word-break:break-word}
+        .list-entries .entry .title a{-webkit-transition:none;-o-transition:none;transition:none;margin-right:auto}
+        .list-entries .entry>div{-webkit-box-flex:1;-webkit-flex:1;-ms-flex:1;flex:1;padding:18px 20px;text-align:center}
+        .list-entries .list-head>div{-webkit-box-flex:1;-webkit-flex:1;-ms-flex:1;flex:1;padding:20px;text-align:center;font-weight:700}
+        .list-entries .list-head .title{-webkit-box-flex:5;-webkit-flex:5;-ms-flex:5;flex:5;padding-left:75px;text-align:left}
+        .list-entries .section-name{border-bottom:1px solid;padding:10px;margin-bottom:0}
+        .list-entries .entry.row.hidden {display: none}
+        .list-entries .status-section{padding-bottom:10px}
+        .list-head.row {margin-bottom: -10px}
         .l-listitem-3_2_items{margin-right:0}
-        .l-listitem-list.row1{margin-right: 0px;margin-left: -46px;}
+        .l-listitem-list.row1{margin-right: 0px;margin-left: -46px}
         .l-listitem-list.row2{margin-left: 24px;}
         .l-listitem .c-aboutme-ttl-lv2{max-width: 420px;}
         .l-ranking-list_portrait-item{flex-basis: 66px;}
+        .l-ranking-list_circle-item{flex-basis: 70px;}
         div#modern-about-me-expand-button,.c-aboutme-accordion-btn-icon{display:none}
         #banner a.header-right.mt4.mr0{z-index: 2;position: relative;margin: 60px 10px 0px !important;}
-        .loadmore,.actloading {font-size: .8rem;font-weight: 700;padding: 14px;text-align: center;}
-        .loadmore {cursor: pointer;background: var(--color-foreground);border-radius: var(--border-radius);}
+        .loadmore,.actloading,.listLoading {font-size: .8rem;font-weight: 700;padding: 14px;text-align: center;}
+        .loadmore {cursor: pointer;background: var(--color-foreground);border-radius: var(--border-radius);margin-bottom: 25px;z-index: 2;position: relative;}
         #headerSmall + #menu {width:auto!important}
         .profile .user-profile-about.js-truncate-outer{border:var(--border) solid var(--border-color);}
         .profile .btn-truncate.js-btn-truncate.open {padding-bottom:0!important}
@@ -2486,11 +2808,12 @@ function delay(ms) {
         .historyname{width: 80%;-webkit-align-self: center;-ms-flex-item-align: center;-ms-grid-row-align: center;align-self: center;}
         .historydate{width:25%;text-align: right;}
         .historyimg{background-size:cover;margin-left: -10px;height: 69px;width:50px;margin-top: -9px;margin-right: 10px;padding-right: 5px;}
-        .historydiv {height: 50px;background-color: var(--color-foreground);margin: 10px 5px;padding: 10px;border:var(--border) solid var(--border-color);-webkit-border-radius: var(--br);border-radius: var(--br);display: -webkit-box;display: -webkit-flex;
+        .historydiv {height: 50px;background-color: var(--color-foreground);margin: 10px 5px;padding: 10px;border:var(--border) solid var(--border-color);
+        -webkit-border-radius: var(--br);border-radius: var(--br);display: -webkit-box;display: -webkit-flex;
         display: -ms-flexbox;display: flex;-webkit-box-pack: justify;-webkit-justify-content: space-between;-ms-flex-pack: justify;justify-content: space-between;overflow: hidden;}
         #horiznav_nav .navactive {color: var(--color-text)!important;background: var(--color-foreground2)!important;padding: 5px!important;}
         .dark-mode .page-common #horiznav_nav ul li,.page-common #horiznav_nav ul li {background: 0 !important}
-        .favTooltip {text-indent:0;-webkit-transition:.4s;-o-transition:.4s;transition:.4s;position: absolute;background-color: var(--color-foreground4);color: var(--color-text);
+        .favTooltip {z-index:2;text-indent:0;-webkit-transition:.4s;-o-transition:.4s;transition:.4s;position: absolute;background-color: var(--color-foreground4);color: var(--color-text);
         padding: 5px;-webkit-border-radius: 6px;border-radius: 6px;opacity:0;width: -webkit-max-content;width: -moz-max-content;width: max-content;left: 0;right: 0;margin: auto;max-width: 420px;}
         .favs .btn-fav, .user-badge, .icon-friend {overflow:hidden}
         .favs .btn-fav:hover, .user-badge:hover, .icon-friend:hover {overflow:visible!important}
@@ -2518,7 +2841,7 @@ function delay(ms) {
             let newDocument = new DOMParser().parseFromString(data, "text/html");
             let item = newDocument.querySelectorAll("#content > div.history_content_wrapper > table > tbody > tr > td.borderClass:first-child");
             length = item.length < length ? item.length : length;
-            document.querySelector('#statistics').insertAdjacentElement('afterend', loading);
+              document.querySelector('#statistics').insertAdjacentElement('afterend', loading);
             for (let x = c; x < length; x++){
               if (x === 0) {
                 head.style.marginLeft="5px";
@@ -2582,7 +2905,9 @@ function delay(ms) {
                 gethistory(length+12);
                 loadmore.remove();
               }
-              document.querySelector('#statistics').insertAdjacentElement('afterend', loadmore);
+              if(document.querySelectorAll('.filterListsDiv').length < 1){
+                document.querySelector('#statistics').insertAdjacentElement('afterend', loadmore);
+              }
             }
           });
         }
@@ -2671,6 +2996,7 @@ function delay(ms) {
         if ($(".head-config").next().is(".boxlist-container.badge")) {
           $(".head-config").remove();
         }
+        $("#contentWrapper > div:nth-child(2) > h1").remove();
         set(1, "#content > table > tbody > tr > td.pl8 > #horiznav_nav", { r: { 0: 0 } });
         set(1, ".container-right #horiznav_nav", { r: { 0: 0 } });
         document.querySelector("#contentWrapper").setAttribute("style", "width: 1375px;max-width: 1375px!important;min-width:500px; margin: auto;top: -40px;transition:.6s;opacity:1;top: -40px!important;border:0!important;box-shadow:none!important");
@@ -2682,12 +3008,42 @@ function delay(ms) {
         }
         let s = document.querySelector("#statistics");
         if (s) {
+          let mangaStats = document.querySelector("#statistics .stats.manga");
+          let mangaUpdates = document.querySelector("#statistics .updates.manga");
+          let animeStats = document.querySelector("#statistics .stats.anime");
+          let animeUpdates = document.querySelector("#statistics .updates.anime");
           s.setAttribute("style", "width: 813px");
-          s.children[1].append(document.querySelector("#statistics .stats.manga"));
-          s.children[2].prepend(document.querySelector("#statistics .updates.anime"));
+          s.children[1].append(mangaStats);
+          s.children[2].prepend(animeUpdates);
           s.prepend(document.querySelector("#statistics > div:nth-child(2)"));
           document.querySelector(".container-right").prepend(s);
           $('h2:contains("Statistics"):last').remove();
+
+          // if anime & manga stats empty - Remove
+          if (animeStats.children[1].innerText === 'Days: 0.0\tMean Score: 0.00'  &&  mangaStats.children[1].innerText === 'Days: 0.0\tMean Score: 0.00') {
+            document.querySelector("#statistics").remove();
+          }
+          else {
+            // if manga stats empty - Remove
+            if(mangaStats && mangaStats.children[1].innerText === 'Days: 0.0\tMean Score: 0.00') {
+              mangaStats.remove();
+              mangaUpdates.remove();
+              if(animeStats && animeStats.children[1].innerText !== 'Days: 0.0\tMean Score: 0.00') {
+                animeStats.parentElement.appendChild(animeUpdates);
+              }
+            }
+            // if anime stats empty - Remove
+            if(animeStats && animeStats.children[1].innerText === 'Days: 0.0\tMean Score: 0.00') {
+              animeStats.remove();
+              animeUpdates.remove();
+              if(mangaStats.parentElement && mangaStats.children[1].innerText !== 'Days: 0.0\tMean Score: 0.00') {
+                mangaStats.parentElement.appendChild(mangaUpdates);
+              }
+            }
+          }
+        }
+        //Favorites
+        if(document.querySelector("#content > div > div.container-left > div > ul:nth-child(4)")) {
           let favs = create("div", { class: "favs" });
           let favs2 = create("div", { class: "favs" });
           let favs3 = create("div", { class: "favs" });
@@ -2718,40 +3074,46 @@ function delay(ms) {
               }
             }
           }
-          let userFavs = document.querySelectorAll("li.btn-fav");
-          let userBadges = document.querySelectorAll(".user-badge");
-          let userFriends = document.querySelectorAll(".icon-friend");
-          let collection = Array.from(userFavs).concat(Array.from(userBadges), Array.from(userFriends));
-          for (let btnFav of collection) {
-            btnFav.tagName === "A" ? btnFav.innerText = "" : "";
-            btnFav.style.position = "relative";
-            btnFav.style.display = "flex";
-            btnFav.style.justifyContent = "center";
-            if(btnFav.attributes.title){
-              btnFav.setAttribute("data-title",btnFav.attributes.title.textContent);
-              btnFav.removeAttribute("title");
-            }
-            let title = btnFav.getAttribute("data-title");
-            if (title) {
-              let tt = document.createElement("div");
-              tt.className="favTooltip";
-              tt.textContent = title;
-              btnFav.prepend(tt);
-              btnFav.tagName === "A" || btnFav.classList[0] && btnFav.classList[0] === "user-badge" ? tt.style.marginTop = "-5px" : "";
-              tt.style.top = -tt.offsetHeight+"px";
-            }
-          };
-          document.querySelector(".container-right > h2.mb12").remove();
-          set(1, ".container-right > .btn-favmore", { r: { 0: 0 } });
-          set(2, "ul.user-status.border-top h5", { sal: { 0: "font-size: 11px;margin-bottom: 8px;margin-left: 2px;" } });
-          set(2, ".container-left h4", { sal: { 0: "font-size: 11px;margin-left: 2px;" } });
-          const favHeader = document.querySelectorAll('ul.user-status.border-top h5');
-          for(let i = 0; i < favHeader.length; i++) {
-            favHeader[i].innerText = favHeader[i].innerText.replace(/ (.*)/, '');
+        }
+        let userFavs = document.querySelectorAll("li.btn-fav");
+        let userBadges = document.querySelectorAll(".user-badge");
+        let userFriends = document.querySelectorAll(".icon-friend");
+        let collection = Array.from(userFavs).concat(Array.from(userBadges), Array.from(userFriends));
+        for (let btnFav of collection) {
+          btnFav.tagName === "A" ? btnFav.innerText = "" : "";
+          btnFav.style.position = "relative";
+          btnFav.style.display = "flex";
+          btnFav.style.justifyContent = "center";
+          if(btnFav.attributes.title){
+            btnFav.setAttribute("data-title",btnFav.attributes.title.textContent);
+            btnFav.removeAttribute("title");
           }
-          set(1, ".favs", { sap: { 0: "box-shadow: none!important;" } });
+          let title = btnFav.getAttribute("data-title");
+          if (title) {
+            let tt = document.createElement("div");
+            tt.className="favTooltip";
+            tt.textContent = title;
+            btnFav.prepend(tt);
+            btnFav.tagName === "A" || btnFav.classList[0] && btnFav.classList[0] === "user-badge" ? tt.style.marginTop = "-5px" : "";
+            tt.style.top = -tt.offsetHeight+"px";
+          }
+        };
+        if(document.querySelector(".container-right > h2.mb12")) {
+          document.querySelector(".container-right > h2.mb12").remove();
+        }
+
+        set(1, ".container-right > .btn-favmore", { r: { 0: 0 } });
+        set(2, "ul.user-status.border-top h5", { sal: { 0: "font-size: 11px;margin-bottom: 8px;margin-left: 2px;" } });
+        set(2, ".container-left h4", { sal: { 0: "font-size: 11px;margin-left: 2px;" } });
+        const favHeader = document.querySelectorAll('ul.user-status.border-top h5');
+        for(let i = 0; i < favHeader.length; i++) {
+          favHeader[i].innerText = favHeader[i].innerText.replace(/ (.*)/, '');
+        }
+        set(1, ".favs", { sap: { 0: "box-shadow: none!important;" } });
+        if(document.querySelector('#statistics')) {
           gethistory();
         }
+
         //Add Navbar to Profile Banner
         let nav = create("div", { class: "navbar", id: "navbar" });
         nav.innerHTML =
@@ -2789,7 +3151,623 @@ function delay(ms) {
         table.prepend(title);
       }
     }
+
+    //Anilist Style Anime and Manga List //-START-//
+
+    if(svar.replaceList && svar.alstyle) {
+      //Anime List Button
+      const animeListButton = document.querySelector("a.btn-profile-submit.fl-l");
+      animeListButton.href = "javascript:void(0);";
+      animeListButton.onclick = async () => {
+        $(".container-left").children().hide();
+        $(".container-right").children().hide();
+        getAnimeList();
+      };
+      //Manga List Button
+      const mangaListButton = document.querySelector("a.btn-profile-submit.fl-r");
+      mangaListButton.href = "javascript:void(0);";
+      mangaListButton.onclick = async () => {
+        $(".container-left").children().hide();
+        $(".container-right").children().hide();
+        getAnimeList("manga");
+      };
+    }
+    let isManga = null;
+    // Function to create a single entry row
+    function createEntryRow(animeData) {
+      // Find or create the section for the current status
+      let section = document.getElementById(`status-section-${animeData.status}`);
+      if (!section) {
+        // If section doesn't exist, create a new section
+        section = document.createElement('div');
+        section.id = `status-section-${animeData.status}`;
+        section.className = 'status-section';
+        const statusTextMap = {
+          1: (isManga ? 'Reading' : 'Watching'),
+          2: 'Completed',
+          3: 'Paused',
+          4: 'Dropped',
+          6: 'Planning'
+        };
+        // Create the section header
+        const sectionHeader = document.createElement('h3');
+        sectionHeader.className = 'section-name';
+        sectionHeader.textContent = `${statusTextMap[animeData.status]}`;
+        section.appendChild(sectionHeader);
+
+        // Create the list head row
+        const listHeadRow = document.createElement('div');
+        listHeadRow.className = 'list-head row';
+
+        // Create and append columns for the list head
+        ['title', 'score', 'progress','type'].forEach((colName) => {
+          const colDiv = document.createElement('div');
+          colDiv.className = colName;
+          colDiv.textContent = colName.charAt(0).toUpperCase() + colName.slice(1);
+          listHeadRow.appendChild(colDiv);
+        });
+        // Append list head row to the section
+        section.appendChild(listHeadRow);
+        // Append the new section to the parent container
+        document.querySelector('.list-entries').appendChild(section);
+      }
+      const entryRow = create('div', {class: 'entry row'});
+      const coverDiv = create('div', {class: 'cover'});
+      const imageDiv = create('div', {
+        class: 'image',
+        style: {
+          backgroundImage: 'url(' +  animeData.imageUrl + ')',
+        },
+      });
+      const editDiv = create('div', {class: 'edit fa-pen',});
+      editDiv.id = animeData.id;
+      editDiv.onclick = async () => {
+        isManga ? await editPopup(editDiv.id,'manga') : await editPopup(editDiv.id)
+      };
+      coverDiv.append(imageDiv,editDiv);
+      // Create the title div
+      const titleDiv =  create('div', {class: 'title'});
+      const titleLink = create('a', {class: 'title-link'},animeData.title);
+      titleLink.style.maxWidth = '450px';
+      titleLink.href = animeData.href;
+      titleDiv.appendChild(titleLink);
+      if(animeData.notes){
+        const titleNote = create('span', {class: 'title-note fa-sticky-note'});
+        titleNote.title = animeData.notes;
+        $(titleNote).attr('style','font-family:"FontAwesome"!important').appendTo(titleDiv);
+      }
+      // Create the score div
+      const scoreDiv = create('div', {class: 'score'},animeData.score);
+      // Create the progress div
+      const progressDiv = create('div', {class: 'progress'},animeData.progress);
+      // Create the format div
+      const formatDiv = create('div', {class: 'format'},animeData.format);
+      // Append all child elements to the entry row
+      entryRow.appendChild(coverDiv);
+      entryRow.appendChild(titleDiv);
+      entryRow.appendChild(scoreDiv);
+      entryRow.appendChild(progressDiv);
+      entryRow.appendChild(formatDiv);
+      section.appendChild(entryRow);
+      entryRow.setAttribute("genres",JSON.stringify(animeData.genres ? animeData.genres : ""));
+      entryRow.setAttribute("season",JSON.stringify(animeData.season ? animeData.season : ""));
+      entryRow.setAttribute("tags",JSON.stringify(animeData.tags ? animeData.tags : ""));
+    }
+    async function fetchWithTimeout(url, timeout = 10000) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        return response;
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          console.error('Fetch request was aborted');
+        } else {
+          console.error('Fetch error:', error);
+        }
+        throw error;
+      }
+    }
+    async function fetchWithRetry(url, timeout = 10000, retries = 5) {
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+          return await fetchWithTimeout(url, timeout);
+        } catch (error) {
+          if (attempt < retries) {
+            $(".listLoading").html(`Retrying (${attempt}/${retries})... <i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>`);
+            console.log(`Retrying (${attempt}/${retries})...`);
+            await new Promise(res => setTimeout(res, 1000));
+          } else {
+            throw error;
+            }
+        }
+      }
+    }
+
+    async function fetchAndCombineData() {
+      let offset = 0;
+      let allData = [];
+      while (true) {
+        try {
+          const response = await fetchWithRetry(`https://myanimelist.net/${isManga ? ('mangalist/'+username) : ('animelist/'+username)}/load.json?offset=${offset}&status=7`);
+          const data = await response.json();
+          if (data.length === 0) {
+            break;
+          }
+          allData = allData.concat(data);
+          offset += 300;
+        } catch (error) {
+          console.error("Fetch error:", error);
+          break;
+        }
+      }
+      return allData;
+    }
+
+    async function getAnimeList(type){
+      let animeDataList = [];
+      isManga = type;
+      const fetchUrl = isManga ? "https://myanimelist.net/mangalist/" + username + "?status=7" : "https://myanimelist.net/animelist/" + username + "?status=7";
+      const listLoading = create("div",{
+      class: "listLoading",
+      style: { position: "fixed", top: "50%", left: "0", right: "0", fontSize: "16px" },},
+      "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>');
+      const listEntries = create('div', {class: 'list-entries'});
+      document.querySelector(".container-right").append(listLoading,listEntries);
+        const html = await fetchAndCombineData().then(async allData => {
+          let list = allData;
+
+          if (list) {
+            for (let x = 0; x < list.length; x++) {
+              if (isManga) {
+                animeDataList.push({
+                  id: list[x].manga_id,
+                  genres:list[x].genres,
+                  tags:list[x].tags,
+                  imageUrl: list[x].manga_image_path,
+                  href: list[x].manga_url,
+                  title: list[x].manga_title,
+                  score:  list[x].score,
+                  progress: list[x].num_read_chapters,
+                  status: list[x].status,
+                  format: list[x].manga_media_type_string,
+                  notes: list[x].editable_notes
+                });
+              } else {
+                animeDataList.push({
+                  id: list[x].anime_id,
+                  genres:list[x].genres,
+                  tags:list[x].tags,
+                  season:list[x].anime_season,
+                  imageUrl: list[x].anime_image_path,
+                  href: list[x].anime_url,
+                  title: list[x].anime_title,
+                  score:  list[x].score,
+                  progress:  list[x].num_watched_episodes,
+                  status: list[x].status,
+                  format: list[x].anime_media_type_string,
+                  notes: list[x].editable_notes
+                });
+              }
+            }
+          }
+        })
+
+      animeDataList.sort((a, b) => b.score - a.score);
+      animeDataList.forEach(animeData => createEntryRow(animeData));
+      const container = document.querySelector('.container-right .list-entries');
+      const divs = Array.from(container.querySelectorAll('.status-section'));
+      divs.sort((a, b) => a.id.localeCompare(b.id));
+      divs.forEach(div => container.appendChild(div));
+      $('.loadmore').hide();
+      listLoading.remove();
+
+      //List Filter
+      const listFilter = create('div', {id: 'filter'});
+      listFilter.innerHTML = '<label for="filter-input"></label><input type="text" id="filter-input" placeholder="Filter"><h3>Lists</h3>';
+      const goBack = create('a', {class: 'filterLists-back fa fa-arrow-left'});
+        goBack.onclick = () => {
+          $(".container-left").children().show();
+          $(".container-right").children().show();
+          $('.loadmore').show();
+          $(".container-left #filter").remove();
+          $(".container-left .listCheck-footer").remove();
+          $(".container-right .list-entries").remove();
+        };
+      $(listFilter).prepend(goBack);
+      $(listFilter).prepend($('<h3>', {text: isManga ? 'Manga List' : 'Anime List',css: { marginTop: 0 }}));
+      const a_all = create('a', {class: 'filterLists'},"All");
+        a_all.onclick = () => { hideOtherSections("all")};
+        const a_watching = create('a', {class: 'filterLists'},(isManga ? "Reading" : "Watching"));
+        a_watching.onclick = () => { hideOtherSections("status-section-1")};
+        const a_completed = create('a', {class: 'filterLists'},"Completed");
+        a_completed.onclick =  () => { hideOtherSections("status-section-2")};
+        const a_planning = create('a', {class: 'filterLists'},"Planning");
+        a_planning.onclick = () => { hideOtherSections("status-section-6")};
+        const a_paused = create('a', {class: 'filterLists'},"Paused");
+        a_paused.onclick = () => { hideOtherSections("status-section-3")};
+        const a_dropped = create('a', {class: 'filterLists'},"Dropped");
+        a_dropped.onclick = () => { hideOtherSections("status-section-4")};
+        const listsDiv = create('div', {class: 'filterListsDiv'});
+         listsDiv.append(a_all,a_watching,a_completed,a_planning,a_paused,a_dropped);
+        const listCount = create('div', {class: 'filterListsCount'});
+        listCount.innerHTML = "("+document.querySelectorAll(".entry.row").length+")"+'<br>'+
+          "("+document.querySelectorAll("#status-section-1 .entry.row").length+")"+'<br>'+
+          "("+document.querySelectorAll("#status-section-2 .entry.row").length+")"+'<br>'+
+          "("+document.querySelectorAll("#status-section-6 .entry.row").length+")"+'<br>'+
+          "("+document.querySelectorAll("#status-section-3 .entry.row").length+")"+'<br>'+
+          "("+document.querySelectorAll("#status-section-4 .entry.row").length+")";
+        function hideOtherSections(sectionName) {
+          let sections = document.querySelectorAll('.status-section');
+          sections.forEach(function(section) {
+            if(sectionName === 'all'){
+              section.style.display = 'block';
+            } else if (section.id !== sectionName) {
+              section.style.display = 'none';
+            }
+            else{
+              section.style.display = 'block';
+            }
+          });
+        }
+
+        const listsDivContainer = create('div', {class: 'filterListsDivContainer'});
+        listsDivContainer.append(listsDiv,listCount);
+        listFilter.append(listsDivContainer);
+        document.querySelector(".container-left").appendChild(listFilter);
+        document.getElementById('filter-input').addEventListener('input', function() {
+          var filterValue = this.value.toLowerCase();
+          var entries = document.querySelectorAll('.entry');
+          entries.forEach(function(entry) {
+            var titleText = entry.querySelector('.title a').textContent.toLowerCase();
+            if (titleText.includes(filterValue)) {
+              entry.classList.remove('hidden');
+            } else {
+              entry.classList.add('hidden');
+            }
+          });
+        });
+
+        //Genres Filter
+        const genresFilter = create('div', {class: 'filterList_GenresFilter'});
+        genresFilter.innerHTML = '<button class="genreDropBtn">Select Genres</button><div class="maljs-dropdown-content" id="maljs-dropdown-content">'+
+          '<label><input type="checkbox" class="genre-filter" value="1" title="Action"> Action</label><label><input type="checkbox" class="genre-filter" value="2" title="Adventure">Adventure</label>'+
+          '<label><input type="checkbox" class="genre-filter" value="5" title="Avant Garde"> Avant Garde</label><label><input type="checkbox" class="genre-filter" value="46" title="Award Winning"> Award Winning</label>'+
+          '<label><input type="checkbox" class="genre-filter" value="28" title="Boys Love"> Boys Love</label>'+'<label><input type="checkbox" class="genre-filter" value="4" title="Comedy"> Comedy</label>'+
+          '<label><input type="checkbox" class="genre-filter" value="8" title="Drama"> Drama</label><label><input type="checkbox" class="genre-filter" value="9" title="Ecchi"> Ecchi</label>'+
+          '<label><input type="checkbox" class="genre-filter" value="10" title="Fantasy"> Fantasy</label><label><input type="checkbox" class="genre-filter" value="12" title="Hentai"> Hentai</label>'+
+          '<label><input type="checkbox" class="genre-filter" value="26" title="Girls Love"> Girls Love</label><label><input type="checkbox" class="genre-filter" value="47" title="Gourmet"> Gourmet</label>'+
+          '<label><input type="checkbox" class="genre-filter" value="14" title="Horror"> Horror</label><label><input type="checkbox" class="genre-filter" value="7" title="Mystery"> Mystery</label>'+
+          '<label><input type="checkbox" class="genre-filter" value="22" title="Romance"> Romance</label><label><input type="checkbox" class="genre-filter" value="24" title="Sci-Fi"> Sci-Fi</label>'+
+          '<label><input type="checkbox" class="genre-filter" value="36" title="Slice of Life"> Slice of Life</label><label><input type="checkbox" class="genre-filter" value="30" title="Sports"> Sports</label>'+
+          '<label><input type="checkbox" class="genre-filter" value="37" title="Supernatural"> Supernatural</label><label><input type="checkbox" class="genre-filter" value="41" title="Suspense"> Suspense</label></div>';
+          listFilter.appendChild(genresFilter);
+        // Genres Dropdown Function
+        $(".genreDropBtn").click(function(){
+          const dropdownContent = document.getElementById('maljs-dropdown-content');
+          dropdownContent.style.display = dropdownContent.style.display === 'grid' ? 'none' : 'grid';
+        });
+        // Genres Filter Function
+        $(".genre-filter").click(function(){
+          const checkboxes = document.querySelectorAll('.genre-filter');
+          const entries = document.querySelectorAll('.entry');
+          const selectedGenres = Array.from(checkboxes)
+          .filter(checkbox => checkbox.checked)
+          .map(checkbox => checkbox.value);
+          entries.forEach(entry => {
+            const genres = JSON.parse(entry.getAttribute('genres'));
+            const entryGenres = genres.map(genre => genre.id.toString());
+            const isVisible = selectedGenres.every(genre => entryGenres.includes(genre)) || selectedGenres.length === 0;
+            if(isVisible){
+              entry.classList.remove('hidden');
+            } else {
+              entry.classList.add('hidden');}
+          });
+          $(".genreDropBtn").text(selectedGenres.length > 0 ? Array.from(checkboxes).filter(checkbox => checkbox.checked).map(checkbox => checkbox.title) : "Select Genres");
+        });
+
+        //Year Filter
+        const yearFilter = create('div', {class: 'filterList_YearFilter'});
+        const yearFilterThisYear = new Date().getFullYear();
+        const yearFilterClear = create('i', {class: 'year-filter-clear fa fa-close'});
+        yearFilter.innerHTML = '<div class="year-filter-slider-container">'+
+          '<input type="range" id="year-filter-slider" min="1917" max="'+yearFilterThisYear+'"value="'+yearFilterThisYear+'" step="1"><span id="year-filter-label">'+yearFilterThisYear+'</span></div>';
+        if(!isManga && animeDataList[0] && animeDataList[0].season) {
+          $(yearFilter).prepend('<h3>Year</h3>');
+          $(yearFilter).prepend($(yearFilterClear));
+          listFilter.appendChild(yearFilter);
+          const $yearFilterSlider = $('#year-filter-slider');
+          const $yearFilterLabel = $('#year-filter-label');
+
+          // Year Filter Clear Button Function
+          $(yearFilterClear).on('click', function() {
+            const entries = document.querySelectorAll('.entry');
+            entries.forEach(entry => {
+              entry.classList.remove('hidden');
+              yearFilterClear.style.display = "none";
+              $yearFilterSlider.val(yearFilterThisYear).change();
+              $yearFilterLabel.text($yearFilterSlider.val());
+            });
+          });
+          // Update label when slider value changes
+          $yearFilterSlider.on('input', function() {
+            if(yearFilterClear.style.display !== "block"){
+              yearFilterClear.style.display = "block"
+            }
+            $yearFilterLabel.text($(this).val());
+            const entries = document.querySelectorAll('.entry');
+            entries.forEach(entry => {
+              const seasonData = JSON.parse(entry.getAttribute('season'));
+              const entryYear = seasonData ? seasonData.year : null;
+              if (entryYear && entryYear === parseInt($(this).val(), 10)) {
+                entry.classList.remove('hidden');
+              } else {
+                entry.classList.add('hidden');
+              }
+            });
+          });
+
+        // Initialize label
+        $yearFilterLabel.text($yearFilterSlider.val());
+        }
+        //Tags
+        const entries = document.querySelectorAll('.entry');
+        const tagsContainer = create('div', {class: 'filterList_TagsContainer'});
+        const tagsContainerClear = create('i', {class: 'tags-container-clear fa fa-close'});
+        const tags = new Set(); // Using a Set to avoid duplicates
+        tagsContainer.style.marginBottom = "10px";
+        listFilter.appendChild(tagsContainer);
+        // Tags Clear Button Function
+        $(tagsContainerClear).on('click', function() {
+          const entries = document.querySelectorAll('.entry');
+          entries.forEach(entry => {
+            entry.classList.remove('hidden');
+            tagsContainerClear.style.display = "none";
+          });
+        });
+        // Collect all unique tags
+        entries.forEach(entry => {
+        const tag = entry.getAttribute('tags').replace(/"/g, ''); // Remove quotes
+        if (tag) {
+          tags.add(tag);
+        }
+        });
+
+        if(tags.size > 0) {
+          $(tagsContainer).prepend('<h3>Tags</h3>');
+          $(tagsContainer).prepend($(tagsContainerClear));
+        }
+
+        // Create tag links
+        tags.forEach(tag => {
+          const link = document.createElement('a');
+          link.className = 'tag-link';
+          link.textContent = tag;
+          link.onclick = () => filterByTag(tag);
+          tagsContainer.appendChild(link);
+        });
+        // Filter function
+        function filterByTag(tag) {
+          if(tagsContainerClear.style.display !== "block"){
+            tagsContainerClear.style.display = "block"
+          }
+          entries.forEach(entry => {
+            const entryTag = entry.getAttribute('tags').replace(/"/g, '');
+            if (entryTag === tag) {
+              entry.classList.remove('hidden');
+            } else {
+              entry.classList.add('hidden');
+            }
+          });
+        }
+
+        //Compare Button
+        if(username !== $(".header-profile-link").text()) {
+        let compareBtn = create('a', {class: 'compareBtn'},"Compare");
+        compareBtn.href = 'https://myanimelist.net/shared.php?u1='+username+'&u2='+$(".header-profile-link").text();
+                listFilter.appendChild(compareBtn);
+        }
+
+        // Make 3x3
+        let buttonDraw3x3 = AdvancedCreate("a", "#maljsDraw3x3", "Make 3x3");
+        listFilter.appendChild(buttonDraw3x3);
+        buttonDraw3x3.title = "Make 3x3";
+        buttonDraw3x3.onclick = function () {
+          if (!document.querySelector(".maljsDisplayBox")) {
+            let displayBox = createDisplayBox(false, "3x3 Maker");
+            let col_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
+            let col_label = AdvancedCreate("span", false, "columns", displayBox, "margin: 5px");
+            col_input.type = "number";
+            col_input.value = 3;
+            col_input.step = 1;
+            col_input.min = 0;
+            let row_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
+            let row_label = AdvancedCreate("span", false, "rows", displayBox, "margin: 5px");
+            AdvancedCreate("br", false, false, displayBox);
+            row_input.type = "number";
+            row_input.value = 3;
+            row_input.step = 1;
+            row_input.min = 0;
+            let margin_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
+            let margin_label = AdvancedCreate("span", false, "spacing (px)", displayBox, "margin: 5px");
+            AdvancedCreate("br", false, false, displayBox);
+            margin_input.type = "number";
+            margin_input.value = 0;
+            margin_input.min = 0;
+            let width_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
+            let width_label = AdvancedCreate("span", false, "image width (px)", displayBox, "margin: 5px");
+            width_input.type = "number";
+            width_input.value = 230;
+            width_input.min = 0;
+            let height_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
+            let height_label = AdvancedCreate("span", false, "image height (px)", displayBox, "margin: 5px");
+            AdvancedCreate("br", false, false, displayBox);
+            height_input.type = "number";
+            height_input.value = 345;
+            height_input.min = 0;
+            let fitMode = AdvancedCreate("select", "maljsNativeInput", false, displayBox);
+            let fitMode_label = AdvancedCreate("span", false, "image fitting", displayBox, "margin	: 5px");
+            let addOption = function (value, text) {
+              let newOption = AdvancedCreate("option", false, text, fitMode);
+              newOption.value = value;
+            };
+            addOption("scale", "scale");
+            addOption("crop", "crop");
+            addOption("hybrid", "scale/crop hybrid");
+            addOption("letterbox", "letterbox");
+            addOption("transparent", "transparent letterbox");
+
+            let recipe = AdvancedCreate("p", false, "Click 9 media entries, then save the image below", displayBox);
+            let linkList = [];
+            let keepUpdating = true;
+            let image_width = 230;
+            let image_height = 345;
+            let margin = 0;
+            let columns = 3;
+            let rows = 3;
+            let mode = fitMode.value;
+
+            displayBox.parentNode.querySelector(".maljsDisplayBoxClose").onclick = function () {
+              displayBox.parentNode.remove();
+              keepUpdating = false;
+              let cardList = document.querySelectorAll(".entry.row");
+              cardList.forEach(function (card) {
+                card.draw3x3selected = false;
+                card.style.borderStyle = "none";
+              });
+              linkList = [];
+            };
+
+            let finalCanvas = AdvancedCreate("canvas", false, false, displayBox, "max-height: 60%;max-width: 90%");
+            let ctx = finalCanvas.getContext("2d");
+            let updateDrawing = function () {
+              finalCanvas.width = image_width * columns + (columns - 1) * margin;
+              finalCanvas.height = image_height * rows + (rows - 1) * margin;
+              ctx.clearRect(0, 0, finalCanvas.width, finalCanvas.height);
+              let drawStuff = function (image, x, y, width, height) {
+                let img = new Image();
+                img.onload = function () {
+                  let sx = 0;
+                  let sy = 0;
+                  let sWidth = img.width;
+                  let sHeight = img.height;
+                  let dx = x;
+                  let dy = y;
+                  let dWidth = width;
+                  let dHeight = height;
+                  if (mode === "crop") {
+                    if (img.width / img.height > width / height) {
+                      let factor = img.height / height;
+                      sWidth = width * factor;
+                      sx = (img.width - sWidth) / 2;
+                    } else {
+                      //crop top and bottom
+                      let factor = img.width / width;
+                      sHeight = height * factor;
+                      sy = (img.height - sHeight) / 2;
+                    }
+                  } else if (mode === "hybrid") {
+                    if (img.width / img.height > width / height) {
+                      let factor = img.height / height;
+                      sWidth = width * factor;
+                      sWidth += (img.width - sWidth) / 2;
+                      sx = (img.width - sWidth) / 2;
+                    } else {
+                      //crop top and bottom
+                      let factor = img.width / width;
+                      sHeight = height * factor;
+                      sHeight += (img.height - sHeight) / 2;
+                      sy = (img.height - sHeight) / 2;
+                    }
+                  } else if (mode === "letterbox" || mode === "transparent") {
+                    if (img.width / img.height > width / height) {
+                      let factor = img.width / width;
+                      dHeight = img.height / factor;
+                      dy = y + (height - dHeight) / 2;
+                    } else {
+                      //too tall
+                      let factor = img.height / height;
+                      dWidth = img.width / factor;
+                      dx = x + (width - dWidth) / 2;
+                    }
+                    if (mode === "letterbox") {
+                      ctx.fillStyle = "black";
+                      ctx.fillRect(x, y, width, height);
+                    }
+                  } else {
+                  }
+                  ctx.drawImage(img, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
+                };
+                img.src = image;
+              };
+              for (var y = 0; y < rows; y++) {
+                for (var x = 0; x < columns; x++) {
+                  if (linkList[y * columns + x] !== "empty") {
+                    drawStuff(linkList[y * columns + x], x * image_width + x * margin, y * image_height + y * margin, image_width, image_height);
+                  }
+                }
+              }
+            };
+
+            let updateConfig = function () {
+              columns = parseInt(col_input.value) || 3;
+              rows = parseInt(row_input.value) || 3;
+              margin = parseInt(margin_input.value) || 0;
+              image_width = parseInt(width_input.value) || 230;
+              image_height = parseInt(height_input.value) || 345;
+              mode = fitMode.value;
+              displayBox.parentNode.querySelector(".maljsDisplayBoxTitle").textContent = columns + "x" + rows + " Maker";
+              recipe.innerText = "Click " + rows * columns + " media entries, then save the image below";
+              updateDrawing();
+            };
+            col_input.oninput = updateConfig;
+            row_input.oninput = updateConfig;
+            margin_input.oninput = updateConfig;
+            width_input.oninput = updateConfig;
+            height_input.oninput = updateConfig;
+            fitMode.oninput = updateConfig;
+
+            let updateCards = function () {
+              let cardList = document.querySelectorAll(".entry.row");
+              cardList.forEach((card) => {
+                card.onclick = function () {
+                  if (this.draw3x3selected) {
+                    linkList[linkList.indexOf(this.draw3x3selected)] = "empty";
+                    this.draw3x3selected = false;
+                    this.style.borderStyle = "none";
+                  } else {
+                    let val = this.querySelector(".cover .image").style.backgroundImage.replace("url(", "").replace(")", "").replace('"', "").replace('"', "");
+                    if (
+                      !linkList.some((place, index) => {
+                        if (place === "empty") {
+                          linkList[index] = val;
+                          return true;
+                        }
+                        return false;
+                      })
+                    ) {
+                      linkList.push(val);
+                    }
+                    this.draw3x3selected = val;
+                    this.style.borderStyle = "solid";
+                  }
+                  updateDrawing();
+                };
+              });
+            };
+            let waiter = function () {
+              updateCards();
+              if (keepUpdating) {
+                setTimeout(waiter, 500);
+              }
+            };
+            waiter();
+          }
+        };
+      }
   }
+  //Anilist Style Anime and Manga List //-END-//
   //Profile Section //--END--//
 
   //Character Section //-START-//
@@ -2822,7 +3800,7 @@ function delay(ms) {
       });
     }
     $('.VoiceActorsDiv').css({
-      marginTop: '10px',
+      marginTop: '10px',borderBottom:'0',
     });
     $('h2:contains("Recent Featured Articles"):last').addClass('RecentFeaturedArticlesDiv').append($('.RecentFeaturedArticlesDiv').next());
     $('.RecentFeaturedArticlesDiv').css({
@@ -3126,13 +4104,15 @@ function delay(ms) {
     if(svar.animeRelation) {
       getRelations();
       async function getRelations() {
-        let relationData,sortedRelations;
+        let relationData,sortedRelations,relationHeight;
         const relationDiv = create("div", { class: "aniTagDiv"});
+        const relationTargetExpand = create('a', { class: 'relations-accordion-button' });
+        const extraRelationsDiv = create('div', { class: 'relationsExpanded', style: { display: "none" } });
         const relationTarget = document.querySelector(".related-entries");
         const relationLocalForage = localforage.createInstance({ name: "MalJS", storeName: "relations" });
         const relationcacheTTL = 262974383;
         let relationCache = await relationLocalForage.getItem(entryId+"-"+entryType);
-        const priorityOrder = {"ADAPTATION": 0,"PREQUEL": 1,"SEQUEL": 2,"PARENT": 3,"ALTERNATIVE": 4,"SIDE_STORY": 5,"SPIN_OFF": 6,"CHARACTER": 7,"OTHER": 8};
+        const priorityOrder = {"ADAPTATION": 0,"PREQUEL": 1,"SEQUEL": 2,"PARENT": 3,"ALTERNATIVE": 4,"SIDE_STORY": 5,"SUMMARY": 6,"SPIN_OFF": 7,"CHARACTER": 8,"OTHER": 9};
         if (!relationCache || relationCache.time + relationcacheTTL < +new Date()) {
           const relationQuery = `query {Media(idMal:${entryId} type:${entryType}) {relations {edges {relationType node {status startDate {year} seasonYear type format title {romaji} coverImage {medium large} idMal}}}}}`;
           relationData = await AnilistAPI(relationQuery);
@@ -3180,7 +4160,7 @@ function delay(ms) {
             .map((node) => {
             const isManga = node.node.type === "MANGA";
             const typePath = isManga ? "manga" : "anime";
-            const format = node.node.format ? (node.node.format === "NOVEL" ? node.node.format = "LIGHT NOVEL" : node.node.format) : node.node.type;
+            const format = node.node.format ? (node.node.format === "NOVEL" ? node.node.format = "LIGHT NOVEL" : node.node.format.replace('_',' ')) : node.node.type;
             const coverImage = node.node.coverImage && node.node.coverImage.large ? node.node.coverImage.large : node.node.coverImage.medium ? node.node.coverImage.medium :  "";
             const borderColor = isManga ? "#92d493" : "#afc7ee";
             const relationType = node.relationType.split("_").join(" ");
@@ -3206,29 +4186,32 @@ function delay(ms) {
             })
             .join("");
 
-          $(".relationEntry").on('mouseenter', async function() {
-            const el = $(this);
-            const elDetails = $(this).find(".relationDetails");
-            const viewportWidth = window.innerWidth;
-            const divRect = elDetails[0].getBoundingClientRect();
-            const isOverflowing = divRect.left < 0 || divRect.right > viewportWidth;
-            if (isOverflowing) {
-              $(el).addClass("relationEntryRight");
-              $(elDetails).addClass("relationDetailsRight");
-            } else {
+          function relationDetailsShow() {
+            $(".relationEntry").on('mouseenter', async function() {
+              const el = $(this);
+              const elDetails = $(this).find(".relationDetails");
+              const viewportWidth = window.innerWidth;
+              const divRect = elDetails[0].getBoundingClientRect();
+              const isOverflowing = divRect.left < 0 || divRect.right > viewportWidth;
+              if (isOverflowing) {
+                $(el).addClass("relationEntryRight");
+                $(elDetails).addClass("relationDetailsRight");
+              } else {
+                $(el).removeClass("relationEntryRight");
+                $(elDetails).removeClass("relationDetailsRight");
+              }
+            })
+            $(".relationEntry").on('mouseleave', async function() {
+              const el = $(this);
+              const elDetails = $(this).find(".relationDetails");
               $(el).removeClass("relationEntryRight");
               $(elDetails).removeClass("relationDetailsRight");
-            }
-          })
-          $(".relationEntry").on('mouseleave', async function() {
-            const el = $(this);
-            const elDetails = $(this).find(".relationDetails");
-            $(el).removeClass("relationEntryRight");
-            $(elDetails).removeClass("relationDetailsRight");
-          })
+            })
+          }
+
+          relationDetailsShow();
           if(relationTarget.clientHeight > 140) {
-            const relationTargetExpand = create('a', { class: 'relations-accordion-button' });
-            const extraRelationsDiv = create('div', { class: 'relationsExpanded', style: { display: "none" } });
+            relationHeight = relationTarget.clientHeight;
             const extraRelations = relationTarget.querySelectorAll(".relationEntry");
             relationTargetExpand.innerHTML = '<i class="fas fa-chevron-down mr4"></i>\nShow More\n';
             for (let i = 0; i < extraRelations.length; i++) {
@@ -3246,14 +4229,95 @@ function delay(ms) {
             extraRelationsDiv.setAttribute('style', 'display:none!important');
             relationTarget.setAttribute('style', 'margin-bottom:5px;padding:12px 4px!important');
             relationTargetExpand.addEventListener('click', function () {
-              if (extraRelationsDiv.style.display === 'none') {
-                extraRelationsDiv.setAttribute('style', 'display:flex!important');
+              if (document.querySelector(".relationsExpanded").style.display === 'none') {
+                document.querySelector(".relationsExpanded").setAttribute('style', 'display:flex!important');
                 relationTargetExpand.innerHTML = '<i class="fas fa-chevron-up mr4"></i>\nShow Less\n';
               } else {
-                extraRelationsDiv.setAttribute('style', 'display:none!important');
+                document.querySelector(".relationsExpanded").setAttribute('style', 'display:none!important');
                 relationTargetExpand.innerHTML = '<i class="fas fa-chevron-down mr4"></i>\nShow More\n';
               }
             });
+          }
+
+          // Filter Replaced Relations
+          let filterTarget = document.querySelector('.RelatedEntriesDiv .floatRightHeader');
+          if(filterTarget && svar.relationFilter && svar.animeRelation) {
+            let filtered;
+            const relationDefault = relationTarget.innerHTML;
+            const relationFilter = create('div', { class: 'relations-filter' });
+            relationFilter.innerHTML =  '<label for="relationFilter"></label><select id="relationFilter">'+
+              '<option value="">All</option><option value="ADAPTATION">Adaptation</option><option value="PREQUEL">Prequel</option>'+
+              '<option value="SEQUEL">Sequel</option><option value="PARENT">Parent</option><option value="ALTERNATIVE">Alternative</option><option value="SUMMARY">Summary</option>'+
+              '<option value="SIDE STORY">Side Story</option><option value="SPIN OFF">Spin Off</option><option value="CHARACTER">Character</option><option value="OTHER">Other</option></select>';
+            filterTarget.append(relationFilter);
+            extraRelationsDiv.setAttribute('style', 'display: flex!important;height: 0px;overflow: hidden;');
+
+            function filterRelations(title) {
+              if (!relationFilter.children[1].value.length) {
+                relationTarget.innerHTML = relationDefault;
+                filtered = 0;
+              } else {
+                if (!filtered) {
+                  relationTarget.innerHTML = relationDefault + extraRelationsDiv.innerHTML;
+                  filtered = 1;
+                }
+              }
+
+              const entries = document.querySelectorAll('.relationEntry');
+              for (let i = 0; i < entries.length; i++) {
+                const entry = entries[i];
+                if (filtered) {
+                  entry.style.marginLeft = "0";
+                }
+                const relationTitle = entry.querySelector('.relationTitle').textContent;
+                if (title === "" || relationTitle === title) {
+                  entry.style.display = 'block';
+                } else {
+                  entry.style.display = 'none';
+                }
+              }
+
+              if (!relationFilter.children[1].value.length) {
+                extraRelationsDiv.setAttribute('style', 'display:none!important');
+                relationTargetExpand.setAttribute('style', 'display:block!important');
+                relationTargetExpand.innerHTML = '<i class="fas fa-chevron-down mr4"></i>\nShow More\n';
+              if (relationHeight) {
+                relationTarget.setAttribute('style', 'margin-bottom: 5px;padding: 12px 4px!important;');
+              } else {
+                relationTarget.setAttribute('style', 'padding: 12px 12px!important;');
+              }
+              } else {
+                relationTargetExpand.setAttribute('style', 'display:none!important');
+                relationTarget.setAttribute('style', 'padding: 12px 12px!important;');
+              }
+              relationDetailsShow();
+            }
+
+            function updateFilterOptions() {
+              const options = document.querySelectorAll('#relationFilter option');
+              const titles = Array.from(document.querySelectorAll('.relationTitle')).map(el => el.textContent);
+              for (let i = 0; i < options.length; i++) {
+                const option = options[i];
+                if (option.value !== "") {
+                  if (!titles.includes(option.value)) {
+                    option.remove();
+                  }
+                }
+              }
+              if(document.querySelectorAll('#relationFilter option').length <= 2) {
+                document.querySelector('.relations-filter').remove();
+              }
+              else{
+                document.querySelector('.RelatedEntriesDiv').setAttribute('style', 'align-content: center;margin-bottom: 10px;');
+                document.querySelector('.RelatedEntriesDiv #related_entries').setAttribute('style', 'margin-top: 10px;');
+              }
+            }
+
+            document.getElementById('relationFilter').addEventListener('change', function() {
+              filterRelations(this.value);
+            });
+            filterRelations('');
+            updateFilterOptions();
           }
         }
       }
@@ -3325,7 +4389,7 @@ function delay(ms) {
 
   //Companies add border and shadow
   if(/\/(anime|manga)\/producer\/\d.?([\w-]+)?\/?/.test(current)) {
-    let studioDivShadow = document.querySelector("#content > div.content-left > div.mb16:nth-last-child(3");
+    let studioDivShadow = $('.mb16:contains("Member"):last');
     if ($(studioDivShadow).length && $(studioDivShadow).children().css('flex') !== '1 1 0%') {
       $(studioDivShadow).children().attr('style','background:0!important').wrapAll("<div class='spaceit-shadow-end-div'></div>");
     }
@@ -3784,6 +4848,18 @@ function delay(ms) {
       }
       addAccordion('div.di-t > div.anisongs:nth-child(1)');
       addAccordion('div.di-t > div.anisongs:nth-child(2)');
+      let aniSongsMainDiv = document.querySelector("div.di-t:has(.anisongs)");
+      if(aniSongsMainDiv) {
+      let lastCheck = nativeTimeElement(Math.floor(data.time / 1000));
+      let AniSongsReCheck = create("i",{class:"fa-solid fa-rotate-right",style:{cursor: "pointer",color: "var(--color-link)"}});
+      let AniSongsFooter = create('div',{class: 'anisongs-footer',style:{textAlign:"right"}},'Themes provided from '+'<a href="https://animethemes.moe/">AnimeThemes.moe</a><br>' + 'Last Update: ' + lastCheck + ' ');
+      AniSongsFooter.append(AniSongsReCheck);
+      AniSongsReCheck.onclick = () => {
+        songCache.removeItem(currentid);
+        window.location.reload();
+      }
+      aniSongsMainDiv.append(AniSongsFooter);
+      }
     }
     async function launch(currentid) {
       // get from cache and check TTL
