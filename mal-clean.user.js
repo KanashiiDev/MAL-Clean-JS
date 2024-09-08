@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.28.1
+// @version     1.28.2
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -297,6 +297,28 @@ function createListDiv(title,buttons) {
   div.append(btns);
   return div;
 }
+//Get text until selector
+function getTextUntil(selector) {
+  let main = document.querySelector("#content > table > tbody > tr > td:nth-child(2)");
+  let endElement = document.querySelector(selector);
+  if (!main || !endElement) return "";
+  let textContent = "";
+  let collect = true;
+  Array.from(main.childNodes).forEach(function (el, i) {
+    if (el === endElement) {
+      collect = false;
+    }
+
+    if (collect && i > 5 && el.className !== "normal_header") {
+      if (el.nodeType === Node.ELEMENT_NODE) {
+        textContent += el.innerHTML || "";
+      } else if (el.nodeType === Node.TEXT_NODE) {
+        textContent += el.textContent || "";
+      }
+    }
+  });
+  return textContent.trim();
+}
 
 // Add Divs to People Details
 function peopleDetailsAddDiv(title) {
@@ -327,26 +349,43 @@ function emptyInfoAddDiv(title) {
   $(title).after(newDiv);
 }
 
+function handleEmptyInfo(divSelector, checkText) {
+  const $div = $(divSelector);
+  if ($div.length) {
+    const nextSibling = $div[0].nextSibling;
+    if (nextSibling && !$(nextSibling).attr('itemprop') && (nextSibling.nodeValue || nextSibling.innerText) && (nextSibling.nodeValue || nextSibling.innerText).includes(checkText)) {
+      emptyInfoAddDiv(divSelector);
+      if (nextSibling.innerHTML) {
+        nextSibling.innerHTML = nextSibling.innerHTML.replace('<br>', '');
+      }
+    }
+  }
+}
+
 // MalClenSettings Edit About Popup
 async function editAboutPopup(data, type) {
   return new Promise((resolve, reject) => {
+    if ($('#currently-popup').length) {
+      return;
+    }
     const url = location.pathname === "/" ? null : 1;
     const popup = create("div", { id: "currently-popup" });
     const popupClose = create("a", { id: "currently-closePopup", class: "fa-solid fa-xmark", href: "javascript:void(0);" });
     const popupBack = create("a", { class: "popupBack fa-solid fa-arrow-left", href: "javascript:void(0);" });
     const popupMask = create("div", {
       class: "fancybox-overlay",
-      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "1" },
+      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "2" },
     });
     const popupLoading = create("div", {
       class: "actloading",
-      style: { position: "fixed", top: "50%", left: "0", right: "0", fontSize: "16px" },
+      style: { position: "fixed", top: "45%", left: "0", right: "0", fontSize: "16px" },
     }, "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome;word-break: break-word;"></i>');
     const iframe = create("iframe", { src: 'https://myanimelist.net/editprofile.php' });
     iframe.style.opacity = 0;
 
     const close = () => {
       popup.remove();
+      popupMask.remove();
       document.body.style.removeProperty("overflow");
       resolve();
     };
@@ -362,10 +401,11 @@ async function editAboutPopup(data, type) {
       let isClassic = $iframeContents.find("#about_me_setting_2").is(':checked');
       let $submit = $iframeContents.find('.inputButton[type="submit"]');
       let matchRegex = /(\[url=).*(malcleansettings)\/.*([^.]]+)/gm;
-      let replaceRegex = /(\[url=)(.*malcleansettings\/[^]]+).*([\/url].)/gm;
+      let addRegex = /(\[url=https:\/\/malcleansettings\/)(.*)(]‎)/gm;
       let custompfRegex = /(custompf)\/([^\/]+.)/gm;
       let customBgRegex = /(custombg)\/([^\/]+.)/gm;
       let customCssRegex = /(customcss)\/([^\/]+.)/gm;
+      let favSongEntryRegex = /(favSongEntry)\/([^\/]+.)/gm;
 
       popupLoading.innerHTML = "Updating" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
 
@@ -382,15 +422,29 @@ async function editAboutPopup(data, type) {
 
         if (type === 'pf') {
           $about.text(aboutText.replace(custompfRegex, data+'/'));
+          $submit.click();
         } else if (type === 'bg') {
           $about.text(aboutText.replace(customBgRegex, data+'/'));
+          $submit.click();
         } else if (type === 'css') {
-        $about.text(aboutText.replace(customCssRegex, data+'/'));
+          $about.text(aboutText.replace(customCssRegex, data+'/'));
+          $submit.click();
+        } else if (type === 'favSongEntry') {
+          if(!$iframeContents.find(".goodresult").length){
+            if($about.text().indexOf(data) > -1){
+              popupLoading.innerHTML = "Already Added";
+            } else{
+              $about.text(aboutText.replace(addRegex, `$1$2${data}/$3`));
+              $submit.click();
+            }
+          }
+        } else if (type === 'removeFavSong') {
+          $about.text(aboutText.replace(data, ''));
+          $submit.click();
         }
-        $submit.click();
       } else{
         iframe.remove();
-        popupLoading.innerHTML = "You are not using classic about.<br>Please create a blog post and paste this code there. <br>[url=https://" + data + "]";
+        popupLoading.innerHTML = "You are not using classic about.<br>Please create a blog post and paste this code there. <br>[url=https://" + data + "/]";
       }
     });
 
@@ -405,6 +459,9 @@ async function editAboutPopup(data, type) {
 // Anime/Manga Edit Popup
 async function editPopup(id, type, add) {
   return new Promise((resolve, reject) => {
+    if ($('#currently-popup').length) {
+      return;
+    }
     const url = location.pathname === "/" ? null : 1;
     const popup = create("div", { id: "currently-popup" });
     const popupClose = create("a", { id: "currently-closePopup", class: "fa-solid fa-xmark", href: "javascript:void(0);" });
@@ -417,8 +474,8 @@ async function editPopup(id, type, add) {
     );
     const popupMask = create("div", {
       class: "fancybox-overlay",
-      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "1" },
-    });
+      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "2" },
+    },);
     const iframe = create("iframe", { src: popupId });
     iframe.style.opacity = 0;
     const close = () => {
@@ -439,7 +496,7 @@ async function editPopup(id, type, add) {
     document.body.style.overflow = "hidden";
 
     $(iframe).on("load", function () {
-      if(!add){
+      if(add){
         popupLoading.remove();
         iframe.style.opacity = 1;
       } else{
@@ -499,7 +556,7 @@ async function editPopup(id, type, add) {
             checkEp();
           }
         });
-      if(add) {
+      if(!add) {
         let ep = $(iframe).contents().find("#add_anime_num_watched_episodes,#add_manga_num_read_chapters")[0];
         let lastEp = parseInt($(iframe).contents().find("#totalEpisodes,#totalChap").text());
         let mangaVol = $(iframe).contents().find("#add_manga_num_read_volumes")[0];
@@ -566,7 +623,7 @@ async function blockUser(id) {
     );
     const popupMask = create("div", {
       class: "fancybox-overlay",
-      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "1" },
+      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "2" },
     });
     const iframe = create("iframe", { src: popupId });
     iframe.style.opacity = 0;
@@ -668,34 +725,606 @@ if (svar) {
 
 //Settings CSS
 let styles = `
+.loadmore,
+.actloading,
+.listLoading {
+    font-size: .8rem;
+    font-weight: 700;
+    padding: 14px;
+    text-align: center;
+}
+
+.favThemes img {
+    width: 40px
+}
+
+.favThemes .flex2x .anime-container .favThemeSongTitle {
+    cursor: pointer;
+    overflow: hidden;
+    white-space: nowrap;
+    -o-text-overflow: ellipsis;
+    text-overflow: ellipsis;
+    width: 325px
+}
+
+.favThemes .anime-container .removeFavSong {
+    display: none;
+    font-family: 'FontAwesome';
+    position: absolute;
+    top: 0;
+    right: 0;
+    cursor: pointer;
+    padding: 6px;
+    height: 4px;
+    font-size: 8px
+}
+
+.favThemes .anime-container:hover .removeFavSong {
+    display: block !important
+}
+
+.favThemes .flex2x .anime-container {
+
+    padding: 10px;
+    margin-bottom: 10px;
+    min-height: 55px;
+    height: 100%;
+    min-width: 375px;
+    max-width: 375px;
+}
+
+.favThemes .anime-container {
+position: relative;
+    background: var(--color-foreground);
+    -webkit-border-radius: var(--border-radius);
+    border-radius: var(--border-radius);
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.favThemes video {
+    width: 100%
+}
+
+.favThemes .video-container {
+    margin-top: 10px;
+    display: none
+}
+
+.favThemes .favSongHeader {
+    width: 99%;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+    -webkit-flex-direction: column;
+    -ms-flex-direction: column;
+    flex-direction: column;
+    text-align: center;
+}
+
+.favThemes .flex2x .favSongHeader h2 {
+    overflow: hidden;
+    white-space: nowrap;
+    -o-text-overflow: ellipsis;
+    text-overflow: ellipsis;
+    width: 325px;
+    font-size: 0.68rem!important;
+    padding-bottom: 5px!important;
+}
+
+.favThemes .favSongHeader h2 {
+    -webkit-border-image: -webkit-gradient(linear, left top, right top, from(var(--color-foreground)), color-stop(50%, var(--color-foreground4)), to(var(--color-foreground))) 1;
+    -webkit-border-image: linear-gradient(to right, var(--color-foreground) 0%, var(--color-foreground4) 50%, var(--color-foreground) 100%) 1;
+    -o-border-image: -o-linear-gradient(left, var(--color-foreground) 0%, var(--color-foreground4) 50%, var(--color-foreground) 100%) 1;
+    border-image: -webkit-gradient(linear, left top, right top, from(var(--color-foreground)), color-stop(50%, var(--color-foreground4)), to(var(--color-foreground))) 1;
+    border-image: linear-gradient(to right, var(--color-foreground) 0%, var(--color-foreground4) 50%, var(--color-foreground) 100%) 1;
+}
+
+.favThemes .favSongContainer {
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+        -ms-flex-align: center;
+            align-items: center;
+    display: -ms-grid;
+    display: grid;
+    -ms-grid-columns: 50px 1fr;
+    grid-template-columns: 50px 1fr
+}
+
+.favThemes .flex2x{
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    gap: 0px 10px;
+    margin: 5px 0px;
+    -webkit-flex-wrap: wrap;
+        -ms-flex-wrap: wrap;
+            flex-wrap: wrap
+}
+
+.user-profile-about a[href*="/custombg"],
+.user-profile-about a[href*="/custompf"],
+.user-profile-about a[href*="/customcss"] {
+    display: none
+}
+
+.filterList_TagsContainer .tag-link {
+    cursor: pointer;
+    word-break: break-word;
+    display: block;
+    width: 97%;
+    background: var(--color-foreground3);
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    margin-left: -5px;
+    -webkit-transition: .3s;
+    -o-transition: .3s;
+    transition: .3s
+}
+.filterList_TagsContainer .tag-link.clicked {
+    background: var(--color-foreground4);
+    border: var(--border) solid var(--border-color);
+}
+
+.filterList_TagsContainer .tag-link:hover {
+    background: var(--color-foreground2)
+}
+
+.filterList_GenresFilter input[type="checkbox"] {
+    cursor: pointer;
+    vertical-align: middle;
+    bottom: 2px;
+    left: -5px;
+    -webkit-appearance: none;
+    position: relative;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box
+}
+
+.filterList_GenresFilter input[type="checkbox"]:checked:after {
+    content: "";
+    position: absolute;
+    -webkit-border-radius: 10px;
+    border-radius: 10px;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto !important;
+    height: 10px;
+    width: 10px;
+    background: var(--color-link2) !important
+}
+
+.filterList_GenresFilter input[type="checkbox"]:checked:after {
+    font-family: fontAwesome;
+    content: "\\f00c";
+    margin-left: 4px !important;
+    color: var(--color-link) !important;
+    background: none !important
+}
+
+i.tags-container-clear.fa.fa-close,
+i.year-filter-clear.fa.fa-close {
+    display: none;
+    font-family: 'FontAwesome';
+    background: var(--color-foreground4);
+    padding: 5px;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+    float: right;
+    cursor: pointer;
+    margin-right: 86%;
+    margin-top: -2px;
+    margin-bottom: 0px
+}
+
+.year-filter-slider-container {
+    margin-top: -4px;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    -ms-flex-align: center;
+    align-items: center;
+    gap: 10px
+}
+
+input#year-filter-slider {
+    -webkit-box-flex: 1;
+    -webkit-flex-grow: 1;
+    -ms-flex-positive: 1;
+    flex-grow: 1;
+    padding: 0 !important
+}
+
+.genreDropBtn {
+    width: 100%;
+    border: 0;
+    background: var(--color-foreground2);
+    padding: 8px;
+    cursor: pointer;
+    -webkit-border-radius: var(--border-radius);
+    border-radius: var(--border-radius);
+    margin: 5px 0px
+}
+
+.genreDropBtn:hover {
+    background: var(--color-foreground4)
+}
+
+#maljs-dropdown-content {
+    display: none;
+    -ms-grid-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
+    width: 410px;
+    background: var(--color-foreground);
+    -webkit-border-radius: var(--border-radius);
+    border-radius: var(--border-radius);
+    min-width: 160px;
+    -webkit-box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    height: 175px;
+    overflow: scroll;
+}
+
+.maljs-dropdown-content label {
+    padding: 12px 16px;
+    display: block;
+}
+
+.maljs-dropdown-content label:hover {
+    background: var(--color-foreground4)
+}
+
+.maljs-dropdown-content label:has(input.genre-filter:checked) {
+    background: var(--color-foreground2);
+    border-bottom: 1px solid
+}
+
+.list-entries .status-section {
+    background: var(--color-foreground);
+    border-radius: var(--border-radius)
+}
+
+.filterLists-back {
+    width: 25px;
+    text-align: center;
+    margin-top: -67px;
+    font-family: 'FontAwesome';
+    cursor: pointer;
+    position: absolute;
+    background: var(--color-foreground);
+    padding: 6px;
+    -webkit-border-top-left-radius: var(--border-radius);
+    border-top-left-radius: var(--border-radius);
+    -webkit-border-top-right-radius: var(--border-radius);
+    border-top-right-radius: var(--border-radius);
+    border: var(--border) solid var(--border-color);
+    border-bottom:0
+}
+
+.filterListsDivContainer {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex
+}
+
+.filterListsDiv {
+    width: 70px;
+    display: block;
+    margin-top: -5px
+}
+
+.filterListsCount {
+    width: 90px;
+    line-height: 19px;
+    color: var(--color-main-text-light);
+    margin-top: -5px
+}
+
+.list-entries .entry .edit {
+    height: 40px;
+    width: 40px;
+    position: absolute;
+    background: #00000070;
+    display: block;
+    -webkit-align-content: center;
+    -ms-flex-line-pack: center;
+    align-content: center;
+    font-family: fontAwesome;
+    opacity: 0;
+    cursor: pointer;
+    -webkit-border-radius: var(--border-radius);
+    border-radius: var(--border-radius);
+    -webkit-transition: .3s;
+    -o-transition: .3s;
+    transition: .3s
+}
+
+.list-entries .entry .edit:hover {
+    opacity: 1
+}
+
+.maljsDisplayBox {
+    overflow: hidden;
+    position: fixed;
+    top: 65px;
+    left: 20px;
+    z-index: 9999;
+    padding: 20px;
+    background-color: rgb(var(--color-foreground));
+    border: solid 1px;
+    border-radius: 4px;
+    box-shadow: black 2px 2px 20px;
+    background: var(--color-background);
+    height: 85%;
+}
+
+.maljsDisplayBoxTitle {
+    font-size: 15px;
+    border-bottom: 1px solid;
+    display: block;
+    margin-bottom: 10px;
+    padding: 3px
+}
+
+input.maljsNativeInput {
+    margin-bottom: 5px
+}
+
+.maljsDisplayBox .scrollableContent p {
+    margin: 10px 0px !important
+}
+
+.maljsDisplayBox .scrollableContent {
+    box-sizing: border-box;
+    overflow: auto;
+    height: 100%;
+    scrollbar-width: thin;
+    margin-top: 5px;
+    padding: 30px;
+    padding-top: 15px;
+    scrollbar-width: auto
+}
+
+.maljsDisplayBoxClose {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    cursor: pointer;
+    width: 15px;
+    height: 18px;
+    text-align: center;
+    background-color: #852325;
+    font-weight: bold;
+    border: solid;
+    border-width: 1px;
+    border-radius: 2px;
+    color: var(--color-main-text-normal);
+    z-index: 20;
+}
+
+.maljsResizePearl {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    width: 20px;
+    height: 20px;
+    border: solid;
+    border-radius: 10px;
+    background: rgb(var(--color-foreground));
+    cursor: se-resize
+}
+
+.container-left>#filter,
+#content>table>tbody>tr td[valign='top']:nth-child(1)>#filter {
+    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+    border: var(--border) solid var(--border-color);
+    margin-top: -8px;
+    background: var(--color-foreground);
+    padding: 15px;
+    border-radius: var(--border-radius)
+}
+
+.container-left>#filter .filterLists,
+#content>table>tbody>tr td[valign='top']:nth-child(1)>#filter .filterLists {
+    display: block;
+    cursor: pointer;
+    padding: 3px;
+    width: 70px
+}
+.sort-container #sort-asc,
+.sort-container #sort-desc,
+#maljsDraw3x3,
+.compareBtn {
+    background: var(--color-foreground2);
+    padding: 10px;
+    border-radius: var(--border-radius);
+    display: block;
+    margin-top: 5px;
+    cursor: pointer;
+    width: 55px
+}
+
+.compareBtn {
+    float: right;
+    text-align: center
+}
+
+#filter>input#filter-input {
+    width: 94%
+}
+
+.list-entries .entry .cover,
+.list-entries .row {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox
+}
+
+.list-entries .row {
+    display: flex;
+    -webkit-box-pack: justify;
+    -webkit-justify-content: space-between;
+    -ms-flex-pack: justify;
+    justify-content: space-between;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    -ms-flex-align: center;
+    align-items: center
+}
+
+.list-entries .entry .cover {
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    -ms-flex-align: center;
+    align-items: center;
+    display: flex;
+    -webkit-box-flex: 1;
+    -webkit-flex: 1;
+    -ms-flex: 1;
+    flex: 1;
+    -webkit-box-pack: end;
+    -webkit-justify-content: flex-end;
+    -ms-flex-pack: end;
+    justify-content: flex-end;
+    max-width: 60px;
+    min-width: 60px;
+    padding: 0
+}
+
+.list-entries .entry .cover .image {
+    background-position: 50%;
+    background-repeat: no-repeat;
+    background-size: cover;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+    height: 40px;
+    width: 40px
+}
+
+.list-entries .entry .title {
+    -webkit-box-flex: 5;
+    -webkit-flex: 5;
+    -ms-flex: 5;
+    flex: 5;
+    padding-left: 15px;
+    text-align: left;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-pack: end;
+    -webkit-justify-content: flex-end;
+    -ms-flex-pack: end;
+    justify-content: flex-end;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    -ms-flex-align: center;
+    align-items: center;
+    word-break: break-word
+}
+
+.list-entries .entry .title a {
+    -webkit-transition: none;
+    -o-transition: none;
+    transition: none;
+    margin-right: auto
+}
+
+.list-entries .entry>div {
+    -webkit-box-flex: 1;
+    -webkit-flex: 1;
+    -ms-flex: 1;
+    flex: 1;
+    padding: 18px 20px;
+    text-align: center
+}
+
+.list-entries .list-head>div {
+    -webkit-box-flex: 1;
+    -webkit-flex: 1;
+    -ms-flex: 1;
+    flex: 1;
+    padding: 20px;
+    text-align: center;
+    font-weight: 700
+}
+
+.list-entries .list-head .title {
+    -webkit-box-flex: 5;
+    -webkit-flex: 5;
+    -ms-flex: 5;
+    flex: 5;
+    padding-left: 75px;
+    text-align: left
+}
+
+.list-entries .section-name {
+    border-bottom: 1px solid;
+    padding: 10px;
+    padding-top:0;
+    margin-bottom: 0
+}
+
+.list-entries .entry.row.hidden {
+    display: none
+}
+
+.list-entries .status-section {
+    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+    border: var(--border) solid var(--border-color);
+    margin-bottom: 10px;
+    padding-bottom: 10px
+}
+
+.list-head.row {
+    margin-bottom: -10px
+}
+
 .relationsTarget,
-.relationsExpanded{
-    display: -webkit-box!important;
-    display: -webkit-flex!important;
-    display: -ms-flexbox!important;
-    display: flex!important;
+.relationsExpanded {
+    display: -webkit-box !important;
+    display: -webkit-flex !important;
+    display: -ms-flexbox !important;
+    display: flex !important;
     -webkit-flex-wrap: wrap;
     -ms-flex-wrap: wrap;
     flex-wrap: wrap;
-    gap:14px
+    gap: 14px
 }
-.relationsExpanded{
-    padding-left:8px
+
+.relationsExpanded {
+    padding-left: 8px
 }
+
 .relations-accordion-button {
-    text-align:right;
+    text-align: right;
     cursor: pointer;
     display: block;
     width: 85px;
     margin-left: auto;
     margin-right: 5px
 }
-.relationEntry{
+
+.relationEntry {
     background-repeat: no-repeat;
     background-size: cover;
     -webkit-box-sizing: border-box;
     box-sizing: border-box;
-    display: inline-block;
+    display: block;
     float: left;
     opacity: 1;
     overflow: hidden;
@@ -707,7 +1336,8 @@ let styles = `
     -webkit-transition-timing-function: ease-in-out;
     transition-timing-function: ease-in-out
 }
-.relationTitle{
+
+.relationTitle {
     border-bottom: 2px solid;
     transition: .3s;
     width: 100%;
@@ -725,34 +1355,42 @@ let styles = `
     border-bottom-left-radius: var(--br);
     border-bottom-right-radius: var(--br)
 }
+
 .relationImg {
     width: 86px;
     height: 120px;
-    transition:.3s
+    transition: .3s
 }
+
 .relationEntry:hover {
-    overflow:visible!important
+    overflow: visible !important
 }
+
 .relationEntry:hover .relationImg {
-    border-top-right-radius:0!important;
-    border-bottom-right-radius:0!important
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important
 }
+
 .relationEntryRight:hover .relationImg {
-    border-top-left-radius:0!important;
-    border-bottom-left-radius:0!important;
-    border-top-right-radius:var(--br)!important;
-    border-bottom-right-radius:var(--br)!important
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-top-right-radius: var(--br) !important;
+    border-bottom-right-radius: var(--br) !important
 }
+
 .relationEntry:hover .relationTitle {
-    opacity:0
+    opacity: 0
 }
+
 .relationEntry:hover .relationDetails {
-    opacity:1;
-    z-index:10
+    opacity: 1;
+    z-index: 10
 }
+
 .relationDetails:hover {
-    display:none
+    display: none
 }
+
 .relationDetails {
     transition: .3s;
     opacity: 0;
@@ -768,15 +1406,17 @@ let styles = `
     border-top-right-radius: var(--br);
     border-bottom-right-radius: var(--br)
 }
-.relationDetailsRight{
-    border-top-right-radius:0;
+
+.relationDetailsRight {
+    border-top-right-radius: 0;
     border-bottom-right-radius: 0;
     border-top-left-radius: var(--br);
     border-bottom-left-radius: var(--br);
     left: inherit;
-    right:86px
+    right: 86px
 }
-.relationDetailsTitle{
+
+.relationDetailsTitle {
     height: 67px;
     margin-bottom: 3px;
     overflow: hidden;
@@ -786,11 +1426,13 @@ let styles = `
     -webkit-box-orient: vertical;
     color: var(--color-main-text-normal)
 }
+
 .aniTagDiv {
     display: grid;
     grid-template-columns: 1fr;
     grid-gap: 6px
 }
+
 .aniTag {
     cursor: default;
     display: -webkit-box;
@@ -801,27 +1443,33 @@ let styles = `
     -webkit-box-pack: justify;
     justify-content: space-between
 }
+
 .aniTag.spoiler {
-    display:none
+    display: none
 }
+
 .showSpoilers {
-    cursor:pointer
+    cursor: pointer
 }
+
 .showSpoilers,
 .aniTag.spoiler .aniTag-name {
     color: #d98080;
     font-weight: 600
 }
+
 .aniTag-percent {
-    color:var(--color-main-text-light)
+    color: var(--color-main-text-light)
 }
-#content > table > tbody > tr > td:nth-child(2) > div.rightside.js-scrollfix-bottom-rel > div.h1.edit-info,
-#content > table > tbody > tr > td.borderClass > div > div > div:nth-child(1),
-#content > table > tbody > tr > td.borderClass > div > div:nth-child(1){
+
+#content>table>tbody>tr>td:nth-child(2)>div.rightside.js-scrollfix-bottom-rel>div.h1.edit-info,
+#content>table>tbody>tr>td.borderClass>div>div>div:nth-child(1),
+#content>table>tbody>tr>td.borderClass>div>div:nth-child(1) {
     z-index: 1;
     position: relative
 }
-.bannerHover{
+
+.bannerHover {
     width: 220px;
     height: 80px;
     position: absolute;
@@ -829,34 +1477,39 @@ let styles = `
     left: 18px;
     z-index: 1
 }
+
 .bannerShadow {
-    background: -webkit-gradient(linear,left top, left bottom,from(rgba(6, 13, 34,.1)),color-stop(50%, rgba(6, 13, 34,0)),to(rgba(6, 13, 34,.6)));
-    background: -o-linear-gradient(top,rgba(6, 13, 34,.1),rgba(6, 13, 34,0) 50%,rgba(6, 13, 34,.6));
-    background: linear-gradient(180deg,rgba(6, 13, 34,.1),rgba(6, 13, 34,0) 50%,rgba(6, 13, 34,.6));
+    background: -webkit-gradient(linear, left top, left bottom, from(rgba(6, 13, 34, .1)), color-stop(50%, rgba(6, 13, 34, 0)), to(rgba(6, 13, 34, .6)));
+    background: -o-linear-gradient(top, rgba(6, 13, 34, .1), rgba(6, 13, 34, 0) 50%, rgba(6, 13, 34, .6));
+    background: linear-gradient(180deg, rgba(6, 13, 34, .1), rgba(6, 13, 34, 0) 50%, rgba(6, 13, 34, .6));
     width: 100%;
     height: 100%;
     position: absolute;
     bottom: 0px
 }
-.bannerImage{
+
+.bannerImage {
     width: 100%;
     height: 100%
 }
+
 @supports (object-fit: cover) {
-  .bannerImage {
-    object-fit: cover;
-    max-height: 240px
-  }
-  .relationImg {
-    object-fit: cover
-  }
+    .bannerImage {
+        object-fit: cover;
+        max-height: 240px
+    }
+
+    .relationImg {
+        object-fit: cover
+    }
 }
+
 .bannerDiv {
     -webkit-border-radius: var(--br);
     border-radius: var(--br);
-    max-height:435px;
-    position:relative;
-    padding:0!important;
+    max-height: 435px;
+    position: relative;
+    padding: 0 !important;
     margin-left: -13px;
     margin-top: -17px;
     width: calc(100% + 25px);
@@ -866,40 +1519,47 @@ let styles = `
     display: flex;
     -webkit-box-align: center;
     -webkit-align-items: center;
-        -ms-flex-align: center;
-            align-items: center;
-    overflow:hidden
+    -ms-flex-align: center;
+    align-items: center;
+    overflow: hidden
 }
+
 .aniLeftSide {
     -webkit-transition: .3s;
     -o-transition: .3s;
     transition: .3s;
-    position:relative;
-    padding-top:0!important;
-    top:-85px
+    position: relative;
+    padding-top: 0 !important;
+    top: -85px
 }
+
 .spaceit-shadow {
-    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
-    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
+    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
     border: var(--border) solid var(--border-color);
-    border-radius:var(--br)
+    -webkit-border-radius: var(--br);
+            border-radius: var(--br)
 }
+
 .aniTag,
 .spaceit-shadow-end,
 .spaceit-shadow-end-div {
-    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
-    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
+    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
     border: var(--border) solid var(--border-color);
-    border-radius:var(--br);
+    border-radius: var(--br);
     overflow: hidden
 }
+
 .spaceit-shadow-end-div {
     padding: 2px;
     background: var(--color-foreground)
 }
+
 .fa-info-circle:before {
     text-shadow: rgb(0 0 0 / 70%) 0px 0px 2px;
 }
+
 #currently-popup {
     height: 425px;
     width: 674px;
@@ -914,35 +1574,41 @@ let styles = `
     -webkit-border-radius: var(--br);
     border-radius: var(--br)
 }
+
 #currently-popup iframe {
     width: 100%;
     height: 100%;
     -webkit-border-radius: var(--br);
     border-radius: var(--br);
-    border:1px solid
+    border: 1px solid
 }
+
 #currently-popup .popupBack {
     left: 6px;
-    right: inherit!important;
+    right: inherit !important;
     font-family: FontAwesome;
     float: left;
     padding: 0px 0px 5px 0px;
 }
-.widget.seasonal.left .btn-anime i:hover{
-    width:160px;
-    height:220px;
-    text-align:right;
-    background:0!important
+
+.widget.seasonal.left .btn-anime i:hover {
+    width: 160px;
+    height: 220px;
+    text-align: right;
+    background: 0 !important
 }
-#widget-currently-watching > div.widget-slide-outer > ul > li:hover span.epBehind,
+
+#widget-currently-watching>div.widget-slide-outer>ul>li:hover span.epBehind,
 .widget.seasonal.left .btn-anime:hover i,
 #widget-currently-watching .btn-anime:hover i,
 #widget-currently-reading .btn-anime:hover i {
-    opacity:.9!important
+    opacity: .9 !important
 }
-#currently-watching span{
-    width:93%
+
+#currently-watching span {
+    width: 93%
 }
+
 #currently-popup .popupBack,
 #currently-closePopup {
     position: absolute;
@@ -950,28 +1616,31 @@ let styles = `
     right: 6px;
     cursor: pointer
 }
+
 .airingInfo {
     color: var(--color-text);
-    transition:.4s;
-    text-align:center;
-    background-color:rgb(31 38 49 / 72%);
-    padding:3px 0px;
-    position:absolute;
-    bottom:0;
-    width:100%
+    transition: .4s;
+    text-align: center;
+    background-color: rgb(31 38 49 / 72%);
+    padding: 3px 0px;
+    position: absolute;
+    bottom: 0;
+    width: 100%
 }
+
 .behindWarn {
-background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 255, 0)), to(rgba(232, 93, 117, .49))); */
+    background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 255, 0)), to(rgba(232, 93, 117, .49)));
     background: -o-linear-gradient(rgba(255, 255, 255, 0), rgba(232, 93, 117, .49));
     background: linear-gradient(rgba(255, 255, 255, 0), rgba(232, 93, 117, .49));
-    padding:3px 0px;
-    position:absolute;
-    bottom:0;
-    width:100%;
-    height:4px;
-    opacity:.8
+    padding: 3px 0px;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 4px;
+    opacity: .8
 }
-.epBehind{
+
+.epBehind {
     color: var(--color-main-text-op);
     position: absolute;
     left: 3px;
@@ -981,30 +1650,35 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     border-radius: 5px;
     width: auto !important
 }
+
 .airingInfo div:first-child:after {
     content: "";
     display: block;
     height: 3px;
     width: 0
 }
+
 .widget.anime_suggestions.left #widget-currently-reading a:hover .behindWarn,
 .widget.anime_suggestions.left #widget-currently-reading a:hover .airingInfo,
 .widget.anime_suggestions.left #widget-currently-watching a:hover .behindWarn,
 .widget.anime_suggestions.left #widget-currently-watching a:hover .airingInfo {
-    opacity:0;
+    opacity: 0;
 }
+
 .widget-slide-block:hover #current-left-manga.active,
-.widget-slide-block:hover #current-left.active{
-    left:0!important;
-    opacity:1!important
+.widget-slide-block:hover #current-left.active {
+    left: 0 !important;
+    opacity: 1 !important
 }
+
 .widget-slide-block:hover #current-right-manga.active,
-.widget-slide-block:hover #current-right.active{
-    right:0!important;
-    opacity:1!important
+.widget-slide-block:hover #current-right.active {
+    right: 0 !important;
+    opacity: 1 !important
 }
+
 .embedLink {
-    width:max-content;
+    width: max-content;
     line-height: 1.16rem;
     margin: 5px 1px;
     display: inline-block;
@@ -1012,25 +1686,31 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     -ms-user-select: none;
     user-select: none;
 }
-.embedDiv.no-genre .genres{
-   display:none
+
+.embedDiv.no-genre .genres {
+    display: none
 }
-.embedDiv:not(.no-genre) div{
+
+.embedDiv:not(.no-genre) div {
     transition: opacity 0.3s ease-in-out;
 }
-.embedDiv:not(.no-genre) .genres{
-    margin-bottom:-18.5px;
-    opacity:0
+
+.embedDiv:not(.no-genre) .genres {
+    margin-bottom: -18.5px;
+    opacity: 0
 }
+
 .embedDiv:not(.no-genre):hover .genres {
-    opacity:1
+    opacity: 1
 }
+
 .embedDiv:not(.no-genre):hover .details {
-    opacity:0
+    opacity: 0
 }
-.embedName{
-    font-weight:bold;
-    display:block;
+
+.embedName {
+    font-weight: bold;
+    display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1040,18 +1720,20 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     -ms-grid-row-align: center;
     align-self: center;
 }
-.embedImage{
+
+.embedImage {
     background-size: cover;
     height: 58px;
     width: 41px;
     margin-right: 10px;
     margin-left: -10px;
 }
-.embedDiv{
+
+.embedDiv {
     color: var(--color-text);
     align-items: center;
-    text-align:center;
-    width:max-content;
+    text-align: center;
+    width: max-content;
     min-height: 55px;
     background-color: var(--color-foreground2);
     padding: 0px 10px;
@@ -1067,20 +1749,24 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     justify-content: space-between;
     overflow: hidden;
 }
+
 .forum .replied.show .embedDiv,
 .quotetext .embedDiv {
     background-color: var(--color-foreground);
 }
+
 .tooltipBody {
     display: none;
     background-color: var(--color-foreground);
     border-radius: 5px;
     color: #fff;
-    margin-top:5px
+    margin-top: 5px
 }
+
 .tooltipBody .main {
-    margin:0!important
+    margin: 0 !important
 }
+
 .mainDiv {
     right: 0;
     width: 520px;
@@ -1091,8 +1777,8 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     -o-transition: .4s;
     transition: .4s;
     position: fixed;
-    top:55px;
-    z-index:11;
+    top: 55px;
+    z-index: 11;
     background: var(--color-foregroundOP);
     overflow-y: scroll;
     display: -ms-grid;
@@ -1101,26 +1787,32 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     padding: 10px;
     border: 1px solid #6969694d;
     -webkit-border-radius: 10px;
-            border-radius: 10px
+    border-radius: 10px
 }
+
 .mainListDiv {
-    margin-top:10px;
+    margin-top: 10px;
 }
-#listDiv > .mainListDiv:nth-child(2) {
-    margin-top:45px
+
+#listDiv>.mainListDiv:nth-child(2) {
+    margin-top: 45px
 }
-.mainListBtnsDiv{
+
+.mainListBtnsDiv {
     display: grid;
     grid-template-columns: 40px 1fr;
     gap: 0px 2px;
 }
-.textpb{
-    padding-top:5px!important;
-    font-weight:bold
+
+.textpb {
+    padding-top: 5px !important;
+    font-weight: bold
 }
-.textpb a{
-    color: rgb(var(--color-link))!important;
+
+.textpb a {
+    color: rgb(var(--color-link)) !important;
 }
+
 .mainDivHeader {
     display: -ms-inline-grid;
     display: inline-grid;
@@ -1141,104 +1833,121 @@ background: -webkit-gradient(linear, left top, left bottom, from(rgba(255, 255, 
     top: inherit;
     right: 25px
 }
+
 .mainbtns {
-    -webkit-transition:0.25s;
-    -o-transition:0.25s;
-    transition:0.25s;
+    -webkit-transition: 0.25s;
+    -o-transition: 0.25s;
+    transition: 0.25s;
     border: 0px;
     -webkit-border-radius: 4px;
-            border-radius: 4px;
+    border-radius: 4px;
     padding: 5px;
     margin: 4px;
     cursor: pointer;
     background-color: var(--color-background);
     color: var(--color-text)
 }
-.mainbtns:hover{
-    -webkit-transform:scale(1.04);
-    -ms-transform:scale(1.04);
-    transform:scale(1.04)
+
+.mainbtns:hover {
+    -webkit-transform: scale(1.04);
+    -ms-transform: scale(1.04);
+    transform: scale(1.04)
 }
+
 .btn-active {
-    background-color: var(--color-foreground4)!important;
+    background-color: var(--color-foreground4) !important;
     color: rgb(159, 173, 189)
 }
-.btn-active:before{
+
+.btn-active:before {
     font-family: 'Font Awesome 6 Pro';
     content: "\\f00c"
 }
+
 @keyframes reloadLoop {
     0% {
-    background-color: var(--color-background);
+        background-color: var(--color-background);
     }
+
     50% {
-    background-color: var(--color-foreground4);
+        background-color: var(--color-foreground4);
     }
+
     100% {
-    background-color: var(--color-background)
-  }
+        background-color: var(--color-background)
+    }
 }
+
 .display-none {
-    display:none!important
+    display: none !important
 }
+
 button#customcss,
 button#custombg,
-button#custompf{
+button#custompf {
     height: 40px;
     width: 32%
 }
+
 input#cssinput,
 input#bginput,
-input#pfinput{
+input#pfinput {
     width: 60%;
     height: 15px;
     margin-right: 5px
 }
-.mainDiv .mainListDiv h2{
+
+.mainDiv .mainListDiv h2 {
     background: var(--fg2);
     border-radius: var(--br);
     padding: 5px
 }
+
 .mainDiv .mainListDiv h3 {
-    font-weight:500
-}`;
+    font-weight: 500
+}
+`;
 let styles1 = `
 .anisong-accordion-button {
-    text-align:right;
+    text-align: right;
     cursor: pointer;
     display: block;
     width: 85px;
     margin-left: auto;
     margin-right: 5px
 }
+
 .anisongs .theme-songs.js-theme-songs {
-    margin-bottom:5px
+    margin-bottom: 5px
 }
+
 .anisongs video {
     width: 100%;
     margin-top: 10px
 }
+
 .anisongs .oped-preview-button.oped-preview-button-gray {
     cursor: pointer;
     display: inline-block;
     height: 8px;
     margin-bottom: -3px;
     width: 15px;
-    -webkit-filter: invert(100%) hue-rotate(180deg) brightness(75%)!important;
-    filter: invert(100%) hue-rotate(180deg) brightness(75%)!important
-    }`;
+    -webkit-filter: invert(100%) hue-rotate(180deg) brightness(75%) !important;
+    filter: invert(100%) hue-rotate(180deg) brightness(75%) !important
+}
+`;
 let styles2 = `
 .lazyloading {
-    opacity: 1!important
+  opacity: 1 !important;
 }
 footer {
-    z-index: 0;
-    margin-top: 65px!important;
-    position: relative
+  z-index: 0;
+  margin-top: 65px !important;
+  position: relative;
 }
 .dark-mode .profile .user-statistics,
 .profile .user-statistics {
-    width: 99%
+  width: 99%;
 }
 .dark-mode .profile .user-comments .comment,
 .profile .user-comments .comment,
@@ -1246,55 +1955,58 @@ footer {
 .page-common .content-container .container-right h2,
 .dark-mode .fav-slide-block,
 .fav-slide-block {
-    width: 96%
+  width: 96%;
 }
 #myanimelist:before {
-    content: "";
-    width: 200%;
-    left: 0;
-    position: fixed;
-    height: 200%;
-    z-index: 0;
-    -webkit-backdrop-filter: brightness(bg_brightness)contrast(bg_contrast)saturate(bg_saturate)!important;
-    backdrop-filter: brightness(bg_brightness)contrast(bg_contrast)saturate(bg_saturate)!important;
+  content: "";
+  width: 200%;
+  left: 0;
+  position: fixed;
+  height: 200%;
+  z-index: 0;
+  -webkit-backdrop-filter: brightness(bg_brightness) contrast(bg_contrast) saturate(bg_saturate) !important;
+  backdrop-filter: brightness(bg_brightness) contrast(bg_contrast) saturate(bg_saturate) !important;
 }
 .dark-mode body:not(.ownlist),
-    body:not(.ownlist) {
-    background: url(bg_image)!important;
-    background-size: cover!important;
-    background-attachment: fixed!important;
-    background-color: var(--color-background)!important;
+body:not(.ownlist) {
+  background: url(bg_image) !important;
+  background-size: cover !important;
+  background-attachment: fixed !important;
+  background-color: var(--color-background) !important;
 }
 .page-common #myanimelist #contentWrapper {
-    background-color: var(--color-backgroundo)!important;
-    top: 55px!important;
-    padding: 10px;
-    margin-left: -15px;
-    width: 1070px;
-    border-radius: var(--border-radius);
-    box-shadow: 0 0 4px var(--shadow-color)!important;
-}`;
+  background-color: var(--color-backgroundo) !important;
+  top: 55px !important;
+  padding: 10px;
+  margin-left: -15px;
+  width: 1070px;
+  border-radius: var(--border-radius);
+  box-shadow: 0 0 4px var(--shadow-color) !important;
+}
+`;
 
 //CSS MyAnimeList - Clean Main Colors
 let styles3 = `
-body,:root {
-    --color-background: #0c1525!important;
-    --color-backgroundo: #0c1525!important;
-    --color-foreground: #161f2f!important;
-    --color-foreground2: #202939!important;
-    --color-foreground3: rgba(37,46,62,0.3)!important;
-    --color-foreground4: #2a3343!important;
-    --br: 5px!important;
+body,
+:root {
+    --color-background: #0c1525 !important;
+    --color-backgroundo: #0c1525 !important;
+    --color-foreground: #161f2f !important;
+    --color-foreground2: #202939 !important;
+    --color-foreground3: rgba(37, 46, 62, 0.3) !important;
+    --color-foreground4: #2a3343 !important;
+    --br: 5px !important;
     --color-text: 182 182 182;
-    --color-text-normal: #b6b6b6!important;
-    --color-main-text-normal: #c8c8c8!important;
-    --color-main-text-light: #a5a5a5!important;
-    --color-main-text-op: #fff!important;
+    --color-text-normal: #b6b6b6 !important;
+    --color-main-text-normal: #c8c8c8 !important;
+    --color-main-text-light: #a5a5a5 !important;
+    --color-main-text-op: #fff !important;
     --color-link: 159, 173, 189;
-    --color-link2: #7992bb!important;
-    --color-text-hover: #cfcfcf!important;
-    --color-link-hover: #cee7ff!important;
-}`;
+    --color-link2: #7992bb !important;
+    --color-text-hover: #cfcfcf !important;
+    --color-link-hover: #cee7ff !important;
+}
+`;
 
 //Create Style Elements
 let styleSheet = document.createElement('style');
@@ -1510,7 +2222,9 @@ button11.onclick = () => {
   if (bginput.value.slice(-1) === "]") {
     bginfo.innerText = "Background Image already converted.";
   } else if (bginput.value.length > 1) {
-    editAboutPopup(`custombg/${LZString.compressToBase64(JSON.stringify(bginput.value))}`,'bg');
+    const bgBase64 = LZString.compressToBase64(JSON.stringify(bginput.value));
+    const bgbase64url = bgBase64.replace(/\//g, '_');
+    editAboutPopup(`custombg/${bgbase64url}`,'bg');
     bginput.addEventListener(`focus`, () => bginput.select());
   } else {
     bginfo.innerText = "Background Image url empty.";
@@ -1523,7 +2237,9 @@ button12.onclick = () => {
   if (pfinput.value.slice(-1) === "]") {
     pfinfo.innerText = "Background Image already converted.";
   } else if (pfinput.value.length > 1) {
-    editAboutPopup(`custompf/${LZString.compressToBase64(JSON.stringify(pfinput.value))}`,'pf');
+    const pfBase64 = LZString.compressToBase64(JSON.stringify(pfinput.value));
+    const pfbase64url = pfBase64.replace(/\//g, '_');
+    editAboutPopup(`custompf/${pfbase64url}`,'pf');
     pfinput.addEventListener(`focus`, () => pfinput.select());
   } else {
     pfinfo.innerText = "Avatar Image url empty.";
@@ -1539,7 +2255,9 @@ button8.onclick = () => {
   if (cssinput.value.slice(-1) === "]") {
     cssinfo.innerText = "Css already converted.";
   } else if (cssinput.value.length > 1) {
-    editAboutPopup(`customcss/${LZString.compressToBase64(JSON.stringify(cssinput.value))}`,'css');
+    const cssBase64 = LZString.compressToBase64(JSON.stringify(cssinput.value));
+    const cssbase64url = cssBase64.replace(/\//g, '_');
+    editAboutPopup(`customcss/${cssbase64url}`,'css');
     cssinput.addEventListener(`focus`, () => cssinput.select());
   } else {
     cssinfo.innerText = "Css empty.";
@@ -1642,8 +2360,8 @@ function createDiv() {
     createListDiv(
       "Profile",
       [
-       {b:button10,t:"Make profile like Anilist (Anilist Style Profile)"},
-       {b:button27,t:"Make Anime/Manga List like Anilist (Required Anilist Style Profile)"},
+       {b:button10,t:"Make profile like Anilist"},
+       {b:button27,t:"Make Anime/Manga List like Anilist"},
        {b:button7,t:"Show custom CSS"},
        {b:button9,t:"Change username position"}
       ]),
@@ -2497,7 +3215,7 @@ function delay(ms) {
   //Forum Anime-Manga Embed //--END--//
 
   //Profile Section //--START--//
-  if (/\/(profile)\/.?([\w-]+)?\/?/.test(current)) {
+  if (/\/(profile)\/.?([\w]+)?\/?/.test(current)) {
     let banner = create('div', {class: 'banner',id: 'banner',});
     let shadow = create('div', {class: 'banner',id: 'shadow',});
 
@@ -2508,6 +3226,7 @@ function delay(ms) {
     let bgRegex = /(custombg)\/([^"\/]+)/gm;
     let pfRegex = /(custompf)\/([^"\/]+)/gm;
     let cssRegex = /(customcss)\/([^"\/]+)/gm;
+    let favSongEntryRegex = /(favSongEntry)\/([^\/]+.)/gm;
 
     //block user icon
      let blockU = create("i", {
@@ -2565,11 +3284,8 @@ function delay(ms) {
       }
     }
 
-    if(document.readyState === 'loading') {
-      document.addEventListener( 'DOMContentLoaded', startCustomProfile );
-    }
-    else if (document.readyState === 'interactive' || document.readyState === 'complete') {
-        document.querySelector('#contentWrapper').style.opacity = "0";
+    if (document.readyState === 'interactive' || document.readyState === 'complete') {
+      document.querySelector('#contentWrapper').style.opacity = "0";
       document.body.append(pfloading);
       document.body.style.overflow = "hidden";
       history.scrollRestoration = "manual";
@@ -2590,7 +3306,96 @@ function delay(ms) {
       document.querySelector("#contentWrapper").style.top = "60px";
       startCustomProfile();
     }
+    if($('title').text() === '404 Not Found - MyAnimeList.net\n'){
+      pfloading.remove();
+      document.body.style.removeProperty("overflow");
+      document.querySelector('#contentWrapper').style.opacity = "1";
+    }
 
+    async function buildFavSongs(data) {
+      let parts = data.split("/");
+      let favarray = [];
+      for (let i = 0; i < parts.length; i++) {
+        if (parts[i] === "favSongEntry") {
+          if (i + 1 < parts.length) {
+            const base64 = parts[i + 1].replace(/_/g, "/");
+            const lzbase64 = LZString.decompressFromBase64(base64);
+            let dec = JSON.parse(lzbase64);
+            favarray.push(dec);
+          }
+        }
+      }
+      let opGroup = create("div", { id: "op-group" });
+      let edGroup = create("div", { id: "ed-group" });
+      let FavContent = create("div", { class: "favThemes" });
+      if (svar.alstyle) {
+        $("#content > div > div.container-left > div li.icon-statistics.link").before(FavContent);
+      } else {
+        $("#content > div > div.container-right > h2").nextUntil(".user-comments").wrapAll("<div class='favContainer'></div>");
+        $(".user-comments").before(FavContent);
+        $(FavContent).css({marginBottom: '30px',width:'813px'});
+        opGroup.classList.add("flex2x");
+        edGroup.classList.add("flex2x");
+      }
+      favarray.forEach((arr, index) => {
+        arr.forEach((item) => {
+          const favSongContainer = create("div", { class: "anime-container", type: item.themeType });
+          favSongContainer.innerHTML = `
+                <div class="fa fa-x removeFavSong" order=${index}></div>
+                <div class="favSongContainer">
+                <a href='https://myanimelist.net/anime/${item.animeUrl}/'>
+                ${`<img src="${item.animeImage ? item.animeImage : "https://cdn.myanimelist.net/r/42x62/images/questionmark_23.gif?s=f7dcbc4a4603d18356d3dfef8abd655c"}" class="anime-image" alt="${
+                  item.animeTitle
+                }">`}
+                </a>
+                <div class="favSongHeader">
+                <h2>${item.animeTitle}</h2>
+                <a class="favThemeSongTitle" style="cursor:pointer">${item.songTitle}</a>
+                </div></div>
+                <div class="video-container">
+                <video controls>
+                <source src="${item.songSource}" type="video/webm">
+                Your browser does not support the video tag.
+                </video>
+                </div>
+                `;
+          FavContent.appendChild(favSongContainer);
+        });
+      });
+      FavContent.append(opGroup, edGroup);
+      $(opGroup).before(`<h5 style="${svar.alstyle ? "font-size: 11px; margin-bottom: 8px; margin-left: 2px;" : ""}">Openings</h5>`);
+      $(edGroup).before(`<h5 style="${svar.alstyle ? "font-size: 11px; margin-bottom: 8px; margin-left: 2px;" : ""}">Endings</h5>`);
+      const favThemes = document.querySelector(".favThemes");
+      const animeContainers = favThemes.querySelectorAll(".anime-container");
+
+      animeContainers.forEach((container) => {
+        const type = container.getAttribute("type");
+        if (type === "OP") {
+          opGroup.appendChild(container);
+        } else if (type === "ED") {
+          edGroup.appendChild(container);
+        }
+      });
+      $(".removeFavSong").on("click", function () {
+        const compressedBase64 = LZString.compressToBase64(JSON.stringify(favarray[$(this).attr("order")]));
+        const base64url = compressedBase64.replace(/\//g, "_");
+        editAboutPopup(`favSongEntry/${base64url}/`, "removeFavSong");
+      });
+
+      $(".favThemeSongTitle").on("click", function () {
+        if (!svar.alstyle) {
+          const title = $(this).prev();
+          title.css("white-space", title.css("white-space") === "nowrap" || title.css("white-space") === "nowrap" ? "normal" : "nowrap");
+          $(this).css("white-space", $(this).css("white-space") === "nowrap" || $(this).css("white-space") === "nowrap" ? "normal" : "nowrap");
+        }
+        const videoContainer = $(this).parent().parent().parent().children(".video-container");
+        const currentDisplay = videoContainer.css("display");
+        videoContainer.css("display", currentDisplay === "none" || currentDisplay === "" ? "block" : "none");
+      });
+      if (username !== $(".header-profile-link").text()) {
+        $(".removeFavSong").remove();
+      }
+    }
     //Get Custom Background Image and Custom Profile Image Data from About Section
     async function findCustomAbout() {
       const aboutSection = document.querySelector('.user-profile-about.js-truncate-outer');
@@ -2598,10 +3403,12 @@ function delay(ms) {
       const bgMatch = aboutContent.match(bgRegex);
       const pfMatch = aboutContent.match(pfRegex);
       const cssMatch = aboutContent.match(cssRegex);
+      const favSongMatch = aboutContent.match(favSongEntryRegex);
         if (bgMatch) {
           const bgData = bgMatch[0].replace(bgRegex, '$2');
           if(bgData !== '...'){
-            custombg = JSON.parse(LZString.decompressFromBase64(bgData));
+            let bgBase64Url = bgData.replace(/_/g, "/");
+            custombg = JSON.parse(LZString.decompressFromBase64(bgBase64Url));
             banner.setAttribute(
               'style',
               `background-color: var(--color-foreground); background: url(${custombg}); background-position: 50% 35%; background-repeat: no-repeat; background-size: cover; height: 330px; position: relative;`
@@ -2612,7 +3419,8 @@ function delay(ms) {
         if (pfMatch) {
           const pfData = pfMatch[0].replace(pfRegex, '$2');
           if(pfData !== '...'){
-            custompf = JSON.parse(LZString.decompressFromBase64(pfData));
+            let pfBase64Url = pfData.replace(/_/g, "/");
+            custompf = JSON.parse(LZString.decompressFromBase64(pfBase64Url));
             document.querySelector('.user-image.mb8 > img').setAttribute('src', custompf);
             customFounded = 1;
           }
@@ -2620,7 +3428,16 @@ function delay(ms) {
         if (cssMatch) {
           const cssData = cssMatch[0].replace(cssRegex, '$2');
           if(cssData !== '...'){
-          customcss = JSON.parse(LZString.decompressFromBase64(cssData));
+            let cssBase64Url = cssData.replace(/_/g, "/");
+          customcss = JSON.parse(LZString.decompressFromBase64(cssBase64Url));
+          }
+        }
+        if (favSongMatch) {
+          if(customFounded) {
+            svar.alstyle = true;
+          }
+          if (!/\/profile\/.*\/\w/gm.test(current)) {
+            buildFavSongs(aboutContent)
           }
         }
       };
@@ -2641,7 +3458,7 @@ function delay(ms) {
       }
     }
 
-    // for modern about, user can use blog post to add custom pf bg and css
+    // for modern about, user can use blog post to add custom profile image, banner and css
     async function findCustomBlogPost() {
       let custompfLink, custombgLink;
       const rssUrl = 'https://myanimelist.net/rss.php?type=blog&u=' + username;
@@ -2655,6 +3472,10 @@ function delay(ms) {
         const custompfMatch = description.match(pfRegex);
         const custombgMatch = description.match(bgRegex);
         const customcssMatch = description.match(cssRegex);
+        const favSongMatch = description.match(favSongEntryRegex);
+        if (favSongMatch && !/\/profile\/.*\/\w/gm.test(current)) {
+          buildFavSongs(description);
+        }
         if (custompfMatch) {
           custompfLink = custompfMatch[0].replace(pfRegex, '$2').replace('https://', '');
           custompf = LZString.decompressFromBase64(custompfLink).replace(/"/gm, '');
@@ -2710,72 +3531,6 @@ function delay(ms) {
       if (svar.alstyle) {
         //CSS Fix for Anilist Style
         let fixstyle = `
-        .user-profile-about a[href*="/custombg"],
-        .user-profile-about a[href*="/custompf"],
-        .user-profile-about a[href*="/customcss"]{
-        display:none
-        }
-       .filterList_TagsContainer .tag-link{cursor: pointer;word-break: break-word;display: block;width: 97%;background: var(--color-foreground3);padding: 10px;
-       border-radius: 5px;margin-bottom: 10px;margin-left: -5px;-webkit-transition:.3s;-o-transition:.3s;transition:.3s}
-       .filterList_TagsContainer .tag-link:hover{background:var(--color-foreground2)}
-       .filterList_GenresFilter input[type="checkbox"] {cursor: pointer;vertical-align: middle;bottom: 2px;left: -5px;-webkit-appearance: inherit;position: relative;-webkit-box-sizing: border-box;box-sizing: border-box}
-       .filterList_GenresFilter input[type="checkbox"]:checked:after {content: "";position: absolute;-webkit-border-radius: 10px;border-radius: 10px;top: 0;bottom: 0;
-       left: 0;right: 0;margin: auto!important;height: 10px;width: 10px;background: var(--color-link2)!important}
-       .filterList_GenresFilter input[type="checkbox"]:checked:after {font-family: fontAwesome;content: "\\f00c";margin-left: 4px!important;color: var(--color-link)!important;background: none!important}
-        i.tags-container-clear.fa.fa-close,i.year-filter-clear.fa.fa-close {display:none;font-family: 'FontAwesome';background: var(--color-foreground4);
-        padding: 5px;-webkit-border-radius: 5px;border-radius: 5px;float: right;cursor: pointer;margin-right: 86%;margin-top: -2px;margin-bottom: 0px}
-        .year-filter-slider-container{margin-top: -4px;display: -webkit-box;display: -webkit-flex;display: -ms-flexbox;display: flex;-webkit-box-align: center;-webkit-align-items: center;-ms-flex-align: center;align-items: center;gap: 10px}
-        input#year-filter-slider{-webkit-box-flex:1;-webkit-flex-grow:1;-ms-flex-positive:1;flex-grow:1;padding: 0 !important}
-        .genreDropBtn {width:100%;border:0;background: var(--color-foreground2);padding: 8px;cursor: pointer;-webkit-border-radius: var(--border-radius);border-radius: var(--border-radius);margin: 5px 0px}
-        .genreDropBtn:hover{background:var(--color-foreground4)}
-        #maljs-dropdown-content{display: none;-ms-grid-columns: 1fr 1fr;grid-template-columns: 1fr 1fr;width:410px;: absolute;background: var(--color-foreground);
-        -webkit-border-radius: var(--border-radius);border-radius: var(--border-radius);min-width: 160px;
-        -webkit-box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);z-index: 1;height: 175px;overflow: scroll;}
-        .maljs-dropdown-content label {padding: 12px 16px;display: block;}
-        .maljs-dropdown-content label:hover {background: var(--color-foreground4)}
-        .maljs-dropdown-content label:has(input.genre-filter:checked){background:var(--color-foreground2);border-bottom: 1px solid}
-        .list-entries .status-section {background: var(--color-foreground);border-radius: var(--border-radius)}
-        .filterLists-back{width: 25px;text-align: center;margin-top: -65px;font-family: 'FontAwesome';margin-bottom: 10px;cursor: pointer;position: absolute;background: var(--color-foreground);padding: 6px;
-        -webkit-border-top-left-radius: var(--border-radius);border-top-left-radius: var(--border-radius);-webkit-border-top-right-radius: var(--border-radius);border-top-right-radius: var(--border-radius);}
-        .filterListsDivContainer {display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex}
-        .filterListsDiv {width: 70px;display: block;margin-top:-5px}
-        .filterListsCount {width: 90px;line-height: 19px;color: var(--color-main-text-light);margin-top:-5px}
-        .list-entries .entry .edit {height: 40px;width: 40px;position: absolute;background: #00000070;display: block;
-        -webkit-align-content: center;-ms-flex-line-pack: center;align-content: center;font-family: fontAwesome;opacity: 0;cursor: pointer;
-        -webkit-border-radius: var(--border-radius);border-radius: var(--border-radius);-webkit-transition:.3s;-o-transition:.3s;transition:.3s}
-        .list-entries .entry .edit:hover{opacity:1}
-        .maljsDisplayBox {overflow:hidden;position: fixed;top: 65px;left: 20px;z-index: 9999;padding: 20px;background-color: rgb(var(--color-foreground));border: solid 1px;
-        border-radius: 4px;box-shadow: black 2px 2px 20px;background: var(--color-background);height: 85%;}
-        .maljsDisplayBoxTitle{font-size: 15px;border-bottom: 1px solid;display: block;margin-bottom: 10px;padding: 3px}
-        input.maljsNativeInput{margin-bottom:5px}
-        .maljsDisplayBox .scrollableContent p {margin: 10px 0px !important}
-        .maljsDisplayBox .scrollableContent {box-sizing: border-box;overflow: auto;height: 100%;scrollbar-width: thin;margin-top: 5px;padding: 30px;padding-top: 15px;scrollbar-width: auto}
-        .maljsDisplayBoxClose{position: absolute;right: 15px;top: 15px;cursor: pointer;width: 15px;height: 18px;text-align: center;
-        background-color: #852325;font-weight: bold;border: solid;border-width: 1px;border-radius: 2px;color: var(--color-main-text-normal);z-index: 20;}
-        .maljsResizePearl{position: absolute;right: 2px;bottom: 2px;width: 20px;height: 20px;border: solid;border-radius: 10px;background: rgb(var(--color-foreground));cursor: se-resize}
-        .container-left > #filter{margin-top:5px;background: var(--color-foreground);padding: 15px;border-radius: var(--border-radius)}
-        .container-left > #filter .filterLists{display:block;cursor:pointer;padding:3px;width:70px}
-        #maljsDraw3x3,.compareBtn{background: var(--color-foreground2);padding:10px;border-radius: var(--border-radius);display: block;margin-top: 5px;cursor:pointer;width: 55px}
-        .compareBtn{float:right;text-align:center}
-        #filter > input#filter-input{width: 94%}
-        .list-entries .entry .cover,.list-entries .row{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox}
-        .list-entries .row{display:flex;-webkit-box-pack:justify;-webkit-justify-content:space-between;-ms-flex-pack:justify;justify-content:space-between;
-        -webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center}
-        .list-entries .entry .cover{-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;display:flex;-webkit-box-flex:1;
-        -webkit-flex:1;-ms-flex:1;flex:1;-webkit-box-pack:end;-webkit-justify-content:flex-end;
-        -ms-flex-pack:end;justify-content:flex-end;max-width:60px;min-width:60px;padding:0}
-        .list-entries .entry .cover .image{background-position:50%;background-repeat:no-repeat;background-size:cover;-webkit-border-radius:3px;border-radius:3px;height:40px;width:40px}
-        .list-entries .entry .title{-webkit-box-flex:5;-webkit-flex:5;-ms-flex:5;flex:5;padding-left:15px;text-align:left;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;
-        display:flex;-webkit-box-pack:end;-webkit-justify-content:flex-end;
-        -ms-flex-pack:end;justify-content:flex-end;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;word-break:break-word}
-        .list-entries .entry .title a{-webkit-transition:none;-o-transition:none;transition:none;margin-right:auto}
-        .list-entries .entry>div{-webkit-box-flex:1;-webkit-flex:1;-ms-flex:1;flex:1;padding:18px 20px;text-align:center}
-        .list-entries .list-head>div{-webkit-box-flex:1;-webkit-flex:1;-ms-flex:1;flex:1;padding:20px;text-align:center;font-weight:700}
-        .list-entries .list-head .title{-webkit-box-flex:5;-webkit-flex:5;-ms-flex:5;flex:5;padding-left:75px;text-align:left}
-        .list-entries .section-name{border-bottom:1px solid;padding:10px;margin-bottom:0}
-        .list-entries .entry.row.hidden {display: none}
-        .list-entries .status-section{padding-bottom:10px}
-        .list-head.row {margin-bottom: -10px}
         .l-listitem-3_2_items{margin-right:0}
         .l-listitem-list.row1{margin-right: 0px;margin-left: -46px}
         .l-listitem-list.row2{margin-left: 24px;}
@@ -2828,88 +3583,109 @@ function delay(ms) {
         document.body.style.setProperty('--color-foreground', 'var(--color-foregroundOP)','important');
         document.body.style.setProperty('--color-foreground2', 'var(--color-foregroundOP2)','important');
         //Get Activity History from MAL and Cover Image from Jikan API
-        async function gethistory(l) {
-          let title,ep,date,datenew,id,url,type,historyimg,oldimg;
+        const titleImageMap = {};
+        async function gethistory(l, item) {
+          let title, ep, date, datenew, id, url, type, historyimg, oldimg;
           let wait = 666;
           let c = l ? l - 12 : 0;
           let length = l ? l : 12;
           let head = create("h2", { class: "mt16" }, "Activity");
-          const loading = create("div", { class: "actloading" },"Loading"+'<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-size:12px;font-family:FontAwesome"></i>');
-          const html = await fetch("https://myanimelist.net/history/"+username)
-          .then((response) => response.text())
-          .then(async(data) => {
-            let newDocument = new DOMParser().parseFromString(data, "text/html");
-            let item = newDocument.querySelectorAll("#content > div.history_content_wrapper > table > tbody > tr > td.borderClass:first-child");
-            length = item.length < length ? item.length : length;
-              document.querySelector('#statistics').insertAdjacentElement('afterend', loading);
-            for (let x = c; x < length; x++){
-              if (x === 0) {
-                head.style.marginLeft="5px";
-                document.querySelector('#statistics').insertAdjacentElement('beforeend', head);
-              }
-              type = item[x].querySelector("a").href.split('.')[1].split('/')[1];
-              url = item[x].querySelector("a").href;
-              id = item[x].querySelector("a").href.split('=')[1];
-              title = item[x].querySelector("a").outerHTML;
-              ep = item[x].querySelector("strong").innerText;
-              date = item[x].parentElement.children[1].innerText.split("Edit").join("");
-              datenew = date.includes("Yesterday") || date.includes("Today")|| date.includes("hour") || date.includes("minutes") || date.includes("seconds") ? true : false;
-              date = datenew ? date : date.split(",").join(" "+new Date().getFullYear());
-              let dat = create("div", { class: "historydiv" });
-              let name = create("div", { class: "historyname" });
-              let timestamp = new Date(date).getTime();
-              const timestampSeconds = Math.floor(timestamp / 1000);
-              let historydate = create("div", { class: "historydate", title: date }, datenew ? date : nativeTimeElement(timestampSeconds));
-              let apiUrl = `https://api.jikan.moe/v4/anime/${id}`;
-              if (type === 'anime') {
-                name.innerHTML = 'Watched  episode ' + ep + ' of ' + '<a href="' + url + '">' + title + '</a>';
-              } else {
-                apiUrl = `https://api.jikan.moe/v4/manga/${id}`;
-                name.innerHTML = 'Read chapter ' + ep + ' of ' + '<a href="' + url + '">' + title + '</a>';
-              }
-              async function getimg(url) {await fetch(apiUrl)
+          const loading = create(
+            "div",
+            { class: "actloading" },
+            "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-size:12px;font-family:FontAwesome"></i>'
+          );
+          if (!l) {
+            const html = await fetch("https://myanimelist.net/history/" + username)
+              .then((response) => response.text())
+              .then(async (data) => {
+                let newDocument = new DOMParser().parseFromString(data, "text/html");
+                item = newDocument.querySelectorAll("#content > div.history_content_wrapper > table > tbody > tr > td.borderClass:first-child");
+              });
+          }
+
+          length = item.length < length ? item.length : length;
+          document.querySelector("#statistics").insertAdjacentElement("afterend", loading);
+
+          for (let x = c; x < length; x++) {
+            if (x === 0) {
+              head.style.marginLeft = "5px";
+              document.querySelector("#statistics").insertAdjacentElement("beforeend", head);
+            }
+            type = item[x].querySelector("a").href.split(".")[1].split("/")[1];
+            url = item[x].querySelector("a").href;
+            id = item[x].querySelector("a").href.split("=")[1];
+            title = item[x].querySelector("a").outerHTML;
+            ep = item[x].querySelector("strong").innerText;
+            date = item[x].parentElement.children[1].innerText.split("Edit").join("");
+            datenew = date.includes("Yesterday") || date.includes("Today") || date.includes("hour") || date.includes("minutes") || date.includes("seconds") ? true : false;
+            date = datenew ? date : date.split(",").join(" " + new Date().getFullYear());
+
+            let dat = create("div", { class: "historydiv" });
+            let name = create("div", { class: "historyname" });
+            let timestamp = new Date(date).getTime();
+            const timestampSeconds = Math.floor(timestamp / 1000);
+            let historydate = create("div", { class: "historydate", title: date }, datenew ? date : nativeTimeElement(timestampSeconds));
+
+            let apiUrl = `https://api.jikan.moe/v4/anime/${id}`;
+            if (type === "anime") {
+              name.innerHTML = "Watched episode " + ep + " of " + '<a href="' + url + '">' + title + "</a>";
+            } else {
+              apiUrl = `https://api.jikan.moe/v4/manga/${id}`;
+              name.innerHTML = "Read chapter " + ep + " of " + '<a href="' + url + '">' + title + "</a>";
+            }
+
+            // Image retrieval function
+            async function getimg(url) {
+              await fetch(apiUrl)
                 .then((response) => response.json())
                 .then((data) => {
-                oldimg = data.data?.images ? data.data.images.jpg.image_url : 'https://cdn.myanimelist.net/r/42x62/images/questionmark_23.gif?s=f7dcbc4a4603d18356d3dfef8abd655c';
-                historyimg = create('a', {
-                  class: 'historyimg',
-                  href: url,
-                  style: {
-                    backgroundImage: 'url(' +  oldimg + ')',
-                  },
+                  oldimg = data.data?.images ? data.data.images.jpg.image_url : "https://cdn.myanimelist.net/r/42x62/images/questionmark_23.gif?s=f7dcbc4a4603d18356d3dfef8abd655c";
+                  titleImageMap[title] = oldimg; // Map the title to the image
                 });
-              })};
-              if(x!== 0 && x!== c && item[x - 1].querySelector("a").outerHTML === (item[x].querySelector("a").outerHTML)){
-                wait = 111;
-                historyimg = create('a', {
-                  class: 'historyimg',
-                  href: url,
-                  style: {
-                    backgroundImage: 'url(' +  oldimg + ')',
-                  },
-                });
-              }
-              else {
-                wait = 999;
-                await getimg(url);
-              }
-              dat.append(historyimg, name);
-              dat.append(historydate);
-              document.querySelector('#statistics').insertAdjacentElement('beforeend', dat);
-              await delay(wait);
             }
-            loading.remove();
-            if(item.length > length){
-              let loadmore = create("div", { class: "loadmore" },"Load More");
-              loadmore.onclick = () => {
-                gethistory(length+12);
-                loadmore.remove();
-              }
-              if(document.querySelectorAll('.filterListsDiv').length < 1){
-                document.querySelector('#statistics').insertAdjacentElement('afterend', loadmore);
-              }
+
+            // Check if the title already exists in the map
+            if (titleImageMap[title]) {
+              oldimg = titleImageMap[title];
+              historyimg = create("a", {
+                class: "historyimg",
+                href: url,
+                style: {
+                  backgroundImage: "url(" + oldimg + ")",
+                },
+              });
+              wait = 99; // If already exists, reduce wait time
+            } else {
+              wait = 999; // If new title, increase wait time
+              await getimg(url);
+              historyimg = create("a", {
+                class: "historyimg",
+                href: url,
+                style: {
+                  backgroundImage: "url(" + oldimg + ")",
+                },
+              });
             }
-          });
+
+            dat.append(historyimg, name);
+            dat.append(historydate);
+            document.querySelector("#statistics").insertAdjacentElement("beforeend", dat);
+            await delay(wait);
+          }
+
+          loading.remove();
+
+          if (item.length > length) {
+            let loadmore = create("div", { class: "loadmore" }, "Load More");
+            loadmore.onclick = () => {
+              gethistory(length + 12, item);
+              loadmore.remove();
+            };
+            if (document.querySelectorAll(".filterListsDiv").length < 1) {
+              document.querySelector("#statistics").insertAdjacentElement("afterend", loadmore);
+            }
+          }
         }
         //Make Profile looks like Anilist
         svar.profileHeader = !1;
@@ -2979,7 +3755,7 @@ function delay(ms) {
         set(1, ".user-function.mb8", { sa: { 0: "position: relative;left: 100%;top: -50px;display: flex;width: 100px;font-size: 1rem;justify-content: flex-end;gap:6px;" } });
         set(2, ".user-function.mb8 a", { sal: { 0: "border:none!important;box-shadow:none!important" } });
         set(2, ".user-function.mb8 span", { sal: { 0: "border:none!important;box-shadow:none!important" } });
-        if (set(1, ".content-container", { sa: { 0: "display: grid!important;grid-template-columns: 33% auto;margin-top: 30px;justify-content: center;" } })) {
+        if (set(1, ".content-container", { sa: { 0: "display: grid!important;grid-template-columns: 33% auto;margin-top: 50px;justify-content: center;" } })) {
           set(1, ".container-left", { sa: { 0: "width:auto" } });
           set(1, ".container-right", { sa: { 0: "width:auto;min-width:800px" } });
         }
@@ -2999,7 +3775,8 @@ function delay(ms) {
         $("#contentWrapper > div:nth-child(2) > h1").remove();
         set(1, "#content > table > tbody > tr > td.pl8 > #horiznav_nav", { r: { 0: 0 } });
         set(1, ".container-right #horiznav_nav", { r: { 0: 0 } });
-        document.querySelector("#contentWrapper").setAttribute("style", "width: 1375px;max-width: 1375px!important;min-width:500px; margin: auto;top: -40px;transition:.6s;opacity:1;top: -40px!important;border:0!important;box-shadow:none!important");
+        document.querySelector("#contentWrapper")
+          .setAttribute("style", "width: 1375px;max-width: 1375px!important;min-width:500px; margin: auto;top: -40px;transition:.6s;opacity:1;top: -40px!important;border:0!important;box-shadow:none!important");
         pfloading.remove();
         document.body.style.removeProperty("overflow");
         let more = document.querySelector(".btn-truncate.js-btn-truncate");
@@ -3153,23 +3930,34 @@ function delay(ms) {
     }
 
     //Anilist Style Anime and Manga List //-START-//
-
-    if(svar.replaceList && svar.alstyle) {
+      let contLeft = $(".container-left").length ?  $(".container-left") : $("#content > table > tbody > tr td[valign='top']:nth-child(1)");
+      let contRight = $(".container-right").length ?  $(".container-right") : $("#content > table > tbody > tr td[valign='top']:nth-child(2)");
+    if(svar.replaceList) {
       //Anime List Button
       const animeListButton = document.querySelector("a.btn-profile-submit.fl-l");
-      animeListButton.href = "javascript:void(0);";
-      animeListButton.onclick = async () => {
-        $(".container-left").children().hide();
-        $(".container-right").children().hide();
-        getAnimeList();
+      if(animeListButton){
+        animeListButton.href = "javascript:void(0);";
+        animeListButton.onclick = async () => {
+          $(contLeft).children().hide();
+          $(contRight).children().hide();
+          $(".fav-slide-block.mb12").hide();
+          $("#content > div > div.container-right > div.favmore > h5:nth-child(1)").hide();
+          $("#content > div > div.container-right > div.favmore > h5:nth-child(3)").hide();
+          getAnimeList();
+        };
       };
       //Manga List Button
       const mangaListButton = document.querySelector("a.btn-profile-submit.fl-r");
-      mangaListButton.href = "javascript:void(0);";
-      mangaListButton.onclick = async () => {
-        $(".container-left").children().hide();
-        $(".container-right").children().hide();
-        getAnimeList("manga");
+      if(mangaListButton){
+        mangaListButton.href = "javascript:void(0);";
+        mangaListButton.onclick = async () => {
+          $(contLeft).children().hide();
+          $(contRight).children().hide();
+          $(".fav-slide-block.mb12").hide();
+          $("#content > div > div.container-right > div.favmore > h5:nth-child(1)").hide();
+          $("#content > div > div.container-right > div.favmore > h5:nth-child(3)").hide();
+          getAnimeList("manga");
+        };
       };
     }
     let isManga = null;
@@ -3239,7 +4027,7 @@ function delay(ms) {
       // Create the score div
       const scoreDiv = create('div', {class: 'score'},animeData.score);
       // Create the progress div
-      const progressDiv = create('div', {class: 'progress'},animeData.progress);
+      const progressDiv = create('div', {class: 'progress'},animeData.progress + (animeData.progressEnd ? '/'+animeData.progressEnd : ''));
       // Create the format div
       const formatDiv = create('div', {class: 'format'},animeData.format);
       // Append all child elements to the entry row
@@ -3252,6 +4040,10 @@ function delay(ms) {
       entryRow.setAttribute("genres",JSON.stringify(animeData.genres ? animeData.genres : ""));
       entryRow.setAttribute("season",JSON.stringify(animeData.season ? animeData.season : ""));
       entryRow.setAttribute("tags",JSON.stringify(animeData.tags ? animeData.tags : ""));
+      entryRow.setAttribute("startDate",JSON.stringify(animeData.startDate ? animeData.startDate : ""));
+      entryRow.setAttribute("finishDate",JSON.stringify(animeData.finishDate ? animeData.finishDate : ""));
+      entryRow.setAttribute("createdAt",JSON.stringify(animeData.createdAt ? animeData.createdAt : ""));
+      entryRow.setAttribute("updatedAt",JSON.stringify(animeData.updatedAt ? animeData.updatedAt : ""));
     }
     async function fetchWithTimeout(url, timeout = 10000) {
       const controller = new AbortController();
@@ -3269,7 +4061,7 @@ function delay(ms) {
         throw error;
       }
     }
-    async function fetchWithRetry(url, timeout = 10000, retries = 5) {
+    async function fetchWithRetry(url, timeout = 15000, retries = 5) {
       for (let attempt = 1; attempt <= retries; attempt++) {
         try {
           return await fetchWithTimeout(url, timeout);
@@ -3314,7 +4106,7 @@ function delay(ms) {
       style: { position: "fixed", top: "50%", left: "0", right: "0", fontSize: "16px" },},
       "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>');
       const listEntries = create('div', {class: 'list-entries'});
-      document.querySelector(".container-right").append(listLoading,listEntries);
+      contRight.append(listLoading,listEntries);
         const html = await fetchAndCombineData().then(async allData => {
           let list = allData;
 
@@ -3328,8 +4120,13 @@ function delay(ms) {
                   imageUrl: list[x].manga_image_path,
                   href: list[x].manga_url,
                   title: list[x].manga_title,
-                  score:  list[x].score,
+                  score: list[x].score,
+                  startDate: list[x].start_date_string,
+                  finishDate: list[x].finish_date_string,
                   progress: list[x].num_read_chapters,
+                  progressEnd: list[x].manga_num_chapters,
+                  createdAt:list[x].created_at,
+                  updatedAt:list[x].updated_at,
                   status: list[x].status,
                   format: list[x].manga_media_type_string,
                   notes: list[x].editable_notes
@@ -3344,7 +4141,12 @@ function delay(ms) {
                   href: list[x].anime_url,
                   title: list[x].anime_title,
                   score:  list[x].score,
-                  progress:  list[x].num_watched_episodes,
+                  startDate: list[x].start_date_string,
+                  finishDate: list[x].finish_date_string,
+                  progress: list[x].num_watched_episodes,
+                  progressEnd: list[x].anime_num_episodes,
+                  createdAt:list[x].created_at,
+                  updatedAt:list[x].updated_at,
                   status: list[x].status,
                   format: list[x].anime_media_type_string,
                   notes: list[x].editable_notes
@@ -3356,10 +4158,10 @@ function delay(ms) {
 
       animeDataList.sort((a, b) => b.score - a.score);
       animeDataList.forEach(animeData => createEntryRow(animeData));
-      const container = document.querySelector('.container-right .list-entries');
-      const divs = Array.from(container.querySelectorAll('.status-section'));
+      const container = contRight.find('.list-entries');
+      const divs = Array.from(container.find('.status-section'));
       divs.sort((a, b) => a.id.localeCompare(b.id));
-      divs.forEach(div => container.appendChild(div));
+      divs.forEach(div => container.append(div));
       $('.loadmore').hide();
       listLoading.remove();
 
@@ -3368,12 +4170,15 @@ function delay(ms) {
       listFilter.innerHTML = '<label for="filter-input"></label><input type="text" id="filter-input" placeholder="Filter"><h3>Lists</h3>';
       const goBack = create('a', {class: 'filterLists-back fa fa-arrow-left'});
         goBack.onclick = () => {
-          $(".container-left").children().show();
-          $(".container-right").children().show();
+          contLeft.children().show();
+          contRight.children().show();
           $('.loadmore').show();
-          $(".container-left #filter").remove();
-          $(".container-left .listCheck-footer").remove();
-          $(".container-right .list-entries").remove();
+          $(".fav-slide-block.mb12").show();
+          $("#content > div > div.container-right > div.favmore > h5:nth-child(1)").show();
+          $("#content > div > div.container-right > div.favmore > h5:nth-child(3)").show();
+          contLeft.find("#filter").remove();
+          contLeft.find(".listCheck-footer").remove();
+          contRight.find(".list-entries").remove();
         };
       $(listFilter).prepend(goBack);
       $(listFilter).prepend($('<h3>', {text: isManga ? 'Manga List' : 'Anime List',css: { marginTop: 0 }}));
@@ -3415,7 +4220,7 @@ function delay(ms) {
         const listsDivContainer = create('div', {class: 'filterListsDivContainer'});
         listsDivContainer.append(listsDiv,listCount);
         listFilter.append(listsDivContainer);
-        document.querySelector(".container-left").appendChild(listFilter);
+        contLeft.append(listFilter);
         document.getElementById('filter-input').addEventListener('input', function() {
           var filterValue = this.value.toLowerCase();
           var entries = document.querySelectorAll('.entry');
@@ -3511,6 +4316,71 @@ function delay(ms) {
         // Initialize label
         $yearFilterLabel.text($yearFilterSlider.val());
         }
+
+      //Sort Filter
+      const sortFilter = create("div", { class: "filterList_SortFilter" });
+      sortFilter.innerHTML =
+        '<div class="sort-container" style="display: -webkit-box;display: -webkit-flex;display: -ms-flexbox;display: flex;gap: 0px 10px;margin-top: 10px;">'+
+        '<select id="sort-select" style="width:100%"><option value="score">Score</option><option value="title">Title</option>' +
+        '<option value="startdate">Start Date</option><option value="finishdate">Finish Date</option><option value="createdat">Last Added</option>' +
+        '<option value="updatedat">Last Updated</option></select><button class="fa fa-arrow-up" id="sort-asc" style="font-family: FontAwesome;width:33px;margin-top:0"></button>'+
+        '<button class="fa fa-arrow-down" id="sort-desc" style="font-family: FontAwesome;width:33px;margin-top:0"></button></div>';
+      listFilter.appendChild(sortFilter);
+      const sortSelect = document.getElementById("sort-select");
+      const sortAsc = document.getElementById("sort-asc");
+      const sortDesc = document.getElementById("sort-desc");
+
+      function sortEntriesInSection(section, criterion, order) {
+        const entries = Array.from(section.querySelectorAll(".entry"));
+        const compare = (a, b) => {
+          const aValue = getValue(a, criterion);
+          const bValue = getValue(b, criterion);
+          if (order === "asc") {
+            return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+          } else {
+            return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+          }
+        };
+
+        entries.sort(compare);
+        const parent = section;
+        entries.forEach((entry) => parent.appendChild(entry));
+      }
+
+      function getValue(entry, criterion) {
+        switch (criterion) {
+          case "score":
+            return parseInt(entry.querySelector(".score").textContent, 10);
+          case "title":
+            return entry.querySelector(".title").textContent.trim();
+          case "startdate":
+            return new Date(entry.getAttribute("startdate")).getTime();
+          case "finishdate":
+            return new Date(entry.getAttribute("finishdate")).getTime();
+          case "createdat":
+            return parseInt(entry.getAttribute("createdat"), 10);
+          case "updatedat":
+            return parseInt(entry.getAttribute("updatedat"), 10);
+          default:
+            return "";
+        }
+      }
+
+      function sortAllSections(criterion, order) {
+        const sections = document.querySelectorAll(".status-section");
+        sections.forEach((section) => {
+          sortEntriesInSection(section, criterion, order);
+        });
+      }
+
+      sortAsc.addEventListener("click", () => {
+        sortAllSections(sortSelect.value, "asc");
+      });
+
+      sortDesc.addEventListener("click", () => {
+        sortAllSections(sortSelect.value, "desc");
+      });
+
         //Tags
         const entries = document.querySelectorAll('.entry');
         const tagsContainer = create('div', {class: 'filterList_TagsContainer'});
@@ -3520,6 +4390,7 @@ function delay(ms) {
         listFilter.appendChild(tagsContainer);
         // Tags Clear Button Function
         $(tagsContainerClear).on('click', function() {
+          $(".tag-link.clicked").attr('class', 'tag-link');
           const entries = document.querySelectorAll('.entry');
           entries.forEach(entry => {
             entry.classList.remove('hidden');
@@ -3544,7 +4415,11 @@ function delay(ms) {
           const link = document.createElement('a');
           link.className = 'tag-link';
           link.textContent = tag;
-          link.onclick = () => filterByTag(tag);
+          link.onclick = () => {
+            $(".tag-link.clicked").attr('class', 'tag-link');
+            $(link).attr('class', 'tag-link clicked');
+            filterByTag(tag)
+          };
           tagsContainer.appendChild(link);
         });
         // Filter function
@@ -3771,98 +4646,99 @@ function delay(ms) {
   //Profile Section //--END--//
 
   //Character Section //-START-//
-  if (/\/(character)\/.?([\w-]+)?\/?/.test(current) && !(/\/(clubs)/.test(current)) && !(/\/(pics)/.test(current))) {
+  if (/\/(character)\/.?([\w-]+)?\/?/.test(current)) {
     let regex = /(Member Favorites).*/g;
-    let match = document.createElement('p');
-    let fav = document.querySelector('#content > table > tbody > tr > td.borderClass');
+    let match = document.createElement("p");
+    let fav = document.querySelector("#content > table > tbody > tr > td.borderClass");
     match.innerText = fav.innerText.match(regex);
-    fav.innerHTML = fav.innerHTML.replace(regex, '');
+    fav.innerHTML = fav.innerHTML.replace(regex, "");
     if (match) {
-      document.querySelector('#v-favorite').insertAdjacentElement('beforebegin', match);
+      document.querySelector("#v-favorite").insertAdjacentElement("beforebegin", match);
     }
-    $('div:contains("Voice Actors"):last').addClass('VoiceActorsDiv');
-    while ($('.VoiceActorsDiv').next('table').length > 0) {
-      $('.VoiceActorsDiv').append(
-        $('.VoiceActorsDiv').next('table').addClass('VoiceActorsDivTable').css({
-          backgroundColor: 'var(--color-foreground)',
-          borderRadius: 'var(--br)',
-          marginTop: '8px',
-          border:'var(--border) solid var(--border-color)',
-        }),
-      );
-      $('.VoiceActorsDivTable').children().children().children().children('.picSurround').children().children().css({
-        width: '60px !important',
-        height: '80px',
-        objectFit: 'cover',
-      });
-      $('.VoiceActorsDivTable').children().children().children().css({
-        border: '0',
-      });
-    }
-    $('.VoiceActorsDiv').css({
-      marginTop: '10px',borderBottom:'0',
-    });
-    $('h2:contains("Recent Featured Articles"):last').addClass('RecentFeaturedArticlesDiv').append($('.RecentFeaturedArticlesDiv').next());
-    $('.RecentFeaturedArticlesDiv').css({
-      marginTop: '10px',
-    });
-    $('.RecentFeaturedArticlesDiv').children('div:last-child').css({
-      marginTop: '8px',
-    });
-    $('.RecentFeaturedArticlesDiv').children().children().css('width', '99%').children().css('borderRadius', 'var(--br)');
-    let doc;
-    let main = document.querySelector('#content > table > tbody > tr > td:nth-child(2)');
-    $(main).addClass('characterDiv');
-    let text = create('div', {
-      class: 'description',
-      itemprop: 'description',
-      style: {
-        display: 'block',
-        fontSize: '11px',
-        fontWeight: '500',
-        marginTop: '5px',
-        whiteSpace: 'pre-wrap',
-        border:'var(--border) solid var(--border-color)',
-      },
-    });
-    main.childNodes.forEach(function (el, i) {
-      if (
-        i >= 5 &&
-        el !== document.querySelector('.VoiceActorsDiv') &&
-        el !== document.querySelector('h2') &&
-        el !== document.querySelector('.RecentFeaturedArticlesDiv') &&
-        el.innerText !== 'Voice Actors' &&
-        el.innerText !== 'More Videos\nEpisode Videos' &&
-        el.innerText !== 'Episode Videos' &&
-        el.id !== 'episode_video' &&
-        el.id !== 'CallFunctionFormatMoreInfoText'
-      ) {
-        if (el.innerHTML === undefined) {
-          text.innerHTML += el.textContent;
-        } else {
-          text.innerHTML += el.innerHTML;
-        }
-      }
-    });
-    let fixtext = text.innerHTML.replace(/\n\s{2,100}/g, '');
-    text.innerHTML = fixtext;
-    if (document.querySelector('#content > table > tbody > tr > td.characterDiv > br:nth-child(5)')) {
-      doc = document.querySelector('#content > table > tbody > tr > td.characterDiv > br:nth-child(5)');
+    if (/\/(clubs)/.test(current) || /\/(pics)/.test(current)) {
     } else {
-      doc = document.querySelector('#content > table > tbody > tr > td.characterDiv > br:nth-child(6)');
-    }
-    doc.before(text);
-    $.trim($('.characterDiv').contents().not($('.description')).not($('.VoiceActorsDiv')).not($('#horiznav_nav')).not($('.breadcrumb')).not($('h2')).not($('table')).remove());
-    $('.description').children().not($('li')).not($('input')).not($('span.spoiler_content')).remove();
-    let spofix = document.querySelectorAll('.spoiler_content > input');
-    $('.spoiler_content').css({
-      background: 'var(--color-foreground4)',
-      borderRadius: 'var(--br)',
-      padding: '0px 5px 5px',
-      margin: '5px 0px',
-    });
-    for (let x = 0; x < spofix.length; x++) {
-      spofix[x].setAttribute('onclick', "this.parentNode.style.display='none';this.parentNode.previousElementSibling.style.display='inline-block';");
+      $('div:contains("Voice Actors"):last')
+        .addClass("VoiceActorsDiv")
+        .html(function (_, html) {
+          return html.replace("Voice Actors", "");
+        })
+        .before('<h2 class="VoiceActorsHeader"style="margin-bottom: -10px;margin-top: 10px;">Voice Actors</h2>');
+
+      while ($(".VoiceActorsDiv").next("table").length > 0) {
+        $(".VoiceActorsDiv").append(
+          $(".VoiceActorsDiv").next("table").addClass("VoiceActorsDivTable").css({
+            backgroundColor: "var(--color-foreground)",
+            borderRadius: "var(--br)",
+            marginTop: "8px",
+            border: "var(--border) solid var(--border-color)",
+          })
+        );
+        $(".VoiceActorsDivTable").children().children().children().children(".picSurround").children().children().css({
+          width: "52px",
+          height: "80px",
+          objectFit: "cover",
+        });
+        $(".VoiceActorsDivTable").children().children().children().css({
+          border: "0",
+        });
+      }
+      $(".VoiceActorsDiv").css({
+        display: "-ms-grid",
+        display: "grid",
+        MsGridColumns: "1fr 1fr",
+        gridTemplateColumns: "1fr 1fr",
+        gap: "0px 6px",
+      });
+      $('h2:contains("Recent Featured Articles"):last').addClass("RecentFeaturedArticlesDiv").append($(".RecentFeaturedArticlesDiv").next());
+      $(".RecentFeaturedArticlesDiv").css({
+        marginTop: "10px",
+      });
+      $(".RecentFeaturedArticlesDiv").children("div:last-child").css({
+        marginTop: "8px",
+      });
+      $(".RecentFeaturedArticlesDiv").children().children().css("width", "99%").children().css("borderRadius", "var(--br)");
+      let main = document.querySelector("#content > table > tbody > tr > td:nth-child(2)");
+      $(main).addClass("characterDiv");
+      let text = create("div", {
+        class: "description",
+        itemprop: "description",
+        style: {
+          display: "block",
+          fontSize: "11px",
+          fontWeight: "500",
+          marginTop: "5px",
+          whiteSpace: "pre-wrap",
+          border: "var(--border) solid var(--border-color)",
+        },
+      });
+
+      text.innerHTML = getTextUntil(".VoiceActorsHeader");
+      main.appendChild(text);
+
+      //Remove spaces and add text at the top
+      let fixtext = text.innerHTML.replace(/\n\s{2,100}/g, "");
+      text.innerHTML = fixtext;
+
+      document.querySelector(".breadcrumb").after(text);
+
+      //Cleanup
+      $.trim($('.characterDiv').contents().not($('.description')).not($('.VoiceActorsDiv')).not($('#horiznav_nav')).not($('.breadcrumb')).not($('h2')).not($('table')).remove());
+      $(".description").children().not($("li")).not($("input")).not($("span.spoiler_content")).remove();
+
+      //Fix Spoilers
+      let spofix = document.querySelectorAll(".spoiler_content > input");
+      $(".spoiler_content").css({
+        background: "var(--color-foreground4)",
+        borderRadius: "var(--br)",
+        padding: "0px 5px 5px",
+        margin: "5px 0px",
+      });
+      for (let x = 0; x < spofix.length; x++) {
+        spofix[x].setAttribute("onclick", "this.parentNode.style.display='none';this.parentNode.previousElementSibling.style.display='inline-block';");
+      }
+      if ($(".VoiceActorsHeader").next().html() === "") {
+        $(".VoiceActorsHeader").remove();
+      }
     }
   }
   //Character Section //--END--//
@@ -3962,22 +4838,14 @@ function delay(ms) {
     if($('.table-recently-updated').length){
       $('.table-recently-updated').addClass("spaceit-shadow-end");
     }
-    if($('.CharactersDiv').length && $('.CharactersDiv')[0].nextSibling.nodeValue && $('.CharactersDiv')[0].nextSibling.nodeValue.includes("No characters or voice")){
-      emptyInfoAddDiv('.CharactersDiv');
-    }
-    if($('.RecommendationsDiv').length && $('.RecommendationsDiv')[0].nextSibling.nodeValue && $('.RecommendationsDiv')[0].nextSibling.nodeValue.includes("No recommendations have been made")){
-      emptyInfoAddDiv('.RecommendationsDiv');
-    }
-    if($('.CharactersDiv').length && $('.CharactersDiv')[0].nextSibling.nodeValue && $('.CharactersDiv')[0].nextSibling.nodeValue.includes("No characters ")){
-      emptyInfoAddDiv('.CharactersDiv');
-      $('.CharactersDiv')[0].nextSibling.innerHTML = $('.CharactersDiv')[0].nextSibling.innerHTML.replace('<br>', '');
-    }
-    if($('.StaffDiv').length && $('.StaffDiv')[0].nextSibling.nodeValue && $('.StaffDiv')[0].nextSibling.nodeValue.includes("No staff for this")){
-      emptyInfoAddDiv('.StaffDiv');
-    }
-    if($('.MoreInfoDiv').length){
-      emptyInfoAddDiv('.MoreInfoDiv');
-    }
+
+    handleEmptyInfo('.SynopsisDiv', "No synopsis information has been added to this title.");
+    handleEmptyInfo('.CharactersDiv', "No characters or voice");
+    handleEmptyInfo('.CharactersDiv', "No characters for this manga");
+    handleEmptyInfo('.RecommendationsDiv', "No recommendations have been made");
+    handleEmptyInfo('.StaffDiv', "No staff for this");
+    handleEmptyInfo('.MoreInfoDiv','');
+
     if($('.RecentNewsDiv').length && !$('.RecentNewsDiv').next().is('div')){
       $('.RecentNewsDiv').remove();
     }
@@ -4408,8 +5276,11 @@ function delay(ms) {
         name.setAttribute('style', 'line-height:25px');
       }
       let extra = document.querySelector('#content > table > tbody > tr > td.characterDiv > h2 > span > small');
-      extra.innerText = ' ' + extra.innerText;
+      if(extra) {
+        extra.innerText = ' ' + extra.innerText;
+      }
       if (svar.characterNameAlt) {
+      if(extra) {
         extra.innerHTML = extra.innerHTML;
         document.querySelector('.h1.edit-info > div.h1-title > h1').append(extra);
         extra.style.lineHeight = '20px';
@@ -4419,6 +5290,7 @@ function delay(ms) {
         } else {
           extra.innerHTML = '</br>' + extra.innerHTML;
         }
+      }
       }
       document.querySelector('#content > table > tbody > tr > td.characterDiv > h2').remove();
     }
@@ -4751,11 +5623,13 @@ function delay(ms) {
         });
       }
     }
+
     function insert(songs, parent) {
       if (!songs || !songs.length) {
         let song = create('div',{class: 'song',},'',);
         parent.append(song);
       } else {
+
         songs.forEach((song, i) => {
           song.title = song.title.replace(/(".*")/, '<b>' + '$1' + '</b>');
           const txt = `${i + 1}. ${song.title || song}`;
@@ -4844,6 +5718,30 @@ function delay(ms) {
               accordionButton.innerHTML = '<i class="fas fa-chevron-down mr4"></i>\nShow More\n';
             }
           });
+        }
+        for(let x=0; x< themeSongs.length; x++){
+          const favorite = create('div',{class: 'fav fa-star',style:{fontFamily: 'FontAwesome',display: 'inline-block',marginLeft: '5px',cursor:'pointer'}},'',);
+          favorite.onclick = () => {
+            $(favorite).parent().find('.oped-preview-button').click();
+            const title = $(favorite).parent().text();
+            const type = $(favorite).parent().prev("h2").text();
+            const src = $(favorite).parent().find('video').attr('src');
+            const favArray = [
+              {
+                animeTitle:document.title.replace(' - MyAnimeList.net',''),
+                animeImage:document.querySelector("img[itemprop]").src,
+                animeUrl:currentid,
+                songTitle:title.substring(2),
+                songSource:src,
+                themeType:(type === "Openings" ? "OP" : "ED")
+              }
+            ];
+            const compressedBase64 = LZString.compressToBase64(JSON.stringify(favArray));
+            const base64url = compressedBase64.replace(/\//g, '_');
+            editAboutPopup(`favSongEntry/${base64url}`,'favSongEntry');
+            $(favorite).parent().find('.oped-preview-button').click();
+          }
+          themeSongs[x].append(favorite);
         }
       }
       addAccordion('div.di-t > div.anisongs:nth-child(1)');
