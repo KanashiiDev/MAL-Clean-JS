@@ -23,5 +23,7 @@ Extra customizations and fixes for <a href="https://userstyles.world/style/10678
 <b>Forum</b>
 <li>Make anime & manga links like Anilist </li><br>
 <b>Profile</b>
+<li>Add anime themes to your profile.</li>
 <li>Make profile looks like AniList <i>(Custom background and avatar will be visible to others with the script.)</i></li>
-<li>Custom CSS  <i>(This will be visible to others with the script.)</i></li>
+<li>Make Anime/Manga List like Anilist </li>
+<li>Custom CSS <i>(This will be visible to others with the script.)</i></li>
