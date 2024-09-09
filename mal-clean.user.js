@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.28.2
+// @version     1.28.3
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -409,8 +409,11 @@ async function editAboutPopup(data, type) {
 
       popupLoading.innerHTML = "Updating" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
 
-      if ($iframeContents.find(".goodresult").length > 0) {
+      if ($iframeContents.find(".goodresult")[0]) {
         window.location.reload();
+      }
+      if ($iframeContents.find(".badresult")[0]){
+        popupLoading.innerHTML = "An error occured. Please try again.";
       }
 
       if (isClassic) {
@@ -430,7 +433,7 @@ async function editAboutPopup(data, type) {
           $about.text(aboutText.replace(customCssRegex, data+'/'));
           $submit.click();
         } else if (type === 'favSongEntry') {
-          if(!$iframeContents.find(".goodresult").length){
+          if(!$iframeContents.find(".goodresult")[0]){
             if($about.text().indexOf(data) > -1){
               popupLoading.innerHTML = "Already Added";
             } else{
@@ -479,7 +482,7 @@ async function editPopup(id, type, add) {
     const iframe = create("iframe", { src: popupId });
     iframe.style.opacity = 0;
     const close = () => {
-      if ($(iframe).contents().find(".goodresult").length && url) {
+      if ($(iframe).contents().find(".goodresult")[0] && url) {
         window.location.reload();
       }
       popup.remove();
@@ -496,7 +499,7 @@ async function editPopup(id, type, add) {
     document.body.style.overflow = "hidden";
 
     $(iframe).on("load", function () {
-      if(add){
+      if(!add){
         popupLoading.remove();
         iframe.style.opacity = 1;
       } else{
@@ -504,6 +507,9 @@ async function editPopup(id, type, add) {
       }
       if(add && $(iframe).contents().find(".goodresult")[0]){
         close();
+      }
+      if ($(iframe).contents().find(".badresult")[0]){
+        popupLoading.innerHTML = "An error occured. Please try again.";
       }
         // close advanced section
         if ($(iframe).contents().find("#hide-advanced-button")[0].style.display === "") {
@@ -556,7 +562,7 @@ async function editPopup(id, type, add) {
             checkEp();
           }
         });
-      if(!add) {
+      if(add) {
         let ep = $(iframe).contents().find("#add_anime_num_watched_episodes,#add_manga_num_read_chapters")[0];
         let lastEp = parseInt($(iframe).contents().find("#totalEpisodes,#totalChap").text());
         let mangaVol = $(iframe).contents().find("#add_manga_num_read_volumes")[0];
@@ -5697,7 +5703,7 @@ function delay(ms) {
       insert(data.opening_themes, op);
       insert(data.ending_themes, ed);
 
-      function addAccordion(div) {
+      async function addAccordion(div) {
         const aniSongsDiv = document.querySelector(div);
         const themeSongs = aniSongsDiv.querySelectorAll(".theme-songs");
         if (themeSongs.length > 4) {
@@ -5720,18 +5726,33 @@ function delay(ms) {
           });
         }
         for(let x=0; x< themeSongs.length; x++){
+          const entryId = current.split("/")[2];
           const favorite = create('div',{class: 'fav fa-star',style:{fontFamily: 'FontAwesome',display: 'inline-block',marginLeft: '5px',cursor:'pointer'}},'',);
-          favorite.onclick = () => {
+          favorite.onclick = async () => {
             $(favorite).parent().find('.oped-preview-button').click();
-            const title = $(favorite).parent().text();
+            const animeTitle = $('.title-name').text() ? $('.title-name').text() : document.title.replace(' - MyAnimeList.net','');
+            const title = $(favorite).parent().text().substring(2);
             const type = $(favorite).parent().prev("h2").text();
             const src = $(favorite).parent().find('video').attr('src');
+            let img;
+            async function imgLoad() {
+              img = document.querySelector('div:nth-child(1) > a > img');
+              set(0, img, { sa: { 0: "position: fixed;opacity:0!important;" }});
+              if (img && img.src) {
+                set(0, img, { sa: { 0: "position: relative;opacity:1!important;" }});
+              }
+              else {
+                await delay(250);
+                await imgLoad();
+              }
+            }
+            await imgLoad();
             const favArray = [
               {
-                animeTitle:document.title.replace(' - MyAnimeList.net',''),
-                animeImage:document.querySelector("img[itemprop]").src,
+                animeTitle:animeTitle,
+                animeImage:img.src,
                 animeUrl:currentid,
-                songTitle:title.substring(2),
+                songTitle:title,
                 songSource:src,
                 themeType:(type === "Openings" ? "OP" : "ED")
               }
@@ -5741,7 +5762,9 @@ function delay(ms) {
             editAboutPopup(`favSongEntry/${base64url}`,'favSongEntry');
             $(favorite).parent().find('.oped-preview-button').click();
           }
-          themeSongs[x].append(favorite);
+          if (themeSongs[x].className === 'theme-songs js-theme-songs has-video') {
+            themeSongs[x].append(favorite);
+          }
         }
       }
       addAccordion('div.di-t > div.anisongs:nth-child(1)');
