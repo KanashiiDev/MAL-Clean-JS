@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.28.3
+// @version     1.28.4
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -376,13 +376,16 @@ async function editAboutPopup(data, type) {
       class: "fancybox-overlay",
       style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "2" },
     });
+    const popupDataText = create("div", {class: "dataTextDiv",});
+    const popupDataTextButton = create("button", {class: "dataTextButton",},"Copy");
     const popupLoading = create("div", {
       class: "actloading",
-      style: { position: "fixed", top: "45%", left: "0", right: "0", fontSize: "16px" },
+      style: { position: 'relative',left: '0px',right: '0px',fontSize: '16px',height: '100%',alignContent: 'center',zIndex: '2'},
     }, "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome;word-break: break-word;"></i>');
     const iframe = create("iframe", { src: 'https://myanimelist.net/editprofile.php' });
     iframe.style.opacity = 0;
 
+    // close popup function
     const close = () => {
       popup.remove();
       popupMask.remove();
@@ -390,10 +393,13 @@ async function editAboutPopup(data, type) {
       resolve();
     };
 
-    popup.append(popupClose, iframe, popupLoading);
+    popup.append(popupClose, popupLoading, iframe);
     document.body.append(popup,popupMask);
     document.body.style.overflow = "hidden";
-    $('button#custombg,button#custompf,button#customcss').prop('disabled', true);
+
+    if(type === 'pf' || type === 'bg' ||type === 'css'){
+      $('button#custombg,button#custompf,button#customcss').prop('disabled', true);
+    }
 
     $(iframe).on("load", async function () {
       let $iframeContents = $(iframe).contents();
@@ -433,10 +439,10 @@ async function editAboutPopup(data, type) {
           $about.text(aboutText.replace(customCssRegex, data+'/'));
           $submit.click();
         } else if (type === 'favSongEntry') {
-          if(!$iframeContents.find(".goodresult")[0]){
-            if($about.text().indexOf(data) > -1){
+          if (!$iframeContents.find(".goodresult")[0]) {
+            if ($about.text().indexOf(data) > -1) {
               popupLoading.innerHTML = "Already Added";
-            } else{
+            } else {
               $about.text(aboutText.replace(addRegex, `$1$2${data}/$3`));
               $submit.click();
             }
@@ -445,13 +451,29 @@ async function editAboutPopup(data, type) {
           $about.text(aboutText.replace(data, ''));
           $submit.click();
         }
-      } else{
+         else if (type === 'replaceFavSong') {
+          $about.text(aboutText.replace(`/${data[0]}/`, `/${data[1]}/`).replace(`/${data[1]}/`, `/${data[0]}/`));
+          $submit.click();
+        }
+      } else {
         iframe.remove();
-        popupLoading.innerHTML = "You are not using classic about.<br>Please create a blog post and paste this code there. <br>[url=https://" + data + "/]";
+        popupLoading.innerHTML = "You are not using classic about.<br>Please create a blog post and paste this code there.";
+        popupDataText.innerHTML = "[url=https://" + data + "/]";
+        popupLoading.append(popupDataText,popupDataTextButton);
+        popupDataTextButton.addEventListener('click', function() {
+          const tempInput = document.createElement('input');
+          tempInput.value = popupDataText.innerText;
+          document.body.appendChild(tempInput);
+          tempInput.select();
+          tempInput.setSelectionRange(0, 99999);
+          document.execCommand('copy');
+          document.body.removeChild(tempInput);
+          popupDataTextButton.innerText = "Copied!"
+        });
       }
     });
 
-    // close popup
+    // close popup click function
     popupClose.onclick = () => {
       close();
     };
@@ -472,7 +494,7 @@ async function editPopup(id, type, add) {
     const popupBack = create("a", { class: "popupBack fa-solid fa-arrow-left", href: "javascript:void(0);" });
     const popupLoading = create("div",{
       class: "actloading",
-      style: { position: "fixed", top: "50%", left: "0", right: "0", fontSize: "16px" },},
+      style: { position: 'relative',left: '0px',right: '0px',fontSize: '16px',height: '100%',alignContent: 'center',zIndex: '2'},},
       "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>'
     );
     const popupMask = create("div", {
@@ -494,7 +516,7 @@ async function editPopup(id, type, add) {
       popup.style.height = "472px";
     }
 
-    popup.append(popupClose, iframe, popupLoading);
+    popup.append(popupClose, popupLoading, iframe);
     document.body.append(popup, popupMask);
     document.body.style.overflow = "hidden";
 
@@ -752,7 +774,7 @@ let styles = `
     text-overflow: ellipsis;
     width: 325px
 }
-
+.favThemes .anime-container .sortFavSong,
 .favThemes .anime-container .removeFavSong {
     display: none;
     font-family: 'FontAwesome';
@@ -764,9 +786,25 @@ let styles = `
     height: 4px;
     font-size: 8px
 }
-
+.favThemes .anime-container .sortFavSong {
+    right:15px
+}
+.favThemes .anime-container .sortFavSong.selected {
+    color: var(--color-link);
+    display: block!important
+}
+.loadmore:hover,
+.favThemes .anime-container .sortFavSong:hover,
+.favThemes .anime-container .removeFavSong:hover {
+    color: var(--color-link)
+}
+.favThemes .anime-container:hover .sortFavSong,
 .favThemes .anime-container:hover .removeFavSong {
     display: block !important
+}
+
+.favThemes .anime-container:hover .sortFavSong.hidden{
+     display: none !important
 }
 
 .favThemes .flex2x .anime-container {
@@ -780,8 +818,9 @@ let styles = `
 }
 
 .favThemes .anime-container {
-position: relative;
+    position: relative;
     background: var(--color-foreground);
+    border: var(--border) solid var(--border-color);
     -webkit-border-radius: var(--border-radius);
     border-radius: var(--border-radius);
     padding: 10px;
@@ -822,6 +861,7 @@ position: relative;
 }
 
 .favThemes .favSongHeader h2 {
+    cursor: default;
     -webkit-border-image: -webkit-gradient(linear, left top, right top, from(var(--color-foreground)), color-stop(50%, var(--color-foreground4)), to(var(--color-foreground))) 1;
     -webkit-border-image: linear-gradient(to right, var(--color-foreground) 0%, var(--color-foreground4) 50%, var(--color-foreground) 100%) 1;
     -o-border-image: -o-linear-gradient(left, var(--color-foreground) 0%, var(--color-foreground4) 50%, var(--color-foreground) 100%) 1;
@@ -961,7 +1001,10 @@ input#year-filter-slider {
     border-radius: var(--border-radius);
     margin: 5px 0px
 }
-
+#maljsDraw3x3:hover,
+.compareBtn:hover,
+.sort-container #sort-asc:hover,
+.sort-container #sort-desc:hover,
 .genreDropBtn:hover {
     background: var(--color-foreground4)
 }
@@ -1594,7 +1637,18 @@ input.maljsNativeInput {
     right: inherit !important;
     font-family: FontAwesome;
     float: left;
-    padding: 0px 0px 5px 0px;
+    padding: 0px 0px 5px 0px
+}
+
+#currently-popup .dataTextDiv {
+    max-height: 145px;
+    overflow: scroll;
+    word-break: break-all;
+    background: var(--color-foreground4);
+    -webkit-border-radius: var(--border-radius);
+    border-radius: var(--border-radius);
+    padding: 10px;
+    margin: 10px
 }
 
 .widget.seasonal.left .btn-anime i:hover {
@@ -1839,7 +1893,7 @@ input.maljsNativeInput {
     top: inherit;
     right: 25px
 }
-
+#currently-popup .dataTextButton,
 .mainbtns {
     -webkit-transition: 0.25s;
     -o-transition: 0.25s;
@@ -1853,7 +1907,7 @@ input.maljsNativeInput {
     background-color: var(--color-background);
     color: var(--color-text)
 }
-
+#currently-popup .dataTextButton:hover,
 .mainbtns:hover {
     -webkit-transform: scale(1.04);
     -ms-transform: scale(1.04);
@@ -1941,6 +1995,19 @@ let styles1 = `
     -webkit-filter: invert(100%) hue-rotate(180deg) brightness(75%) !important;
     filter: invert(100%) hue-rotate(180deg) brightness(75%) !important
 }
+.theme-songs.js-theme-songs.has-video .fa-star {
+    font-family: FontAwesome;
+    opacity: .1;
+    display: inline;
+    margin-left: 5px;
+    cursor: pointer;
+    -webkit-transition: .3s;
+    -o-transition: .3s;
+    transition: .3s
+}
+.theme-songs.js-theme-songs.has-video:hover .fa-star {
+    opacity: 1
+}
 `;
 let styles2 = `
 .lazyloading {
@@ -1953,7 +2020,7 @@ footer {
 }
 .dark-mode .profile .user-statistics,
 .profile .user-statistics {
-  width: 99%;
+  width: 99%
 }
 .dark-mode .profile .user-comments .comment,
 .profile .user-comments .comment,
@@ -1961,7 +2028,7 @@ footer {
 .page-common .content-container .container-right h2,
 .dark-mode .fav-slide-block,
 .fav-slide-block {
-  width: 96%;
+  width: 96%
 }
 #myanimelist:before {
   content: "";
@@ -1987,7 +2054,7 @@ body:not(.ownlist) {
   margin-left: -15px;
   width: 1070px;
   border-radius: var(--border-radius);
-  box-shadow: 0 0 4px var(--shadow-color) !important;
+  box-shadow: 0 0 4px var(--shadow-color) !important
 }
 `;
 
@@ -3331,9 +3398,13 @@ function delay(ms) {
           }
         }
       }
+
       let opGroup = create("div", { id: "op-group" });
       let edGroup = create("div", { id: "ed-group" });
       let FavContent = create("div", { class: "favThemes" });
+      let sortItem1 = null;
+      let sortItem2 = null;
+
       if (svar.alstyle) {
         $("#content > div > div.container-left > div li.icon-statistics.link").before(FavContent);
       } else {
@@ -3343,34 +3414,32 @@ function delay(ms) {
         opGroup.classList.add("flex2x");
         edGroup.classList.add("flex2x");
       }
+
       favarray.forEach((arr, index) => {
         arr.forEach((item) => {
           const favSongContainer = create("div", { class: "anime-container", type: item.themeType });
           favSongContainer.innerHTML = `
-                <div class="fa fa-x removeFavSong" order=${index}></div>
-                <div class="favSongContainer">
-                <a href='https://myanimelist.net/anime/${item.animeUrl}/'>
-                ${`<img src="${item.animeImage ? item.animeImage : "https://cdn.myanimelist.net/r/42x62/images/questionmark_23.gif?s=f7dcbc4a4603d18356d3dfef8abd655c"}" class="anime-image" alt="${
-                  item.animeTitle
-                }">`}
-                </a>
-                <div class="favSongHeader">
-                <h2>${item.animeTitle}</h2>
-                <a class="favThemeSongTitle" style="cursor:pointer">${item.songTitle}</a>
-                </div></div>
-                <div class="video-container">
-                <video controls>
-                <source src="${item.songSource}" type="video/webm">
-                Your browser does not support the video tag.
-                </video>
-                </div>
-                `;
+            <div class="fa fa-sort sortFavSong"order=${index}></div>
+            <div class="fa fa-x removeFavSong" order=${index}></div>
+            <div class="favSongContainer">
+            <a href='https://myanimelist.net/anime/${item.animeUrl}/'>
+            ${`<img src="${item.animeImage ? item.animeImage : "https://cdn.myanimelist.net/r/42x62/images/questionmark_23.gif?s=f7dcbc4a4603d18356d3dfef8abd655c"}" class="anime-image" alt="${item.animeTitle}">`}</a>
+            <div class="favSongHeader">
+            <h2>${item.animeTitle}</h2>
+            <a class="favThemeSongTitle" style="cursor:pointer">${item.songTitle}</a>
+            </div></div>
+            <div class="video-container">
+            <video controls>
+            <source src="${item.songSource}" type="video/webm">
+            Your browser does not support the video tag.
+            </video>
+            </div>
+            `;
           FavContent.appendChild(favSongContainer);
         });
       });
       FavContent.append(opGroup, edGroup);
-      $(opGroup).before(`<h5 style="${svar.alstyle ? "font-size: 11px; margin-bottom: 8px; margin-left: 2px;" : ""}">Openings</h5>`);
-      $(edGroup).before(`<h5 style="${svar.alstyle ? "font-size: 11px; margin-bottom: 8px; margin-left: 2px;" : ""}">Endings</h5>`);
+
       const favThemes = document.querySelector(".favThemes");
       const animeContainers = favThemes.querySelectorAll(".anime-container");
 
@@ -3378,16 +3447,58 @@ function delay(ms) {
         const type = container.getAttribute("type");
         if (type === "OP") {
           opGroup.appendChild(container);
+          if($(opGroup).children().length ===1) {
+            $(opGroup).before(`<h5 style="${svar.alstyle ? "font-size: 11px; margin-bottom: 8px; margin-left: 2px;" : ""}">Openings</h5>`);
+          }
         } else if (type === "ED") {
           edGroup.appendChild(container);
         }
+        if($(edGroup).children().length ===1) {
+          $(edGroup).before(`<h5 style="${svar.alstyle ? "font-size: 11px; margin-bottom: 8px; margin-left: 2px;" : ""}">Endings</h5>`);
+        }
       });
+      //Sort Favorite Song click function
+      document.querySelectorAll('.sortFavSong').forEach(element => {
+        element.addEventListener('click', function() {
+          const order = this.getAttribute('order');
+          if (sortItem1 === null) {
+            sortItem1 = order;
+            $('.sortFavSong').addClass('hidden');
+            $(this).addClass('selected');
+            $(this).parent().parent().children('.anime-container').children('.sortFavSong').removeClass('hidden');
+            $(this).parent().parent().children('.anime-container').children('.sortFavSong').show();
+          } else if (sortItem2 === null) {
+            sortItem2 = order;
+            if(sortItem2 !== sortItem1){
+              replaceFavSongs();
+            }
+            $(this).parent().parent().children('.anime-container').children('.sortFavSong').hide();
+            $('.sortFavSong').removeClass('hidden').removeClass('selected');
+          }
+          if(sortItem1 === sortItem2) {
+            sortItem1 = null;
+            sortItem2 = null;
+          }
+
+          function replaceFavSongs() {
+            const sortItem1compressedBase64 = LZString.compressToBase64(JSON.stringify(favarray[sortItem1]));
+            const sortItem1base64url = sortItem1compressedBase64.replace(/\//g, "_");
+            const sortItem2compressedBase64 = LZString.compressToBase64(JSON.stringify(favarray[sortItem2]));
+            const sortItem2base64url = sortItem2compressedBase64.replace(/\//g, "_");
+            editAboutPopup([sortItem1base64url,sortItem2base64url], "replaceFavSong");
+            sortItem1 = null;
+            sortItem2 = null;
+          }
+        });
+      });
+      //Remove Favorite Song click function
       $(".removeFavSong").on("click", function () {
         const compressedBase64 = LZString.compressToBase64(JSON.stringify(favarray[$(this).attr("order")]));
         const base64url = compressedBase64.replace(/\//g, "_");
         editAboutPopup(`favSongEntry/${base64url}/`, "removeFavSong");
       });
 
+      //Favorite Song Title click function
       $(".favThemeSongTitle").on("click", function () {
         if (!svar.alstyle) {
           const title = $(this).prev();
@@ -3399,9 +3510,11 @@ function delay(ms) {
         videoContainer.css("display", currentDisplay === "none" || currentDisplay === "" ? "block" : "none");
       });
       if (username !== $(".header-profile-link").text()) {
+        $(".sortFavSong").remove();
         $(".removeFavSong").remove();
       }
     }
+
     //Get Custom Background Image and Custom Profile Image Data from About Section
     async function findCustomAbout() {
       const aboutSection = document.querySelector('.user-profile-about.js-truncate-outer');
@@ -5591,6 +5704,12 @@ function delay(ms) {
                   }
                 }
               }
+              if (m === 0 && !vid.song.artists.length && vid.song.title !== null) {
+                if (stringSimilarity(title, vid.song.title) > .8 || i === vid.sequence && stringSimilarity(title, title2) > .8 || !vid.sequence && stringSimilarity(title, title2) > .8) {
+                    u = link;
+                    m = 1;
+                  }
+              }
               if (m === 0 && (ep === ep2 || ep === eps)) {
                 u = link;
                 m = 1;
@@ -5727,7 +5846,7 @@ function delay(ms) {
         }
         for(let x=0; x< themeSongs.length; x++){
           const entryId = current.split("/")[2];
-          const favorite = create('div',{class: 'fav fa-star',style:{fontFamily: 'FontAwesome',display: 'inline-block',marginLeft: '5px',cursor:'pointer'}},'',);
+          const favorite = create('div',{class: 'fav fa-star'},'',);
           favorite.onclick = async () => {
             $(favorite).parent().find('.oped-preview-button').click();
             const animeTitle = $('.title-name').text() ? $('.title-name').text() : document.title.replace(' - MyAnimeList.net','');
