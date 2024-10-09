@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.28.5
+// @version     1.28.6
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -798,6 +798,7 @@ let svar = {
   editPopup: true,
   forumDate: true,
   headerSlide: false,
+  headerOpacity: true,
   replaceList: false,
   blogRedesign: false,
 };
@@ -805,11 +806,12 @@ let svar = {
 svar.save = function () {
   localStorage.setItem('maljsSettings', JSON.stringify(svar));
 };
+
 const svarSettings = JSON.parse(localStorage.getItem('maljsSettings'));
+
 if (!svarSettings) {
   svar.save();
-}
-if (svar) {
+} else {
   let keys = Object.keys(svarSettings);
   keys.forEach((key) => (svar[key] = svarSettings[key]));
 }
@@ -939,7 +941,6 @@ let styles = `
 
 .favThemes .anime-container {
     position: relative;
-    background: var(--color-foreground);
     border: var(--border) solid var(--border-color);
     -webkit-border-radius: var(--border-radius);
     border-radius: var(--border-radius);
@@ -1942,11 +1943,20 @@ input.maljsNativeInput {
     background-color: var(--color-foreground);
     border-radius: 5px;
     color: #ffffff;
+    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+    border: var(--border) solid var(--border-color);
+    overflow: hidden;
     margin-top: 5px
 }
 
 .tooltipBody .main {
     margin: 0 !important
+}
+
+.tooltipBody .text b{
+    margin-bottom: 2px;
+    display: inline-block
 }
 
 .mainDiv {
@@ -2064,12 +2074,23 @@ input.maljsNativeInput {
     display: none !important
 }
 
+button#custombgRemove,
+button#custompfRemove,
+button#customcssRemove,
 button#customcss,
 button#custombg,
-button#custompf{
+button#custompf {
     height: 40px;
-    width: 32%
+    width: 26%
 }
+
+button#custombgRemove,
+button#custompfRemove,
+button#customcssRemove {
+    width: 5%;
+    font-family:FontAwesome
+}
+
 #custombadgeColorLoop,
 #badgecolorselector,
 button#custombadge{
@@ -2280,6 +2301,7 @@ const buttonsConfig = [
   { id: "currentlyReadingBtn", setting: "currentlyReading" },
   { id: "forumDateBtn", setting: "forumDate" },
   { id: "headerSlideBtn", setting: "headerSlide" },
+  { id: "headerOpacityBtn", setting: "headerOpacity" },
   { id: "relationFilterBtn", setting: "relationFilter" },
   { id: "replaceListBtn", setting: "replaceList" },
   { id: "blogRedesignBtn", setting: "blogRedesign" },
@@ -2307,6 +2329,7 @@ function createButton({ id, setting, text }) {
 let bgInput = create("input", { class: "bgInput", id: "bgInput" });
 bgInput.placeholder = "Paste your Background Image Url here";
 var bgButton = create("button", { class: "mainbtns", id: "custombg" }, "Update");
+var bgRemoveButton = create("button", { class: "mainbtns fa fa-trash", id: "custombgRemove" });
 var bgInfo = create("p", { class: "textpb" }, "");
 
 bgButton.onclick = () => {
@@ -2319,9 +2342,13 @@ bgButton.onclick = () => {
     bgInfo.innerText = "Background Image url empty.";
   }
 };
+bgRemoveButton.onclick = () => {
+    editAboutPopup(`custombg/...`,'bg');
+};
 
 //Custom Avatar
 var pfButton = create("button", { class: "mainbtns", id: "custompf" }, "Update");
+var pfRemoveButton = create("button", { class: "mainbtns fa fa-trash", id: "custompfRemove" });
 let pfInput = create("input", { class: "bgInput", id: "pfInput" });
 pfInput.placeholder = "Paste your Avatar Image Url here";
 var pfInfo = create("p", { class: "textpb" }, "");
@@ -2335,21 +2362,35 @@ pfButton.onclick = () => {
     pfInfo.innerText = "Avatar Image url empty.";
   }
 };
+pfRemoveButton.onclick = () => {
+    editAboutPopup(`custompf/...`,'pf');
+};
 
 //Custom CSS
 var cssButton = create("button", { class: "mainbtns", id: "customcss" }, "Update");
+var cssRemoveButton = create("button", { class: "mainbtns fa fa-trash", id: "customcssRemove" });
 var cssInfo = create("p", { class: "textpb" }, "");
 let cssInput = create("input", { class: "cssInput", id: "cssInput" });
+var cssAlStyle = create("button", { class: "mainbtns", id: "cssAlStyle" ,style:{height:"32px",width:"32px",verticalAlign: "middle"} });
+var cssAlStyleText = create("h3", { style:{display: 'inline'}}, "Custom CSS for Make profile like Anilist");
+let cssAlStyleEnabled = false;
+cssAlStyle.onclick = () => {
+  cssAlStyleEnabled = !cssAlStyleEnabled;
+  cssAlStyle.classList.toggle('btn-active', cssAlStyleEnabled);
+}
 cssInput.placeholder = "Paste your CSS here";
 cssButton.onclick = () => {
   if (cssInput.value.length > 1) {
-    const cssBase64 = LZString.compressToBase64(JSON.stringify(cssInput.value));
+    const cssBase64 = LZString.compressToBase64(JSON.stringify([cssInput.value,cssAlStyleEnabled]));
     const cssbase64url = cssBase64.replace(/\//g, '_');
     editAboutPopup(`customcss/${cssbase64url}`,'css');
     cssInput.addEventListener(`focus`, () => cssInput.select());
   } else {
     cssInfo.innerText = "Css empty.";
   }
+};
+cssRemoveButton.onclick = () => {
+    editAboutPopup(`customcss/...`,'css');
 };
 
 //Custom Badge
@@ -2412,6 +2453,7 @@ function getSettings() {
   editPopupBtn.classList.toggle('btn-active', svar.editPopup);
   forumDateBtn.classList.toggle('btn-active', svar.forumDate);
   headerSlideBtn.classList.toggle('btn-active', svar.headerSlide);
+  headerOpacityBtn.classList.toggle('btn-active', svar.headerOpacity);
   replaceListBtn.classList.toggle('btn-active', svar.replaceList);
   blogRedesignBtn.classList.toggle('btn-active', svar.blogRedesign);
 }
@@ -2425,23 +2467,24 @@ function createDiv() {
     '<div class="profileHeader"><h2>' +
       "Custom Background Image (Required Anilist Style Profile)" +
       "</h2><h3>" +
-      "Add custom Background Image to your profile. This will be visible to others with the script." +
+      "Add custom background image to your profile. This will be visible to others with the script." +
       "</h3></div>"
   );
   let custompfDiv = create(
     "div",
     { class: "mainListDiv", id: "profileDiv" },
-    '<div class="profileHeader"><h2>' + "Custom Avatar (Required Anilist Style Profile)" + "</h2><h3>" + "Add custom Avatar to your profile. This will be visible to others with the script." + "</h3></div>"
+    '<div class="profileHeader"><h2>' + "Custom Avatar (Required Anilist Style Profile)" + "</h2><h3>" + "Add custom avatar to your profile. This will be visible to others with the script." + "</h3></div>"
   );
   let customcssDiv = create(
     "div",
     { class: "mainListDiv", id: "profileDiv" },
-    '<div class="profileHeader"><h2>' + "Custom CSS" + "</h2><h3>" + "Add custom CSS to your profile. This will be visible to others with the script." + "</h3></div>"
+    '<div class="profileHeader"><h2>' + "Custom CSS" + "</h2><h3>" + "Add custom css to your profile. This will be visible to others with the script." + "</h3></div>"
   );
   let custombadgeDiv = create(
     "div",
     { class: "mainListDiv", id: "profileDiv" },
-    '<div class="profileHeader"><h2>' + "Custom Badge (Required Anilist Style Profile)" + "</h2><h3>" + "Add custom badge to your profile. This will be visible to others with the script." + "</h3></div>"
+    '<div class="profileHeader"><h2>' + "Custom Badge (Required Anilist Style Profile)" + "</h2><h3>" + "Add custom badge to your profile. This will be visible to others with the script." +
+    "</h3><p>"+"You can use HTML elements. Maximum size 300x150. Update empty to delete."+"</p></div>"
   );
 
   const buttons = buttonsConfig.reduce((acc, { id, setting, text }) => {
@@ -2507,6 +2550,7 @@ function createDiv() {
       [
         { b: buttons["alStyleBtn"], t: "Make profile like Anilist" },
         { b: buttons["replaceListBtn"], t: "Make Anime/Manga List like Anilist" },
+        { b: buttons["headerOpacityBtn"], t: "Add auto opacity to the header if the user has a custom banner." },
         { b: buttons["customCssBtn"], t: "Show custom CSS" },
         { b: buttons["profileHeaderBtn"], t: "Change username position" },
       ]
@@ -2514,16 +2558,16 @@ function createDiv() {
   );
 
   if (svar.alstyle) {
-    listDiv.append(custombgDiv, custompfDiv, custombadgeDiv);
-    custombgDiv.append(bgInput, bgButton, bgInfo);
-    custompfDiv.append(pfInput, pfButton, pfInfo);
+    listDiv.append(custombadgeDiv, custompfDiv, custombgDiv);
+    custombgDiv.append(bgInput, bgButton, bgRemoveButton, bgInfo);
+    custompfDiv.append(pfInput, pfButton,pfRemoveButton, pfInfo);
     custombadgeDiv.append(badgeInput, badgeColorSelector, badgeColorLoop, badgeButton);
     buttons["profileHeaderBtn"].style.display = "none";
     buttons["profileHeaderBtn"].nextSibling.style.display = "none";
   }
 
   listDiv.append(customcssDiv);
-  customcssDiv.append(cssInput, cssButton, cssInfo);
+  customcssDiv.append(cssInput, cssButton, cssRemoveButton, cssAlStyle, cssAlStyleText, cssInfo);
   document.querySelector("#headerSmall").insertAdjacentElement("afterend", listDiv);
   listDiv.append(buttons["removeAllCustomBtn"]);
   getSettings();
@@ -2553,33 +2597,6 @@ function delay(ms) {
 //Main
 (function () {
   "use strict";
-
-  //Auto Hide/Show Header
-  if (svar.headerSlide) {
-    let lastScrollTop = 0;
-    const header = document.querySelector('#headerSmall');
-    const menu = document.querySelector('#menu');
-    if (header && menu) {
-      // Set initial position
-      header.style.top = '0';
-      menu.style.transition = "top 0.3s ease-in-out";
-      header.style.transition = "top 0.3s ease-in-out";
-
-      window.addEventListener('scroll', () => {
-        let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        if (scrollTop > lastScrollTop) {
-          // Scrolling down
-          header.style.top = '-50px';
-          menu.style.top = '-50px';
-        } else {
-          // Scrolling up
-          header.style.top = '0';
-          menu.style.top = '7px';
-        }
-        lastScrollTop = scrollTop;
-      });
-    }
-  }
 
   // News and Forum - Load iframe only when the spoiler button is clicked
   if (/\/(forum)\/.?topicid([\w-]+)?\/?/.test(location.href) || /\/(news)\/\d/.test(location.href)) {
@@ -3023,7 +3040,7 @@ function delay(ms) {
             info =
               '<div class="main">' +
               (info.title ? '<div class="text" style="position: relative;"><h2>' + info.title + "</h2><a id='"+info.mal_id+"' class='addtoList'>Add to List</a></div>" : "") +
-              (info.synopsis ? '<div class="text"><b>Synopsis</b><br>' + info.synopsis + "</div>" : "") +
+              (info.synopsis ? '<div class="text"><b>Synopsis</b><br>' + info.synopsis.replace(/(\[Written by MAL Rewrite\]+)/gm, '') + "</div>" : "") +
               (info.genres && info.genres[0]
                 ? '<br><div class="text"><b>Genres</b><br>' +
                   info.genres
@@ -3406,9 +3423,6 @@ function delay(ms) {
     blockU.onclick = () => {
       blockUser(username);
     }
-    if(username === $(".header-profile-link").text()) {
-      blockU.style.display = "none";
-    }
 
     //Wait for user image
     async function imgLoad() {
@@ -3430,7 +3444,11 @@ function delay(ms) {
       if (!customFounded) {
         await findCustomBlogPost();
       }
-      if (customcss && svar.customcss) {
+      if(customcss && customcss.constructor === Array && customcss[1]){
+        svar.alstyle = true;
+        applyAl();
+      }
+      else if (customcss && svar.customcss) {
         svar.alstyle = false;
         applyAl();
       } else if(customFounded || svar.alstyle === true) {
@@ -3460,8 +3478,14 @@ function delay(ms) {
           blockU.style.right= "85px";
           blockU.style.margin= "8.5px 0 0 0";
         }
+        if(username === $(".header-profile-link").text() || $(".header-profile-link").text() === '' || $(".header-profile-link").text() === 'MALnewbie') {
+          blockU.remove();
+        }
       }
-      document.querySelector("#contentWrapper").style.top = "60px";
+
+      if (!svar.customcss) {
+        document.querySelector("#contentWrapper").style.top = "60px";
+      }
       startCustomProfile();
     }
     if($('title').text() === '404 Not Found - MyAnimeList.net\n'){
@@ -3489,7 +3513,6 @@ function delay(ms) {
       let FavContent = create("div", { class: "favThemes" });
       let sortItem1 = null;
       let sortItem2 = null;
-
       if (svar.alstyle) {
         $("#content > div > div.container-left > div li.icon-statistics.link").before(FavContent);
       } else {
@@ -3498,6 +3521,12 @@ function delay(ms) {
         $(FavContent).css({marginBottom: '30px',width:'813px'});
         opGroup.classList.add("flex2x");
         edGroup.classList.add("flex2x");
+      }
+
+        if (customcss && customcss.constructor === Array && customcss[1] || customcss && customcss.constructor !== Array || svar.alstyle){
+        const favbg = document.createElement('style');
+        favbg.textContent = `.favThemes .anime-container {background: var(--color-foreground);}`;
+        document.head.appendChild(favbg);
       }
 
       favarray.forEach((arr, index) => {
@@ -3654,8 +3683,11 @@ function delay(ms) {
           }
         }
         if (favSongMatch) {
-          if(customFounded) {
+          if(customFounded){
             svar.alstyle = true;
+          }
+          if (customcss && customcss.constructor === Array && !customcss[1] || customcss && customcss.constructor !== Array){
+            svar.alstyle = false;
           }
           if (!/\/profile\/.*\/\w/gm.test(current)) {
             buildFavSongs(aboutContent)
@@ -3665,17 +3697,21 @@ function delay(ms) {
       if (aboutSection) {
         processAboutSection(aboutSection.innerHTML);
       } else {
-        // If current page not have about section get user about from jikanAPI
-        const apiUrl = `https://api.jikan.moe/v4/users/${username}/about`;
-        try {
-          const response = await fetch(apiUrl);
-          const data = await response.json();
-          if (data && data.data.about) {
-            processAboutSection(data.data.about);
+        await fetch('https://myanimelist.net/profile/'+username)
+          .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
           }
-        } catch (e) {
-          console.error('Error fetching user about data:', e);
-        }
+          return response.text();
+        })
+          .then(async html => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const userProfileAbout = doc.querySelector('.user-profile-about');
+          if (userProfileAbout) {
+            processAboutSection(userProfileAbout.innerHTML);
+          }
+        })
       }
     }
 
@@ -3718,21 +3754,27 @@ function delay(ms) {
         if (custompfMatch) {
           custompfLink = custompfMatch[0].replace(pfRegex, '$2').replace('https://', '');
           custompf = LZString.decompressFromBase64(custompfLink).replace(/"/gm, '');
-          document.querySelector('.user-image.mb8 > img').setAttribute('src', custompf);
-          customFounded = 1;
+          if(custompf !== '...') {
+            document.querySelector('.user-image.mb8 > img').setAttribute('src', custompf);
+            customFounded = 1;
+          }
         }
         if (custombgMatch) {
           custombgLink = custombgMatch[0].replace(bgRegex, '$2').replace('https://', '');
           custombg = LZString.decompressFromBase64(custombgLink).replace(/"/gm, '');
-          banner.setAttribute(
-          'style',
-          `background-color: var(--color-foreground);background:url(${custombg});background-position: 50% 35%; background-repeat: no-repeat;background-size: cover;height: 330px;position: relative;`
-        );
-        customFounded = 1;
+          if(custombg !== '...') {
+            banner.setAttribute(
+              'style',
+              `background-color: var(--color-foreground);background:url(${custombg});background-position: 50% 35%; background-repeat: no-repeat;background-size: cover;height: 330px;position: relative;`
+            );
+            customFounded = 1;
+          }
         }
         if (customcssMatch) {
           const cssData = customcssMatch[0].replace(cssRegex, '$2');
-          customcss = LZString.decompressFromBase64(cssData).substring(1).slice(0, -1);
+          if(customcss !== '...') {
+            customcss = LZString.decompressFromBase64(cssData).substring(1).slice(0, -1);
+          }
         }
       }
     }
@@ -3741,8 +3783,22 @@ function delay(ms) {
     if (svar.customcss) {
       findcss();
       function findcss() {
+        let customcssData,customcssAl;
+        if(customcss && customcss.constructor === Array){
+          customcssData = customcss[0];
+          customcssAl = customcss[1];
+        } else {
+          customcssData = customcss;
+        }
         if (customcss) {
-          $('style:contains(--fg: #161f2f;)').html('');
+          if(!customcssAl) {
+            const malscss = document.createElement('style');
+            malscss.textContent = `#currently-popup, .mainDivHeader, .mainDiv {background:#121212!important;}`;
+            document.head.appendChild(malscss);
+          }
+          if (!customcssAl) {
+            $('style:contains(--fg: #161f2f;)').html('');
+          }
           styleSheet3.innerText = styles3;
           document.getElementsByTagName("head")[0].appendChild(styleSheet3);
           styleSheet.innerText = styles;
@@ -3750,7 +3806,7 @@ function delay(ms) {
           getdata();
           function getdata() {
             let css = document.createElement('style');
-            if(customcss.match(/^https.*\.css$/)){
+            if(customcssData.match(/^https.*\.css$/)){
               let cssLink = document.createElement("link");
               cssLink.rel = "stylesheet";
               cssLink.type = "text/css";
@@ -3758,8 +3814,8 @@ function delay(ms) {
               document.getElementsByTagName("head")[0].appendChild(cssLink);
             }
             else {
-              if(customcss.length < 1e6){
-                css.innerText = customcss;
+              if(customcssData.length < 1e6){
+                css.innerText = customcssData;
                 document.getElementsByTagName("head")[0].appendChild(css);
               }
             }
@@ -3770,10 +3826,11 @@ function delay(ms) {
       if (svar.alstyle) {
         //CSS Fix for Anilist Style
         let fixstyle = `
-        .maljsNavBtn{background: var(--color-foreground);border-radius: 5px;cursor: pointer;display: inline-block;padding: 10px;text-align: center;}
+        .maljsNavBtn{background: var(--color-foreground);border-radius: 5px;cursor: pointer;display: inline-block;padding: 10px!important;text-align: center;}
         .maljsProfileBadge{background: var(--color-foreground);-webkit-border-radius: 4px;border-radius: 5px;color: #e9e9e9;font-weight:600;
         display: inline-block;margin-left: 10px;padding: 10px;text-align: center;-webkit-transition: .3s;-o-transition: .3s;transition: .3s;position: absolute;
         bottom: 56px;right: -56px;max-width: 300px;max-height: 150px;overflow: hidden;}
+        .maljsProfileBadge > * {width: auto; height: auto}
         .rainbow{-webkit-animation-duration: 20s;animation-duration: 20s;-webkit-animation-iteration-count: infinite;animation-iteration-count: infinite;
         -webkit-animation-name: rainbow;animation-name: rainbow;-webkit-animation-timing-function: ease-in-out;animation-timing-function: ease-in-out;cursor: default;}
         @keyframes rainbow{0%{background:rgb(0 105 255 / .71)}10%{background:rgb(100 0 255 / .71)}20%{background:rgb(255 0 139 / .71)}30%{background:rgb(255 0 0 / .71)}
@@ -3945,6 +4002,23 @@ function delay(ms) {
         container.setAttribute("style", "margin: 0 auto;min-width: 320px;max-width: 1240px;left: -40px;position: relative;height: 100%;");
         if (!custombg) {
           banner.setAttribute("style", "background-color: var(--color-foreground);background-position: 50% 35%; background-repeat: no-repeat;background-size: cover;height: 330px;position: relative;");
+        } else {
+          if(svar.headerOpacity){
+            const headerSmall = document.getElementById('headerSmall');
+            headerSmall.style.background = 'var(--fgo)!important';
+            headerSmall.addEventListener('mouseenter', () => {
+              let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+              if (scrollTop === 0) {
+                headerSmall.style.background = '';
+              }
+            });
+            banner.addEventListener('mouseenter', () => {
+              let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+              if (scrollTop === 0) {
+                headerSmall.style.background = 'var(--fgo)!important';
+              }
+            });
+          }
         }
         document.querySelector("#myanimelist").setAttribute("style", "min-width: 1240px;width:100%");
         set(1, "#myanimelist .wrapper", { sa: { 0: "width:100%;display:table" } });
@@ -4160,7 +4234,7 @@ function delay(ms) {
           '<li><a href="/profile/'+username+'/recommendations">Recommendations</a></li><li><a href="/profile/'+username+'/stacks">Interest Stacks</a></li><li><a href="/profile/'+username+'/clubs">Clubs</a></li>'+
           '<li><a href="/profile/'+username+'/badges">Badges</a></li><li><a href="/profile/'+username+'/friends">Friends</a></li></ul></div>';
         banner.insertAdjacentElement('afterend', nav);
-        nav.setAttribute('style', 'z-index: 2;position: relative;background: #000;text-align: center;background-color: var(--color-foreground) !important;');
+        nav.setAttribute('style', 'z-index: 3;position: relative;background: #000;text-align: center;background-color: var(--color-foreground) !important;');
         let navel = document.querySelectorAll('#navbar #horiznav_nav > ul > li > a');
         $('h2:contains("Synopsis"):last').parent().addClass('SynopsisDiv');
         let n = current.split('/')[3];
@@ -4929,6 +5003,41 @@ function delay(ms) {
   //Anilist Style Anime and Manga List //-END-//
   //Profile Section //--END--//
 
+  //Auto Hide/Show Header
+  if (svar.headerSlide || svar.headerOpacity) {
+    let lastScrollTop = 0;
+    const header = document.querySelector('#headerSmall');
+    const menu = document.querySelector('#menu');
+    if (header && menu) {
+      // Set initial position
+      header.style.top = '0';
+      menu.style.transition = "top 0.3s ease-in-out";
+      header.style.transition = "top 0.3s ease-in-out, background 0.3s ease-in-out";
+
+      window.addEventListener('scroll', () => {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        if(/\/(profile)\/.?([\w]+)?\/?/.test(location.pathname) && document.querySelector("#banner") && document.querySelector("#banner").style.background !== '' && svar.headerOpacity){
+          if (scrollTop === 0) {
+            header.style.background = 'var(--fgo)!important';
+          } else if (header.style.background !== '') {
+            header.style.background = '';
+          }
+        }
+        if (svar.headerSlide) {
+          if (scrollTop > lastScrollTop) {
+            // Scrolling down
+            header.style.top = '-50px';
+            menu.style.top = '-50px';
+          } else {
+            // Scrolling up
+            header.style.top = '0';
+            menu.style.top = '7px';
+          }
+        }
+        lastScrollTop = scrollTop;
+      });
+    }
+  }
   //Character Section //-START-//
   if (/\/(character)\/.?([\w-]+)?\/?/.test(current)) {
     let regex = /(Member Favorites).*/g;
@@ -6094,7 +6203,7 @@ function delay(ms) {
             editAboutPopup(`favSongEntry/${base64url}`,'favSongEntry');
             $(favorite).parent().find('.oped-preview-button').click();
           }
-          if (themeSongs[x].className === 'theme-songs js-theme-songs has-video') {
+          if (themeSongs[x].className === 'theme-songs js-theme-songs has-video' && $(".header-profile-link").text() !== '') {
             themeSongs[x].append(favorite);
           }
         }
