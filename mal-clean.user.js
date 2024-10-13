@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.28.6
+// @version     1.28.7
 // @author      KanashiiDev
 // @description Extra customization for MyAnimeList - Clean Userstyle
 // @license     GPL-3.0-or-later
@@ -338,24 +338,33 @@ function peopleDetailsAddDiv(title) {
 }
 
 // Add Div to Empty Anime/Manga Info
-function emptyInfoAddDiv(title) {
+function emptyInfoAddDiv(title,mode) {
   let newDiv = $('<div itemprop="description" style="display: block;"></div>');
   let cDiv = $(title)[0];
   let siblings = [];
-  for (let i = 0; i < 3; i++) {
-    siblings.push(cDiv.nextSibling);
-    cDiv = cDiv.nextSibling;
+  if (mode) {
+    while (cDiv.nextSibling && cDiv.nextSibling.nodeName !== "DIV") {
+      siblings.push(cDiv.nextSibling);
+      cDiv = cDiv.nextSibling;
+    }
+  } else {
+    for (let i = 0; i < 3; i++) {
+      if (cDiv.nextSibling.nodeName !== "BR") {
+        siblings.push(cDiv.nextSibling);
+        cDiv = cDiv.nextSibling;
+      }
+    }
   }
   newDiv.append(...siblings);
   $(title).after(newDiv);
 }
 
-function handleEmptyInfo(divSelector, checkText) {
+function handleEmptyInfo(divSelector, checkText, mode) {
   const $div = $(divSelector);
   if ($div.length) {
     const nextSibling = $div[0].nextSibling;
     if (nextSibling && !$(nextSibling).attr('itemprop') && (nextSibling.nodeValue || nextSibling.innerText) && (nextSibling.nodeValue || nextSibling.innerText).includes(checkText)) {
-      emptyInfoAddDiv(divSelector);
+      emptyInfoAddDiv(divSelector,mode);
       if (nextSibling.innerHTML) {
         nextSibling.innerHTML = nextSibling.innerHTML.replace('<br>', '');
       }
@@ -782,6 +791,7 @@ let svar = {
   animeBanner: true,
   animeTag: true,
   animeRelation: true,
+  animeInfoDesign: false,
   relationFilter:false,
   animeSongs: true,
   characterHeader: true,
@@ -1475,7 +1485,7 @@ input.maljsNativeInput {
     -webkit-flex-wrap: wrap;
     -ms-flex-wrap: wrap;
     flex-wrap: wrap;
-    gap: 14px
+    gap: 13.5px
 }
 
 .relationsExpanded {
@@ -2296,6 +2306,7 @@ const buttonsConfig = [
   { id: "currentlyWatchingBtn", setting: "currentlyWatching" },
   { id: "airingDateBtn", setting: "airingDate" },
   { id: "animeSongsBtn", setting: "animeSongs" },
+  { id: "animeInfoDesignBtn", setting: "animeInfoDesign" },
   { id: "autoAddDateBtn", setting: "autoAddDate" },
   { id: "editPopupBtn", setting: "editPopup" },
   { id: "currentlyReadingBtn", setting: "currentlyReading" },
@@ -2437,6 +2448,7 @@ function getSettings() {
   animeBannerBtn.classList.toggle('btn-active', svar.animeBanner);
   animeTagBtn.classList.toggle('btn-active', svar.animeTag);
   animeRelationBtn.classList.toggle('btn-active', svar.animeRelation);
+  animeInfoDesignBtn.classList.toggle('btn-active', svar.animeInfoDesign);
   relationFilterBtn.classList.toggle('btn-active', svar.relationFilter);
   characterHeaderBtn.classList.toggle('btn-active', svar.characterHeader);
   characterNameAltBtn.classList.toggle('btn-active', svar.characterNameAlt);
@@ -2465,9 +2477,9 @@ function createDiv() {
     "div",
     { class: "mainListDiv", id: "profileDiv" },
     '<div class="profileHeader"><h2>' +
-      "Custom Background Image (Required Anilist Style Profile)" +
+      "Custom Banner (Required Anilist Style Profile)" +
       "</h2><h3>" +
-      "Add custom background image to your profile. This will be visible to others with the script." +
+      "Add custom banner to your profile. This will be visible to others with the script." +
       "</h3></div>"
   );
   let custompfDiv = create(
@@ -2515,6 +2527,7 @@ function createDiv() {
         { b: buttons["relationFilterBtn"], t: "Add filter to replaced relations" },
         { b: buttons["animeSongsBtn"], t: "Replace Anime OP/ED with animethemes.moe" },
         { b: buttons["editPopupBtn"], t: "Replace the edit details with the edit popup" },
+        { b: buttons["animeInfoDesignBtn"], t: "Change the design of the Information on the left side." },
         { b: buttons["animeHeaderBtn"], t: "Change title position" },
       ]
     ),
@@ -2692,25 +2705,26 @@ function delay(ms) {
                 //get anime time until airing info from Anilist API
                 const queries = idArray.map((id, index) => `Media${index}: Media(idMal: ${id}, type: ANIME) {nextAiringEpisode {timeUntilAiring episode}}`);
                 const fullQuery = `query {${queries.join("\n")}}`;
-                infoData = await AnilistAPI(fullQuery);
-                if (!infoData) {
+                infoData = await fetchAnimeData();
+                async function fetchAnimeData() {
                   for (let x = 0; x < 5; x++) {
-                    if (!infoData) {
-                      await AnilistAPI(fullQuery);
-                      await delay(1000);
+                    infoData = await AnilistAPI(fullQuery);
+                    if (infoData) {
+                      return infoData;
                     }
-                    if(!infoData && x === 4) {
-                      let d = document.querySelector("#currently-watching > div > div.widget-content > div");
-                      let r = create("i",{class:"fa-solid fa-rotate-right",style:{cursor: "pointer",color: "var(--color-link)"}});
-                      r.onclick = () => {
-                        watchdiv.remove();
-                        getWatching();
-                      }
-                      d.innerText = "API Error ";
-                      d.append(r);
-                      document.querySelector("#currently-watching > div > div.widget-header > i").remove();
-                      return;
-                    }
+                    await delay(1000);
+                  }
+                  // if api error
+                  let d = document.querySelector("#currently-watching > div > div.widget-content > div");
+                  if (d) {
+                    let r = create("i", { class: "fa-solid fa-rotate-right", style: { cursor: "pointer", color: "var(--color-link)" } });
+                    r.onclick = () => {
+                      watchdiv.remove();
+                      getWatching();
+                    };
+                    d.innerText = "API Error ";
+                    d.append(r);
+                    document.querySelector("#currently-watching > div > div.widget-header > i")?.remove();
                   }
                 }
               }
@@ -3514,7 +3528,8 @@ function delay(ms) {
       let sortItem1 = null;
       let sortItem2 = null;
       if (svar.alstyle) {
-        $("#content > div > div.container-left > div li.icon-statistics.link").before(FavContent);
+        $(FavContent).insertBefore($("#content > div > div.container-left > div li.icon-statistics.link").parent());
+
       } else {
         $("#content > div > div.container-right > h2").nextUntil(".user-comments").wrapAll("<div class='favContainer'></div>");
         $(".user-comments").before(FavContent);
@@ -3562,13 +3577,13 @@ function delay(ms) {
         if (type === "OP") {
           opGroup.appendChild(container);
           if($(opGroup).children().length ===1) {
-            $(opGroup).before(`<h5 style="${svar.alstyle ? "font-size: 11px; margin-bottom: 8px; margin-left: 2px;" : ""}">Openings</h5>`);
+            $(opGroup).before(`<h5>Openings</h5>`);
           }
         } else if (type === "ED") {
           edGroup.appendChild(container);
         }
         if($(edGroup).children().length ===1) {
-          $(edGroup).before(`<h5 style="${svar.alstyle ? "font-size: 11px; margin-bottom: 8px; margin-left: 2px;" : ""}">Endings</h5>`);
+          $(edGroup).before(`<h5>Endings</h5>`);
         }
       });
       //Sort Favorite Song click function
@@ -3629,7 +3644,7 @@ function delay(ms) {
       }
     }
 
-    //Get Custom Background Image and Custom Profile Image Data from About Section
+    //Get Custom Banner and Custom Profile Image Data from About Section
     async function findCustomAbout() {
       const aboutSection = document.querySelector('.user-profile-about.js-truncate-outer');
       const processAboutSection = (aboutContent) => {
@@ -3852,10 +3867,9 @@ function delay(ms) {
         .profile-about-user.js-truncate-inner img,.user-comments .comment .text .comment-text .userimg{-webkit-box-shadow:none!important;box-shadow:none!important}
         .user-profile .user-friends {display: -webkit-box;display: -webkit-flex;display: -ms-flexbox;display: flex;-webkit-box-pack: start;-webkit-justify-content: start;-ms-flex-pack: start;justify-content: start}
         .user-profile .user-friends .icon-friend {margin: 5px!important;}
-        .favs{justify-items: center;-webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;border:var(--border) solid var(--border-color);
-        box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;display: -ms-grid!important;background-color: var(--color-foreground);
-        padding:5px;display: grid!important;grid-gap: 5px 5px!important;grid-template-columns: repeat(auto-fill, 76px)!important;-webkit-box-pack: space-evenly!important;-ms-flex-pack: space-evenly!important;
-        -webkit-justify-content: space-evenly!important;justify-content: space-evenly!important;margin-bottom: 12px!important;-webkit-border-radius: var(--br);border-radius: var(--br);}
+        .favs {-webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;border: var(--border) solid var(--border-color);box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+        display: -ms-grid !important;background-color: var(--color-foreground);padding: 10px;display: grid !important;grid-gap: 15px 5px !important;grid-template-columns: repeat(auto-fill, 70px) !important;
+        -webkit-border-radius: var(--br);border-radius: var(--br);-webkit-box-pack: justify;-webkit-justify-content: space-between;-ms-flex-pack: justify;justify-content: space-between;margin-bottom:12px}
         .word-break img, .dark-mode .profile .user-profile-about .userimg, .profile .user-profile-about .userimg,
         .profile .user-profile-about a .userimg,.profile .user-profile-about .userimg.img-a-r {max-width: 100%;-webkit-box-shadow: none!important;box-shadow: none!important;}
         .profile .user-profile-about .quotetext{margin-left:0px;max-width:100%}
@@ -3875,6 +3889,7 @@ function delay(ms) {
         .dark-mode .page-common #horiznav_nav ul li,.page-common #horiznav_nav ul li {background: 0 !important}
         .favTooltip {z-index:2;text-indent:0;-webkit-transition:.4s;-o-transition:.4s;transition:.4s;position: absolute;background-color: var(--color-foreground4);color: var(--color-text);
         padding: 5px;-webkit-border-radius: 6px;border-radius: 6px;opacity:0;width: -webkit-max-content;width: -moz-max-content;width: max-content;left: 0;right: 0;margin: auto;max-width: 420px;}
+        .user-profile {width:auto!important}
         .favs .btn-fav, .user-badge, .icon-friend {overflow:hidden}
         .favs .btn-fav:hover, .user-badge:hover, .icon-friend:hover {overflow:visible!important}
         .favs .btn-fav:hover .favTooltip,.user-badge:hover .favTooltip, .icon-friend:hover .favTooltip{opacity:1}
@@ -4154,13 +4169,13 @@ function delay(ms) {
           }
         }
         //Favorites
-        if(document.querySelector("#content > div > div.container-left > div > ul:nth-child(4)")) {
+        if($('.user-button.clearfix.mb12').length) {
           let favs = create("div", { class: "favs" });
           let favs2 = create("div", { class: "favs" });
           let favs3 = create("div", { class: "favs" });
           let favs4 = create("div", { class: "favs" });
           let favs5 = create("div", { class: "favs" });
-          document.querySelector("#content > div > div.container-left > div > ul:nth-child(4)").prepend(favs, favs2, favs3, favs4, favs5);
+          $('.user-button.clearfix.mb12').after(favs, favs2, favs3, favs4, favs5);
           getfavs();
           function getfavs() {
             let favc = ["#anime_favorites", "#manga_favorites", "#character_favorites", "#person_favorites", "#company_favorites"];
@@ -4178,7 +4193,7 @@ function delay(ms) {
                   for (let y = 0; y < r.length; y++) {
                     r[y].remove();
                   }
-                  c[x].setAttribute("style", "width:76px");
+                  c[x].setAttribute("style", "width:70px");
                   fave[l].append(c[x]);
                 }
                 f.remove();
@@ -4214,9 +4229,9 @@ function delay(ms) {
         }
 
         set(1, ".container-right > .btn-favmore", { r: { 0: 0 } });
-        set(2, "ul.user-status.border-top h5", { sal: { 0: "font-size: 11px;margin-bottom: 8px;margin-left: 2px;" } });
+        set(2, ".container-left .user-profile h5", { sal: { 0: "font-size: 11px;margin-bottom: 8px;margin-left: 2px;" } });
         set(2, ".container-left h4", { sal: { 0: "font-size: 11px;margin-left: 2px;" } });
-        const favHeader = document.querySelectorAll('ul.user-status.border-top h5');
+        const favHeader = document.querySelectorAll('.container-left .user-profile h5');
         for(let i = 0; i < favHeader.length; i++) {
           favHeader[i].innerText = favHeader[i].innerText.replace(/ (.*)/, '');
         }
@@ -4264,8 +4279,8 @@ function delay(ms) {
     }
 
     //Anilist Style Anime and Manga List //-START-//
-      let contLeft = $(".container-left").length ?  $(".container-left") : $("#content > table > tbody > tr td[valign='top']:nth-child(1)");
-      let contRight = $(".container-right").length ?  $(".container-right") : $("#content > table > tbody > tr td[valign='top']:nth-child(2)");
+    let contLeft = $(".container-left").length ?  $(".container-left") : $("#content > table > tbody > tr td[valign='top']:nth-child(1)");
+    let contRight = $(".container-right").length ?  $(".container-right") : $("#content > table > tbody > tr td[valign='top']:nth-child(2)");
     if(svar.replaceList) {
       //Anime List Button
       const animeListButton = document.querySelector("a.btn-profile-submit.fl-l");
@@ -5237,7 +5252,7 @@ function delay(ms) {
     handleEmptyInfo('.CharactersDiv', "No characters for this manga");
     handleEmptyInfo('.RecommendationsDiv', "No recommendations have been made");
     handleEmptyInfo('.StaffDiv', "No staff for this");
-    handleEmptyInfo('.MoreInfoDiv','');
+    handleEmptyInfo('.MoreInfoDiv','',1);
 
     if($('.RecentNewsDiv').length && !$('.RecentNewsDiv').next().is('div')){
       $('.RecentNewsDiv').remove();
@@ -5258,8 +5273,64 @@ function delay(ms) {
       }
     }
 
-    //Background info Fix
-    let backgroundInfo = $('h2:contains("Background"):last');
+    // Change the design of the Information on the left side.
+    if (svar.animeInfoDesign) {
+      $('.InformationDiv').next().children().children('.dark_text').each(function() {
+        let currentText = $(this).text();
+        $(this).text(currentText.slice(0, -1));
+      });
+      $('.InformationDiv').next().children().children('.dark_text').after('<br>');
+    }
+
+    //Remove the "to ?" in the Aired in Information section on the left side
+    if ($('.InformationDiv').length > 0) {
+      let InformationAired = $('.InformationDiv').next().children().children('.dark_text:contains("Aired")');
+      if (InformationAired.length > 0) {
+        InformationAired = InformationAired.parent()[0].childNodes[3] ? InformationAired.parent()[0].childNodes[3] : InformationAired.parent()[0].childNodes[2];
+        InformationAired.nodeValue = InformationAired.nodeValue.replace('to ?', '');
+      }
+    }
+
+    //Main Anilist Query for Anime/Manga Page (banner-tag-relations-airing)
+    let AlAPIData;
+    let AlAPIRequestPromise;
+
+    async function aniAPIRequest() {
+      if (!AlAPIRequestPromise) {
+        const AlQuery = `query {Media(idMal:${entryId}, type:${entryType}) {bannerImage tags {isMediaSpoiler name rank description}
+        relations {edges {relationType node {status startDate {year} seasonYear type format title {romaji} coverImage {medium large} idMal}}}
+        nextAiringEpisode {timeUntilAiring episode}}}`;
+        AlAPIRequestPromise = AnilistAPI(AlQuery).then(data => {
+          AlAPIData = data;
+          AlAPIRequestPromise = null;
+          return data;
+        });
+      }
+      return AlAPIRequestPromise;
+    }
+
+    //Add Airing Time
+    getAiringTime() ;
+    async function getAiringTime() {
+      if ($('.InformationDiv').length > 0) {
+        let InformationAiring = $('.InformationDiv').next().children().children('.dark_text:contains("Status")').parent();
+        if (InformationAiring.length > 0) {
+          InformationAiring = InformationAiring.text().replace(/Status:?\s*/, '').trim();
+          if (InformationAiring === "Currently Airing") {
+            const AiringData = await aniAPIRequest();
+            const AiringEp = AiringData.data.Media.nextAiringEpisode ? AiringData.data.Media.nextAiringEpisode.episode : "";
+            const AiringTime = AiringData.data.Media.nextAiringEpisode ? AiringData.data.Media.nextAiringEpisode.timeUntilAiring : "";
+            const AiringInfo = AiringEp && AiringTime
+            ? '<div class="spaceit_pad"><span class="dark_text">'+(svar.animeInfoDesign ? 'Airing' : 'Airing: ')
+            +'</span>'+(svar.animeInfoDesign ? '<br>' : '')+'<a>Ep '+ AiringEp + ': ' + (await airingTime(AiringTime)) +"</a></div>"
+            : "";
+            if (AiringInfo) {
+              $('.InformationDiv').next().children().first().before(AiringInfo)
+            }
+          }
+        }
+      }
+    }
 
     //Add Banner Image
     if(svar.animeBanner) {
@@ -5276,8 +5347,7 @@ function delay(ms) {
           bannerData = BannerCache;
         }
         else {
-          const bannerQuery = `query {Media(idMal:${entryId} type:${entryType}) {bannerImage}}`;
-          bannerData = await AnilistAPI(bannerQuery);
+          bannerData = await aniAPIRequest();
           if(bannerData.data.Media && bannerData.data.Media.bannerImage) {
           await BannerLocalForage.setItem(entryId+"-"+entryType, {
             bannerImage:bannerData.data.Media.bannerImage
@@ -5321,8 +5391,7 @@ function delay(ms) {
         const tagcacheTTL = 262974383;
         let tagCache = await tagLocalForage.getItem(entryId+"-"+entryType);
         if (!tagCache || tagCache.time + tagcacheTTL < +new Date()) {
-          const tagQuery = `query {Media(idMal:${entryId} type:${entryType}) {tags {isMediaSpoiler name rank description}}}`;
-          tagData = await AnilistAPI(tagQuery);
+          tagData = await aniAPIRequest();
           if (tagData.data.Media && tagData.data.Media.tags && tagData.data.Media.tags.length > 0) {
             await tagLocalForage.setItem(entryId+"-"+entryType, {
               tags: tagData.data.Media.tags,
@@ -5375,8 +5444,7 @@ function delay(ms) {
         let relationCache = await relationLocalForage.getItem(entryId+"-"+entryType);
         const priorityOrder = {"ADAPTATION": 0,"PREQUEL": 1,"SEQUEL": 2,"PARENT": 3,"ALTERNATIVE": 4,"SIDE_STORY": 5,"SUMMARY": 6,"SPIN_OFF": 7,"CHARACTER": 8,"OTHER": 9};
         if (!relationCache || relationCache.time + relationcacheTTL < +new Date()) {
-          const relationQuery = `query {Media(idMal:${entryId} type:${entryType}) {relations {edges {relationType node {status startDate {year} seasonYear type format title {romaji} coverImage {medium large} idMal}}}}}`;
-          relationData = await AnilistAPI(relationQuery);
+          relationData = await aniAPIRequest();
           relationData.data.Media ? relationData = relationData.data.Media.relations.edges.filter(node => node.node.idMal !== null) : null;
           if (relationData.length > 0) {
             // Sort by priorityOrder
@@ -5623,6 +5691,7 @@ function delay(ms) {
         textfix = textfix.replace(/(information here.+)/gm, 'information <a href="/dbchanges.php?aid='+entryId+'&amp;t=background">here</a>.')
       }
       text.innerHTML = textfix;
+      let backgroundInfo = $('h2:contains("Background"):last');
       backgroundInfo.append(text);
       if($('.SynopsisDiv').next('span').length) {
         $('.SynopsisDiv').next('span').html($('.SynopsisDiv').next('span').html().replace(/(<br>\n<br>\n\[Written by MAL Rewrite\]+)/gm, ''));
