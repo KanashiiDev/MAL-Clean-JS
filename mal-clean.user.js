@@ -3,9 +3,9 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.28.9
+// @version     1.29.0
 // @author      KanashiiDev
-// @description Extra customization for MyAnimeList - Clean Userstyle
+// @description Customizations and fixes for MyAnimeList
 // @license     GPL-3.0-or-later
 // @icon        https://myanimelist.net/favicon.ico
 // @supportURL  https://github.com/KanashiiDev/MAL-Clean-JS/issues
@@ -387,6 +387,7 @@ async function editAboutPopup(data, type) {
     if ($('#currently-popup').length) {
       return;
     }
+    let canSubmit = 1;
     const url = location.pathname === "/" ? null : 1;
     const popup = create("div", { id: "currently-popup" });
     const popupClose = create("a", { id: "currently-closePopup", class: "fa-solid fa-xmark", href: "javascript:void(0);" });
@@ -404,11 +405,29 @@ async function editAboutPopup(data, type) {
     const iframe = create("iframe", { src: "https://myanimelist.net/editprofile.php" });
     iframe.style.opacity = 0;
 
+    //Disable custom settings during update
+    function toggleCustomSettings(type, value) {
+      const validTypes = ['private', 'pf', 'fg', 'bg', 'css', 'badge', 'color'];
+      if (validTypes.includes(type)) {
+        const buttonSelectors = [
+          'privateProfile',
+          'privateRemove',
+          'custombg',
+          'customfg',
+          'custompf',
+          'customcss',
+          'custombadge',
+          'customColorUpdate'
+        ];
+        buttonSelectors.forEach(buttonId => {
+          $('button#' + buttonId).prop('disabled', value);
+        });
+      }
+    }
+
     // close popup function
     const close = () => {
-      if (type === 'pf' || type === 'bg' ||type === 'css' || type === 'badge' || type === 'color') {
-        $('button#custombg,button#custompf,button#customcss,button#custombadge,button#customColorUpdate').prop('disabled', false);
-      }
+      toggleCustomSettings(type, false);
       popup.remove();
       popupMask.remove();
       document.body.style.removeProperty("overflow");
@@ -418,24 +437,25 @@ async function editAboutPopup(data, type) {
     popup.append(popupClose, popupLoading, iframe);
     document.body.append(popup,popupMask);
     document.body.style.overflow = "hidden";
-
-    if(type === 'pf' || type === 'bg' ||type === 'css' || type === 'badge' || type === 'color'){
-      $('button#custombg,button#custompf,button#customcss,button#custombadge,button#customColorUpdate').prop('disabled', true);
-    }
+    toggleCustomSettings(type, true);
 
     $(iframe).on("load", async function () {
       let $iframeContents = $(iframe).contents();
       let $about = $iframeContents.find("#classic-about-me-textarea");
       let isClassic = $iframeContents.find("#about_me_setting_2").is(':checked');
       let $submit = $iframeContents.find('.inputButton[type="submit"]');
-      let matchRegex = /(\[url=).*(malcleansettings)\/.*([^.]]+)/gm;
-      let addRegex = /(\[url=https:\/\/malcleansettings\/)(.*)(]‎)/gm;
-      let custompfRegex = /(custompf)\/([^\/]+.)/gm;
-      let customBgRegex = /(custombg)\/([^\/]+.)/gm;
-      let customCssRegex = /(customcss)\/([^\/]+.)/gm;
-      let customBadgeRegex = /(custombadge)\/([^\/]+.)/gm;
-      let customColorRegex = /(customcolors)\/([^\/]+.)/gm;
-      let favSongEntryRegex = /(favSongEntry)\/([^\/]+.)/gm;
+      const regexes = {
+        match: /(\[url=).*(malcleansettings)\/.*([^.]]+)/gm,
+        add: /(\[url=https:\/\/malcleansettings\/)(.*)(]‎)/gm,
+        privateProfile: /(privateProfile)\/([^\/]+.)/gm,
+        customPf: /(custompf)\/([^\/]+.)/gm,
+        customFg: /(customfg)\/([^\/]+.)/gm,
+        customBg: /(custombg)\/([^\/]+.)/gm,
+        customCss: /(customcss)\/([^\/]+.)/gm,
+        customBadge: /(custombadge)\/([^\/]+.)/gm,
+        customColor: /(customcolors)\/([^\/]+.)/gm,
+        favSongEntry: /(favSongEntry)\/([^\/]+.)/gm
+      };
       let userBlogPage = 'https://myanimelist.net/blog/'+ $(".header-profile-link").text();
 
       popupLoading.innerHTML = "Updating" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
@@ -447,67 +467,64 @@ async function editAboutPopup(data, type) {
         popupLoading.innerHTML = "An error occured. Please try again.";
       }
 
+      // Replace text with regex check
+      function replaceTextIfMatches(regex, aboutText, replacement) {
+        if (regex.test(aboutText)) {
+          return aboutText.replace(regex, replacement);
+        } else {
+          return aboutText.replace(regexes.add, `$1$2${replacement}$3`);
+        }
+      }
+
+      // Update about text and submit
+      async function updateAboutText(newText) {
+        $about.text(newText);
+        $submit.click();
+      }
+
       async function changeData() {
         let aboutText = $about.text();
-        if (!matchRegex.test(aboutText)) {
-          $about.text('[url=https://malcleansettings/custompf/.../custombg/.../customcss/.../]‎ [/url]' + aboutText);
-          aboutText = '[url=https://malcleansettings/custompf/.../custombg/.../customcss/.../]‎ [/url]' + aboutText;
+
+        //if no custom settings, add default custom settings
+        if (!regexes.match.test(aboutText)) {
+          aboutText = '[url=https://malcleansettings/]‎ [/url]' + aboutText;
         }
+
+        // Update based on the type
         if (type === 'color') {
-          if (!$iframeContents.find(".goodresult")[0]) {
-            if (customColorRegex.test($about.text())) {
-              $about.text(aboutText.replace(customColorRegex, data+'/'));
-              $submit.click();
-            } else {
-              $about.text(aboutText.replace(addRegex, `$1$2${data}/$3`));
-              $submit.click();
-            }
-          }
-        }
-        if (type === 'badge') {
-          if (!$iframeContents.find(".goodresult")[0]) {
-            if (customBadgeRegex.test($about.text())) {
-              $about.text(aboutText.replace(customBadgeRegex, data+'/'));
-              $submit.click();
-            } else {
-              $about.text(aboutText.replace(addRegex, `$1$2${data}/$3`));
-              $submit.click();
-            }
-          }
-        }
-        else if (type === 'pf') {
-          $about.text(aboutText.replace(custompfRegex, data+'/'));
-          $submit.click();
+          aboutText = replaceTextIfMatches(regexes.customColor, aboutText, `${data}/`);
+        } else if (type === 'badge') {
+          aboutText = replaceTextIfMatches(regexes.customBadge, aboutText, `${data}/`);
+        } else if (type === 'private') {
+          aboutText = replaceTextIfMatches(regexes.privateProfile, aboutText, `${data}/`);
+        } else if (type === 'pf') {
+          aboutText = replaceTextIfMatches(regexes.custompf, aboutText, `${data}/`);
+        } else if (type === 'fg') {
+          aboutText = replaceTextIfMatches(regexes.customFg, aboutText, `${data}/`);
         } else if (type === 'bg') {
-          $about.text(aboutText.replace(customBgRegex, data+'/'));
-          $submit.click();
+          aboutText = replaceTextIfMatches(regexes.customBg, aboutText, `${data}/`);
         } else if (type === 'css') {
-          $about.text(aboutText.replace(customCssRegex, data+'/'));
-          $submit.click();
+          aboutText = replaceTextIfMatches(regexes.customCss, aboutText, `${data}/`);
         } else if (type === 'favSongEntry') {
           if (!$iframeContents.find(".goodresult")[0]) {
-            if ($about.text().indexOf(data) > -1) {
+            if (aboutText.indexOf(data) > -1) {
               popupLoading.innerHTML = "Already Added";
+              canSubmit = 0;
             } else {
-              $about.text(aboutText.replace(addRegex, `$1$2${data}/$3`));
-              $submit.click();
+              aboutText = replaceTextIfMatches(regexes.favSongEntry, aboutText, `${data}/`);
             }
           }
         } else if (type === 'removeFavSong') {
-          $about.text(aboutText.replace(data, ''));
-          $submit.click();
+          aboutText = aboutText.replace(data, '');
+        } else if (type === 'replaceFavSong') {
+          aboutText = aboutText.replace(`/${data[0]}/`, `/${data[1]}/`).replace(`/${data[1]}/`, `/${data[0]}/`);
+        } else if (type === 'removeAll') {
+          aboutText = aboutText.replace(regexes.match, '');
         }
-         else if (type === 'replaceFavSong') {
-          $about.text(aboutText.replace(`/${data[0]}/`, `/${data[1]}/`).replace(`/${data[1]}/`, `/${data[0]}/`));
-          $submit.click();
+        if (canSubmit) {
+          await updateAboutText(aboutText);
         }
-         else if (type === 'removeAll') {
-          $about.text(aboutText.replace(matchRegex, ''));
-          $submit.click();
-        }
-        if (type === 'pf' || type === 'bg' ||type === 'css' || type === 'badge' || type === 'color') {
-          $('button#custombg,button#custompf,button#customcss,button#custombadge,button#customColorUpdate').prop('disabled', false);
-        }
+        toggleCustomSettings(type, false);
       }
 
       if (isClassic) {
@@ -545,7 +562,7 @@ async function editAboutPopup(data, type) {
     function notFound() {
       iframe.remove();
       popupLoading.innerHTML = "You are not using classic about.<br><br>Please paste this code into a blog post on the first page so that the code will run automatically.<br><br>";
-      popupDataText.innerHTML = "[url=https://malcleansettings/custompf/.../custombg/.../customcss/.../]";
+      popupDataText.innerHTML = "[url=https://malcleansettings/]";
       popupLoading.append(popupDataText,popupDataTextButton);
       popupDataTextButton.addEventListener('click', function() {
         const tempInput = document.createElement('input');
@@ -698,14 +715,14 @@ async function editPopup(id, type, add) {
       //if history clicked
       $(iframe).contents().find("#totalEpisodes,#totalChap").next().children().on("click", function () {
         iframe.style.opacity = 0;
-        popup.append(popupLoading);
+        popup.prepend(popupLoading);
         popup.prepend(popupBack);
       });
 
       //if history back clicked
       $(popupBack).on("click", function () {
         iframe.style.opacity = 0;
-        popup.append(popupLoading);
+        popup.prepend(popupLoading);
         iframe.src = popupId;
         popupBack.remove();
       });
@@ -845,7 +862,9 @@ if (!svarSettings) {
   let keys = Object.keys(svarSettings);
   keys.forEach((key) => (svar[key] = svarSettings[key]));
 }
-
+let fgColor = getComputedStyle(document.body);
+fgColor = tinycolor(fgColor.getPropertyValue('--fg'));
+const fgOpacity = fgColor.setAlpha(.8).toRgbString();
 //Settings CSS
 let styles = `
 .loadmore,
@@ -1143,6 +1162,7 @@ input#year-filter-slider {
 }
 
 .genreDropBtn {
+    color:var(--color-main-text-normal);
     width: 100%;
     border: 0;
     background: var(--color-foreground2);
@@ -1174,7 +1194,7 @@ input#year-filter-slider {
     box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
     z-index: 1;
     height: 175px;
-    overflow: scroll;
+    overflow: auto
 }
 
 .maljs-dropdown-content label {
@@ -1349,6 +1369,7 @@ input.maljsNativeInput {
 .sort-container #sort-desc,
 #maljsDraw3x3,
 .compareBtn {
+    color:var(--color-main-text-normal);
     background: var(--color-foreground2);
     padding: 10px;
     border-radius: var(--border-radius);
@@ -1865,7 +1886,7 @@ input.maljsNativeInput {
     color: var(--color-text);
     transition: .4s;
     text-align: center;
-    background-color: rgb(31 38 49 / 72%);
+    background-color: ${fgOpacity};
     padding: 3px 0px;
     position: absolute;
     bottom: 0;
@@ -2003,7 +2024,6 @@ input.maljsNativeInput {
     display: none;
     background-color: var(--color-foreground);
     border-radius: 5px;
-    color: #ffffff;
     -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
     box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
     border: var(--border) solid var(--border-color);
@@ -2120,6 +2140,11 @@ input.maljsNativeInput {
     content: "\\f00c"
 }
 
+.btn-active-def {
+    background-color: var(--color-foreground4) !important;
+    color: rgb(159, 173, 189)
+}
+
 @keyframes reloadLoop {
     0% {
         background-color: var(--color-background);
@@ -2161,19 +2186,21 @@ input.maljsNativeInput {
 .customColorsInside .colorGroup .colorOption input{
     cursor: pointer
 }
-
 button#customColorUpdate,
 button#customColorRemove,
 button#custombgRemove,
+button#customFgRemove,
 button#custompfRemove,
 button#customcssRemove,
 button#customcss,
+button#privateProfile,
+button#privateRemove,
 button#custombg,
 button#custompf {
     height: 40px;
     width: 26%
 }
-
+button#customFgRemove,
 button#customColorRemove,
 button#custombgRemove,
 button#custompfRemove,
@@ -2212,6 +2239,13 @@ input#badgeInput {
     position: relative;
     top: 10px;
     margin: 0px 2px
+}
+#fgcolorselector{
+    position: relative;
+    top: 10px;
+    width: 65%;
+    margin: 0px 2px;
+    height: 40px
 }
 
 .malCleanMainContainer .malCleanSettingContainer h2 {
@@ -2287,22 +2321,9 @@ footer {
 .fav-slide-block {
   width: 96%
 }
-#myanimelist:before {
-  content: "";
-  width: 200%;
-  left: 0;
-  position: fixed;
-  height: 200%;
-  z-index: 0;
-  -webkit-backdrop-filter: brightness(bg_brightness) contrast(bg_contrast) saturate(bg_saturate) !important;
-  backdrop-filter: brightness(bg_brightness) contrast(bg_contrast) saturate(bg_saturate) !important;
-}
 .dark-mode body:not(.ownlist),
 body:not(.ownlist) {
-  background: url(bg_image) !important;
-  background-size: cover !important;
-  background-attachment: fixed !important;
-  background-color: var(--color-background) !important;
+  background-color: var(--color-background) !important
 }
 .page-common #myanimelist #contentWrapper {
   background-color: var(--color-backgroundo) !important;
@@ -2322,21 +2343,129 @@ body,
     --color-background: #0c1525 !important;
     --color-backgroundo: #0c1525 !important;
     --color-foreground: #161f2f !important;
+    --color-foregroundOP: #161f2f !important;
+    --color-foregroundOP2: #202939 !important;
     --color-foreground2: #202939 !important;
     --color-foreground3: rgba(37, 46, 62, 0.3) !important;
     --color-foreground4: #2a3343 !important;
     --br: 5px !important;
-    --color-text: 182 182 182;
+    --color-text: #b6b6b6;
     --color-text-normal: #b6b6b6 !important;
     --color-main-text-normal: #c8c8c8 !important;
     --color-main-text-light: #a5a5a5 !important;
     --color-main-text-op: #ffffff !important;
-    --color-link: 159, 173, 189;
+    --color-link: #9fadbd;
     --color-link2: #7992bb !important;
     --color-text-hover: #cfcfcf !important;
     --color-link-hover: #cee7ff !important;
 }
 `;
+let defaultColors = `
+:root,
+body {
+  --fg: #181818!important;
+  --color-background: #121212!important;
+  --color-backgroundo: #12121266!important;
+  --color-foreground: #181818!important;
+  --color-foreground2: #242424!important;
+  --color-foreground3: #28282866!important;
+  --color-foregroundOP: #181818!important;
+  --color-foregroundOP2: #242424!important;
+  --color-foreground4: #282828!important;
+  --border-color: #222!important;
+  --border-radius: 5px!important;
+  --color-text: #b6b6b6;
+  --color-text-normal: #b6b6b6!important;
+  --color-main-text-normal: #c8c8c8!important;
+  --color-main-text-light: #a5a5a5!important;
+  --color-main-text-op: #ffffff!important;
+  --color-link: #9fadbd;
+  --color-link2: #7992bb!important;
+  --color-text-hover: #cfcfcf!important;
+  --color-link-hover: #cee7ff!important
+}
+a.feed-main-button {
+  top: 0!important
+}
+.feed-main {
+  padding: 10px
+}
+.feed-main a:hover {
+  text-decoration: none!important
+}
+#currently-popup iframe {
+  border: 0!important
+}
+`;
+let defaultColorsLight = `
+:root,
+body {
+  --fg: #f5f5f5!important;
+  --color-background: #eef1fa!important;
+  --color-backgroundo: #eef1fa66!important;
+  --color-foreground: #f5f5f5!important;
+  --color-foreground2: #eeeeee!important;
+  --color-foreground3: #e3e3e366!important;
+  --color-foregroundOP: #f5f5f5!important;
+  --color-foregroundOP2: #e3e3e3!important;
+  --color-foreground4: #e3e3e3!important;
+  --border-color: #bcbcbc!important;
+  --border-radius: 5px!important;
+  --color-text: #b6b6b6;
+  --color-text-normal: #b6b6b6!important;
+  --color-main-text-normal: #c8c8c8!important;
+  --color-main-text-light: #a5a5a5!important;
+  --color-main-text-op: #ffffff!important;
+  --color-link: 9fadbd;
+  --color-link2: #7992bb!important;
+  --color-text-hover: #cfcfcf!important;
+  --color-link-hover: #cee7ff!important
+}
+a.feed-main-button {
+  top: 0!important
+}
+.feed-main {
+  padding: 10px
+}
+.feed-main a:hover {
+  text-decoration: none!important
+}
+#currently-popup iframe {
+  border: 0!important
+}`;
+let defaultCSSFixes = `
+.list-entries .section-name,
+.dark-mode .page-common #horiznav_nav,
+.page-common div#horiznav_nav {
+  border-color: var(--border-color)!important
+}
+.profile .user-statistics .user-statistics-stats .updates {
+  padding-right:10px
+}
+.bannerHover {
+  height:90px!important
+}
+#fgcolorselector {
+  width:62%
+}
+button#customColorUpdate {
+  width:460px
+}
+.profileRightActions {
+  position: relative;
+  top: -50px
+}
+.list-entries .section-name {
+  padding-top:10px!important
+}
+.widget-slide-block .widget-slide .btn-anime .link .title.color-pc-constant {
+  color: var(--color-main-text-normal)
+}
+.tooltipBody {
+  padding:10px
+}
+`;
+let defaultMal = 0;
 if(location.pathname === "/rss.php") {
   return;
 }
@@ -2349,7 +2478,9 @@ styles = styles.replace(/\n/g, '');
 styles1 = styles1.replace(/\n/g, '');
 styles2 = styles2.replace(/\n/g, '');
 styles3 = styles3.replace(/\n/g, '');
-
+defaultColors = defaultColors.replace(/\n/g, '');
+defaultColorsLight = defaultColorsLight.replace(/\n/g, '');
+defaultCSSFixes = defaultCSSFixes.replace(/\n/g, '');
 //MalClean Settings - Settings Button
 var stButton = create("li", {});
 stButton.onclick = () => {
@@ -2399,14 +2530,20 @@ const buttonsConfig = [
   { id: "editPopupBtn", setting: "editPopup" },
   { id: "currentlyReadingBtn", setting: "currentlyReading" },
   { id: "forumDateBtn", setting: "forumDate" },
-  { id: "headerSlideBtn", setting: "headerSlide" },
-  { id: "headerOpacityBtn", setting: "headerOpacity" },
   { id: "relationFilterBtn", setting: "relationFilter" },
   { id: "replaceListBtn", setting: "replaceList" },
   { id: "blogRedesignBtn", setting: "blogRedesign" },
   { id: "removeAllCustomBtn", setting: "removeAllCustom", text: "Remove All Custom Settings" }
 ];
-
+if (!defaultMal) {
+  buttonsConfig.push(
+    { id: "headerSlideBtn", setting: "headerSlide" },
+    { id: "headerOpacityBtn", setting: "headerOpacity" }
+  );
+} else {
+  svar.headerSlide = 0;
+  svar.headerOpacity = 0;
+}
 // MalClean Settings - Create Buuttons
 function createButton({ id, setting, text }) {
   const button = create("button", { class: "mainbtns", id });
@@ -2423,6 +2560,39 @@ function createButton({ id, setting, text }) {
   };
   return button;
 }
+//Profile Foreground Color
+let fgColorSelector = create("input", { class: "badgeInput", id: "fgcolorselector",type:"color" });
+let updateFgButton = create("button", { class: "mainbtns", id: "privateProfile"}, "Update");
+let removeFgButton = create("button", { class: "mainbtns fa fa-trash", id: "customFgRemove" });
+let fgColorValue = 'var(--color-foreground)';
+let defaultFgColor = getComputedStyle(document.body);
+defaultFgColor = defaultFgColor.getPropertyValue('--color-foreground');
+fgColorSelector.value = defaultFgColor;
+
+fgColorSelector.addEventListener('input', (event) => {
+  fgColorValue = event.target.value;
+});
+
+updateFgButton.onclick = () => {
+    const fgBase64 = LZString.compressToBase64(JSON.stringify(fgColorValue));
+    const fgbase64url = fgBase64.replace(/\//g, '_');
+    editAboutPopup(`customfg/${fgbase64url}`,'fg');
+};
+
+removeFgButton.onclick = () => {
+    editAboutPopup(`customfg/...`,'fg');
+};
+//Private Profile
+var privateButton = create("button", { class: "mainbtns", id: "privateProfile", style: {width:'48%'}}, "Private");
+var removePrivateButton = create("button", { class: "mainbtns", id: "privateRemove", style: {width:'48%'}}, "Public");
+
+privateButton.onclick = () => {
+    editAboutPopup(`privateProfile/IxA=`,'private');
+};
+
+removePrivateButton.onclick = () => {
+    editAboutPopup(`privateProfile/...`,'private');
+};
 
 //Custom Profile Background
 let bgInput = create("input", { class: "bgInput", id: "bgInput" });
@@ -2471,7 +2641,7 @@ var cssRemoveButton = create("button", { class: "mainbtns fa fa-trash", id: "cus
 var cssInfo = create("p", { class: "textpb" }, "");
 let cssInput = create("input", { class: "cssInput", id: "cssInput" });
 var cssAlStyle = create("button", { class: "mainbtns", id: "cssAlStyle" ,style:{height:"32px",width:"32px",verticalAlign: "middle"} });
-var cssAlStyleText = create("h3", { style:{display: 'inline'}}, "Custom CSS for Make profile like Anilist");
+var cssAlStyleText = create("h3", { style:{display: 'inline'}}, "Custom CSS + Make profile like Anilist");
 let cssAlStyleEnabled = false;
 cssAlStyle.onclick = () => {
   cssAlStyleEnabled = !cssAlStyleEnabled;
@@ -2613,10 +2783,12 @@ function getSettings() {
   autoAddDateBtn.classList.toggle('btn-active', svar.autoAddDate);
   editPopupBtn.classList.toggle('btn-active', svar.editPopup);
   forumDateBtn.classList.toggle('btn-active', svar.forumDate);
-  headerSlideBtn.classList.toggle('btn-active', svar.headerSlide);
-  headerOpacityBtn.classList.toggle('btn-active', svar.headerOpacity);
   replaceListBtn.classList.toggle('btn-active', svar.replaceList);
   blogRedesignBtn.classList.toggle('btn-active', svar.blogRedesign);
+  if(!defaultMal) {
+      headerSlideBtn.classList.toggle('btn-active', svar.headerSlide);
+      headerOpacityBtn.classList.toggle('btn-active', svar.headerOpacity);
+  }
 }
 //MalClean Settings - Create Custom Settings Div Function
 function createCustomSettingDiv(title, description) {
@@ -2633,6 +2805,10 @@ function createCustomSettingDiv(title, description) {
 //MalClean Settings - Create Settings Div
 function createDiv() {
   let listDiv = create("div", { class: "malCleanMainContainer" }, '<div class="malCleanMainHeader"><b>' + stLink.innerText + "</b></div>");
+  let customfgDiv = createCustomSettingDiv(
+    "Custom Foreground Color (Required Anilist Style Profile)",
+    "Change profile foreground color. This will be visible to others with the script."
+  );
   let custombgDiv = createCustomSettingDiv(
     "Custom Banner (Required Anilist Style Profile)",
     "Add custom banner to your profile. This will be visible to others with the script."
@@ -2641,18 +2817,22 @@ function createDiv() {
     "Custom Avatar (Required Anilist Style Profile)",
     "Add custom avatar to your profile. This will be visible to others with the script."
   );
-  let customcssDiv = createCustomSettingDiv(
-    "Custom CSS",
-    "Add custom css to your profile. This will be visible to others with the script."
-  );
   let custombadgeDiv = createCustomSettingDiv(
     "Custom Badge (Required Anilist Style Profile)",
     "Add custom badge to your profile. This will be visible to others with the script." +
     "<p>You can use HTML elements. Maximum size 300x150. Update empty to delete.</p>"
   );
+  let customcssDiv = createCustomSettingDiv(
+    "Custom CSS",
+    "Add custom css to your profile. This will be visible to others with the script."
+  );
   let customColorsDiv = createCustomSettingDiv(
     "Custom Profile Colors",
     "Change profile colors. This will be visible to others with the script."
+  );
+  let privateProfileDiv = createCustomSettingDiv(
+    "Profile Privacy",
+    "You can make your profile private or public for people with the script."
   );
   const buttons = buttonsConfig.reduce((acc, { id, setting, text }) => {
     acc[id] = createButton({ id, setting, text });
@@ -2669,7 +2849,7 @@ function createDiv() {
         { b: buttons["currentlyReadingBtn"], t: "Show currently reading manga" },
         { b: buttons["airingDateBtn"], t: "Add next episode countdown to currently watching anime" },
         { b: buttons["autoAddDateBtn"], t: "Auto add start/finish date to watching anime & reading manga" },
-        { b: buttons["headerSlideBtn"], t: "Auto Hide/Show header" },
+        ...!defaultMal ? [{ b: buttons["headerSlideBtn"], t: "Auto Hide/Show header" }] : [],
       ]
     ),
     createListDiv(
@@ -2718,16 +2898,18 @@ function createDiv() {
       [
         { b: buttons["alStyleBtn"], t: "Make profile like Anilist" },
         { b: buttons["replaceListBtn"], t: "Make Anime/Manga List like Anilist" },
-        { b: buttons["headerOpacityBtn"], t: "Add auto opacity to the header if the user has a custom banner." },
+        ...!defaultMal ? [{ b: buttons["headerOpacityBtn"], t: "Add auto opacity to the header if the user has a custom banner." }] : [],
         { b: buttons["customCssBtn"], t: "Show custom CSS" },
         { b: buttons["profileHeaderBtn"], t: "Change username position" },
       ]
     )
   );
 
+  listDiv.append(privateProfileDiv);
   //if anilist style profile active, add custom settings.
   if (svar.alstyle) {
-    listDiv.append(custombadgeDiv, custompfDiv, custombgDiv);
+    listDiv.append(custombadgeDiv, custompfDiv, custombgDiv,customfgDiv);
+    customfgDiv.append(fgColorSelector,updateFgButton,removeFgButton);
     custombgDiv.append(bgInput, bgButton, bgRemoveButton, bgInfo);
     custompfDiv.append(pfInput, pfButton,pfRemoveButton, pfInfo);
     custombadgeDiv.append(badgeInput, badgeColorSelector, badgeColorLoop, badgeButton);
@@ -2735,6 +2917,7 @@ function createDiv() {
     buttons["profileHeaderBtn"].nextSibling.style.display = "none";
   }
   customColorsDiv.append(customColors, customColorButton, customColorRemoveButton);
+  privateProfileDiv.append(privateButton,removePrivateButton);
   listDiv.append(customColorsDiv,customcssDiv);
   customcssDiv.append(cssInput, cssButton, cssRemoveButton, cssAlStyle, cssAlStyleText, cssInfo);
   document.querySelector("#headerSmall").insertAdjacentElement("afterend", listDiv);
@@ -2814,7 +2997,18 @@ function delay(ms) {
   }
 
   var current = location.pathname;
+
+
+  //Add CSS
+  if ($('style:contains(--fg:)').length) {
   styleSheet.innerText = styles;
+  } else if ($('html').hasClass('dark-mode')) {
+    styleSheet.innerText = styles + defaultColors  + defaultCSSFixes;
+    defaultMal = 1;
+  } else {
+    styleSheet.innerText = styles + defaultColorsLight + defaultCSSFixes;
+    defaultMal = 1;
+  }
   document.head.appendChild(styleSheet);
 
   //Currently Watching //--START--//
@@ -3592,22 +3786,23 @@ function delay(ms) {
     const pfloading = create("div", { class: "actloading",style:{position:"fixed",top:"50%",left:"0",right:"0",fontSize:"16px"}},
                            "Loading"+'<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>');
     let username = current.split('/')[2];
-    let custombg,custompf,customcss,custombadge,customcolors,userimg,customFounded;
+    let customfg,custombg,custompf,customcss,custombadge,customcolors,userimg,customFounded,privateProfile;
+    let fgRegex = /(customfg)\/([^"\/]+)/gm;
     let bgRegex = /(custombg)\/([^"\/]+)/gm;
     let pfRegex = /(custompf)\/([^"\/]+)/gm;
     let cssRegex = /(customcss)\/([^"\/]+)/gm;
     let badgeRegex = /(custombadge)\/([^"\/]+)/gm;
     let colorRegex = /(customcolors)\/([^"\/]+)/gm;
     let favSongEntryRegex = /(favSongEntry)\/([^\/]+.)/gm;
+    let privateProfileRegex = /(privateProfile)\/([^"\/]+)/gm;
 
     //block user icon
      let blockU = create("i", {
-      class: "fa fa-ban",
+      class: "fa fa-ban mt4 ml12",
       style: {
         fontFamily: '"Font Awesome 6 Pro"',
-        position: 'absolute',
+        float:'right',
         zIndex:'10',
-        right: '65px',
         color: 'var(--color-link) !important',
         fontWeight: 'bold',
         fontSize: '12px',
@@ -3640,14 +3835,14 @@ function delay(ms) {
       }
       if(customcss && customcss.constructor === Array && customcss[1]){
         svar.alstyle = true;
-        applyAl();
+        await applyAl();
       }
       else if (customcss && svar.customcss) {
         svar.alstyle = false;
-        applyAl();
+        await applyAl();
       } else if(customFounded || svar.alstyle === true) {
         svar.alstyle = true;
-        applyAl();
+        await applyAl();
       }
       else {
         pfloading.remove();
@@ -3663,6 +3858,10 @@ function delay(ms) {
         }
       }
     }
+      //Add Block User Button
+      if(!/\/profile\/.*\/\w/gm.test(current) && username !== $(".header-profile-link").text() && $(".header-profile-link").text() !== '' && $(".header-profile-link").text() !== 'MALnewbie') {
+        $("a.header-right").after(blockU);
+      }
 
     if (document.readyState === 'interactive' || document.readyState === 'complete') {
       document.querySelector('#contentWrapper').style.opacity = "0";
@@ -3672,16 +3871,6 @@ function delay(ms) {
       window.scrollTo(0, 0);
       shadow.setAttribute('style', 'background: linear-gradient(180deg,rgba(6,13,34,0) 40%,rgba(6,13,34,.6));height: 100%;left: 0;position: absolute;top: 0;width: 100%;');
       banner.append(shadow);
-      if(!/\/profile\/.*\/\w/gm.test(current)) {
-        if (svar.alstyle) {
-          document.querySelector("a.header-right").append(blockU)
-        } else {
-          document.querySelector("a.header-right").prepend(blockU);
-        }
-        if(username === $(".header-profile-link").text() || $(".header-profile-link").text() === '' || $(".header-profile-link").text() === 'MALnewbie') {
-          blockU.remove();
-        }
-      }
 
       if (!svar.customcss) {
         document.querySelector("#contentWrapper").style.top = "60px";
@@ -3887,17 +4076,26 @@ function delay(ms) {
       colorStyleSheet.innerText = colorStyles.replace(/\n/g, '');
       document.head.appendChild(colorStyleSheet);
     }
-
     //Get Custom Banner and Custom Profile Image Data from About Section
     async function findCustomAbout() {
       const aboutSection = document.querySelector('.user-profile-about.js-truncate-outer');
       const processAboutSection = (aboutContent) => {
+      const fgMatch = aboutContent.match(fgRegex);
       const bgMatch = aboutContent.match(bgRegex);
       const pfMatch = aboutContent.match(pfRegex);
       const cssMatch = aboutContent.match(cssRegex);
       const badgeMatch = aboutContent.match(badgeRegex);
       const colorMatch = aboutContent.match(colorRegex);
       const favSongMatch = aboutContent.match(favSongEntryRegex);
+      const privateProfileMatch = aboutContent.match(privateProfileRegex);
+        if (fgMatch) {
+          const fgData = fgMatch[0].replace(fgRegex, '$2');
+          if (fgData !== '...') {
+            let fgBase64Url = fgData.replace(/_/g, "/");
+            customfg = JSON.parse(LZString.decompressFromBase64(fgBase64Url));
+            changeForeground(customfg);
+          }
+        }
         if (bgMatch) {
           const bgData = bgMatch[0].replace(bgRegex, '$2');
           if(bgData !== '...'){
@@ -3916,6 +4114,17 @@ function delay(ms) {
             let colorBase64Url = colorData.replace(/_/g, "/");
             customcolors = JSON.parse(LZString.decompressFromBase64(colorBase64Url));
             applyCustomColors(customcolors);
+          }
+        }
+        if (privateProfileMatch) {
+          const privateData = privateProfileMatch[0].replace(privateProfileRegex, '$2');
+          if (privateData !== '...') {
+            let privateBase64Url = privateData.replace(/_/g, "/");
+            privateProfile = JSON.parse(LZString.decompressFromBase64(privateBase64Url));
+            privateButton.classList.toggle('btn-active-def', privateProfile);
+            applyPrivateProfile();
+          } else {
+            removePrivateButton.classList.toggle('btn-active-def', 1);
           }
         }
         if (badgeMatch) {
@@ -3995,13 +4204,34 @@ function delay(ms) {
         const item = items[i];
         const description = item.querySelector('description').textContent;
         const custompfMatch = description.match(pfRegex);
+        const customfgMatch = description.match(fgRegex);
         const custombgMatch = description.match(bgRegex);
         const customcssMatch = description.match(cssRegex);
         const custombadgeMatch = description.match(badgeRegex);
         const customcolorMatch = description.match(colorRegex);
+        const privateProfileMatch = description.match(privateProfileRegex);
         const favSongMatch = description.match(favSongEntryRegex);
+        if (customfgMatch) {
+          const fgData = customfgMatch[0].replace(fgRegex, '$2');
+          if (fgData !== '...') {
+            let fgBase64Url = fgData.replace(/_/g, "/");
+            customfg = JSON.parse(LZString.decompressFromBase64(fgBase64Url));
+            changeForeground(customfg);
+          }
+        }
         if (favSongMatch && !/\/profile\/.*\/\w/gm.test(current)) {
           buildFavSongs(description);
+        }
+        if (privateProfileMatch) {
+          const privateData = privateProfileMatch[0].replace(privateProfileRegex, '$2');
+          if (privateData !== '...') {
+            let privateBase64Url = privateData.replace(/_/g, "/");
+            privateProfile = JSON.parse(LZString.decompressFromBase64(privateBase64Url));
+            privateButton.classList.toggle('btn-active-def', privateProfile);
+            applyPrivateProfile();
+          } else {
+            removePrivateButton.classList.toggle('btn-active-def', 1);
+          }
         }
         if (customcolorMatch) {
           const colorData = customcolorMatch[0].replace(colorRegex, '$2');
@@ -4071,9 +4301,7 @@ function delay(ms) {
             const malscss = document.createElement('style');
             malscss.textContent = `#currently-popup, .malCleanMainHeader, .malCleanMainContainer {background:#121212!important;}`;
             document.head.appendChild(malscss);
-          }
-          if (!customcssAl) {
-            $('style:contains(--fg: #161f2f;)').html('');
+            $('style:contains(--fg:)').html('');
           }
           styleSheet3.innerText = styles3;
           document.getElementsByTagName("head")[0].appendChild(styleSheet3);
@@ -4102,7 +4330,7 @@ function delay(ms) {
       if (svar.alstyle) {
         //CSS Fix for Anilist Style
         let fixstyle = `
-        .page-common #horiznav_nav.profile-nav > ul > li > a:not(.navactive){color:  var(--color-main-text-light)!important;background:0!important}
+        .page-common #horiznav_nav.profile-nav > ul > li > a:not(.navactive){color: var(--color-main-text-light)!important;background:0!important}
         .page-common #horiznav_nav.profile-nav > ul > li > a.navactive,.page-common #horiznav_nav.profile-nav > ul > li > a:hover{color:  var(--color-link)!important;background:0!important}
         .maljsNavBtn{background: var(--color-foreground);border-radius: 5px;cursor: pointer;display: inline-block;padding: 10px!important;text-align: center;}
         .maljsProfileBadge{background: var(--color-foreground);-webkit-border-radius: 4px;border-radius: 5px;color: #e9e9e9;font-weight:600;
@@ -4122,6 +4350,7 @@ function delay(ms) {
         .l-ranking-list_circle-item{flex-basis: 70px;}
         div#modern-about-me-expand-button,.c-aboutme-accordion-btn-icon{display:none}
         #banner a.header-right.mt4.mr0{z-index: 2;position: relative;margin: 60px 10px 0px !important;}
+        #banner div i.fa.fa-ban{margin: 60px 0px 0px !important;position: relative;}
         .loadmore,.actloading,.listLoading {font-size: .8rem;font-weight: 700;padding: 14px;text-align: center;}
         .loadmore {cursor: pointer;background: var(--color-foreground);border-radius: var(--border-radius);margin-bottom: 25px;z-index: 2;position: relative;}
         #headerSmall + #menu {width:auto!important}
@@ -4302,6 +4531,9 @@ function delay(ms) {
         banner.append(container);
         headerRight ? banner.prepend(headerRight) : null;
         $('.header-right:contains("Profile Settings")').remove();
+        if(!/\/profile\/.*\/\w/gm.test(current) && username !== $(".header-profile-link").text() && $(".header-profile-link").text() !== '' && $(".header-profile-link").text() !== 'MALnewbie') {
+          $(headerRight).wrapAll("<div class='profileRightActions'></div>").after(blockU);
+        }
         container.append(avatar);
         about ? about.classList.add("max") : null;
         modernabout ? modernabout.classList.add("max") : null;
@@ -4333,7 +4565,7 @@ function delay(ms) {
         set(1, ".user-image .btn-detail-add-picture", { sa: { 0: "display: flex;flex-direction: column;justify-content: center;" } });
         document.querySelector(".user-image").setAttribute("style", "top: 99px;left: 99px;position: relative;");
         avatar.setAttribute("style", "display: flex;height: inherit;align-items: flex-end;position: relative;width:500px;");
-        name.css({ "font-size": "2rem", "font-weight": "800", left: "35px", top: "-35px" });
+        name.css({ "font-size": "2rem", "font-weight": "800", left: "35px", top: "-35px", color:'var(--color-main-text-op)' });
         name.html(name.html().replace(/'s Profile/g, "\n"));
         avatar.append(name[0]);
         set(2, "#container span.profile-team-title.js-profile-team-title", { sl: { top: "18px" } });
@@ -4529,7 +4761,44 @@ function delay(ms) {
         document.querySelector('#contentWrapper').style.opacity = "1";
       }
     }
-
+    //Private Profile Check
+    async function changeForeground(color) {
+      if (svar.alstyle) {
+        await delay(200);
+        $('style:contains(--fg:)').html('');
+        let customColors = `
+        :root,body {--fg: ${color}!important;--color-background: ${tinycolor(color).darken(3)}!important;--color-backgroundo: ${tinycolor(color).setAlpha(.8).toRgbString()}!important;
+        --color-foreground: ${color}!important;--color-foreground2: ${tinycolor(color).brighten(3)}!important;--color-foreground3: ${tinycolor(color).brighten(4)}!important;
+        --color-foregroundOP: ${color}!important;--color-foregroundOP2: ${tinycolor(color).brighten(3)}!important;--color-foreground4: ${tinycolor(color).brighten(6)}!important;
+        --border-color:${tinycolor(color).brighten(8)}!important;}
+        .dark-mode .page-common #headerSmall,.page-common #headerSmall,.dark-mode .page-common #contentWrapper,.dark-mode .page-common #content {background-color: var(--color-background)!important}
+        .dark-mode .profile.statistics .content-container .container-right .chart-wrapper>.filter,.dark-mode .mal-alert,.dark-mode .mal-alert.danger,.dark-mode .profile.statistics .chart-container-rf .right .filter,
+        .dark-mode .mal-alert.secondary,.dark-mode .sceditor-container,.dark-mode .head-config,.dark-mode .profile .navi .tabs .btn-tab,.dark-mode .profile .boxlist-container .boxlist,
+        .dark-mode .sceditor-container iframe,.dark-mode .sceditor-container textarea,.dark-mode .user-profile .user-status li,.dark-mode .user-profile .user-status li:nth-of-type(even),
+        .profile.statistics .content-container .container-right .chart-wrapper>.filter,.mal-alert,.mal-alert.danger,.profile.statistics .chart-container-rf .right .filter,.mal-alert.secondary,
+        .sceditor-container,.head-config,.profile .navi .tabs .btn-tab,.profile .boxlist-container .boxlist,.sceditor-container iframe, .sceditor-container textarea,.user-profile .user-status li,
+        .user-profile .user-status li:nth-of-type(even),.dark-mode .page-common #footer-block, .page-common #footer-block {background: var(--color-foreground)!important}
+        .dark-mode .mal-alert.primary,.dark-mode .profile .navi .tabs .btn-tab:hover, .dark-mode .profile .navi .tabs .btn-tab.on,.dark-mode .page-common .quotetext, .dark-mode .page-common .codetext,
+        .dark-mode .mal-tabs a.item.active,.dark-mode div.sceditor-toolbar,.mal-alert.primary,.profile .navi .tabs .btn-tab:hover, .profile .navi .tabs .btn-tab.on,.page-common .quotetext, .page-common .codetext,
+        .mal-tabs a.item.active,div.sceditor-toolbar,.dark-mode .page-common #menu,.page-common #menu {background: var(--color-foreground2)!important}
+        .page-common .content-container * {border-color:var(--border-color)!important}`;
+        customColors = customColors.replace(/\n/g, '');
+        styleSheet.innerText = styles + customColors + defaultCSSFixes;
+          document.head.appendChild(styleSheet);
+      }
+    }
+    //Private Profile Check
+    async function applyPrivateProfile() {
+      if (privateProfile && username !== $(".header-profile-link").text()) {
+        await delay(200);
+        $('#banner').hide();
+        $('#content').hide();
+        $('#navbar').hide();
+        $('#contentWrapper').css('opacity','1');
+        $('#contentWrapper').append(pfloading);
+        pfloading.innerHTML = "Private Profile";
+      }
+    }
     //Anilist Style Anime and Manga List //-START-//
     let contLeft = $(".container-left").length ?  $(".container-left") : $("#content > table > tbody > tr td[valign='top']:nth-child(1)");
     let contRight = $(".container-right").length ?  $(".container-right") : $("#content > table > tbody > tr td[valign='top']:nth-child(2)");
@@ -4778,8 +5047,10 @@ function delay(ms) {
         } else {
           contentDiv.style.marginTop = "25px";
         }
-      } else {
+      } else if (document.querySelector("#contentWrapper > div > h1.h1")) {
         document.querySelector("#contentWrapper > div > h1.h1").style.marginBottom = "25px";
+      } else if (svar.profileHeader && document.querySelector("#contentWrapper > div")) {
+        document.querySelector("#contentWrapper > div").style.marginBottom = "25px";
       }
 
       //List Filter
@@ -4801,8 +5072,10 @@ function delay(ms) {
             } else {
               contentDiv.style.marginTop = "10px";
             }
-          } else {
+          } else if (document.querySelector("#contentWrapper > div > h1.h1")) {
             document.querySelector("#contentWrapper > div > h1.h1").style.marginBottom = "0";
+          } else if (svar.profileHeader && document.querySelector("#contentWrapper > div")) {
+            document.querySelector("#contentWrapper > div").style.marginBottom = "0";
           }
 
           contLeft.find("#filter").remove();
@@ -5597,7 +5870,7 @@ function delay(ms) {
           InformationAiring = InformationAiring.text().replace(/Status:?\s*/, '').trim();
           if (InformationAiring === "Currently Airing") {
             const AiringData = await aniAPIRequest();
-            if (AiringData.data.Media) {
+            if (AiringData?.data.Media) {
               const AiringEp = AiringData.data.Media.nextAiringEpisode ? AiringData.data.Media.nextAiringEpisode.episode : "";
               const AiringTime = AiringData.data.Media.nextAiringEpisode ? AiringData.data.Media.nextAiringEpisode.timeUntilAiring : "";
               const AiringInfo = AiringEp && AiringTime
@@ -5629,7 +5902,7 @@ function delay(ms) {
         }
         else {
           bannerData = await aniAPIRequest();
-          if(bannerData.data.Media && bannerData.data.Media.bannerImage) {
+          if(bannerData?.data.Media && bannerData.data.Media.bannerImage) {
           await BannerLocalForage.setItem(entryId+"-"+entryType, {
             bannerImage:bannerData.data.Media.bannerImage
           });
@@ -5638,7 +5911,7 @@ function delay(ms) {
             bannerData = null;
           }
         }
-        if(bannerData && bannerData.bannerImage && bannerTarget) {
+        if(bannerData && bannerData?.bannerImage && bannerTarget) {
           let bgColor = getComputedStyle(document.body);
           bgColor = tinycolor(bgColor.getPropertyValue('--bg'));
           const leftSide = document.querySelector("#content > table > tbody > tr > td:nth-child(1)");
@@ -5673,7 +5946,7 @@ function delay(ms) {
         let tagCache = await tagLocalForage.getItem(entryId+"-"+entryType);
         if (!tagCache || tagCache.time + tagcacheTTL < +new Date()) {
           tagData = await aniAPIRequest();
-          if (tagData.data.Media && tagData.data.Media.tags && tagData.data.Media.tags.length > 0) {
+          if (tagData?.data.Media && tagData.data.Media.tags && tagData.data.Media.tags.length > 0) {
             await tagLocalForage.setItem(entryId+"-"+entryType, {
               tags: tagData.data.Media.tags,
               time: +new Date(),
@@ -5726,8 +5999,8 @@ function delay(ms) {
         const priorityOrder = {"ADAPTATION": 0,"PREQUEL": 1,"SEQUEL": 2,"PARENT": 3,"ALTERNATIVE": 4,"SIDE_STORY": 5,"SUMMARY": 6,"SPIN_OFF": 7,"CHARACTER": 8,"OTHER": 9};
         if (!relationCache || relationCache.time + relationcacheTTL < +new Date()) {
           relationData = await aniAPIRequest();
-          relationData.data.Media ? relationData = relationData.data.Media.relations.edges.filter(node => node.node.idMal !== null) : null;
-          if (relationData.length > 0) {
+          relationData?.data.Media ? relationData = relationData.data.Media.relations.edges.filter(node => node.node.idMal !== null) : null;
+          if (relationData && relationData.length > 0) {
             // Sort by priorityOrder
             sortedRelations = relationData.sort((a, b) => {
               const orderA = priorityOrder[a.relationType];
@@ -6127,8 +6400,10 @@ function delay(ms) {
       m = 1
     }
     if(!m) {
-      styleSheet2.innerText = styles2;
-      document.head.appendChild(styleSheet2);
+      if(!defaultMal) {
+        styleSheet2.innerText = styles2;
+        document.head.appendChild(styleSheet2);
+      }
       const colorThief = new ColorThief();
       let img,dominantColor,Palette,t;
       let colors = [];
