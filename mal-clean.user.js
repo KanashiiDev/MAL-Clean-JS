@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.29.0
+// @version     1.29.1
 // @author      KanashiiDev
 // @description Customizations and fixes for MyAnimeList
 // @license     GPL-3.0-or-later
@@ -234,7 +234,7 @@ var stringSimilarity = function (str1, str2, substringLength, caseSensitive) {
 };
 
 // Current Watching Airing Schedule - Calculate Time
-async function airingTime(sec){
+async function airingTime(sec) {
   const timeUntilAiring = sec;
   const currentTimeStamp = Math.floor(Date.now() / 1000);
   const targetTimeStamp = currentTimeStamp + timeUntilAiring;
@@ -246,7 +246,7 @@ async function airingTime(sec){
 };
 
 // Anilist API Request
-async function AnilistAPI(fullQuery){
+async function AnilistAPI(fullQuery) {
   var query = fullQuery;
   let url = 'https://graphql.anilist.co',
       options = {
@@ -378,6 +378,37 @@ function handleEmptyInfo(divSelector, checkText, mode) {
         nextSibling.innerHTML = nextSibling.innerHTML.replace('<br>', '');
       }
     }
+  }
+}
+
+//Get Friends Info from JikanAPI
+async function getFriends(username) {
+  let allFriends = [];
+  let page = 1;
+  try {
+    while (true) {
+      const response = await fetch(`https://api.jikan.moe/v4/users/${username}/friends?page=${page}`);
+      const remainingRequests = response.headers.get('X-RateLimit-Remaining');
+      const resetTime = response.headers.get('X-RateLimit-Reset');
+      if (remainingRequests === '0') {
+        const currentTime = Math.floor(Date.now() / 1000);
+        const waitTime = resetTime - currentTime;
+        console.log(`Rate limit reached. Waiting for ${waitTime} seconds.`);
+        await delay(waitTime * 1000);
+      }
+      const data = await response.json();
+      const friends = data.data.map(friend => friend.user);
+      allFriends = allFriends.concat(friends);
+      if (!data.pagination.has_next_page) {
+        break;
+      }
+      page++;
+      await delay(500);
+    }
+    return allFriends;
+  } catch (error) {
+    console.error('Error:', error);
+    return [];
   }
 }
 
@@ -521,20 +552,21 @@ async function editAboutPopup(data, type) {
         } else if (type === 'removeAll') {
           aboutText = aboutText.replace(regexes.match, '');
         }
+
         if (canSubmit) {
           await updateAboutText(aboutText);
         }
         toggleCustomSettings(type, false);
       }
 
-      if (isClassic) {
+      if (isClassic && settingsFounded !== 2) {
         changeData();
       } else if ($(iframe).attr('src').indexOf("blog") === -1) {
         iframe.src = userBlogPage;
       }
 
       if ($(iframe).contents()[0].URL.indexOf("editprofile.php") === -1) {
-        if ($(iframe).contents()[0].URL.indexOf("myblog.php") === -1) {
+        if (settingsFounded && $(iframe).contents()[0].URL.indexOf("myblog.php") === -1) {
           let $blogFound = null;
           let $maljsBlogDivs = $iframeContents.find('.maljsBlogDiv');
           if ($maljsBlogDivs.length) {
@@ -562,7 +594,7 @@ async function editAboutPopup(data, type) {
     function notFound() {
       iframe.remove();
       popupLoading.innerHTML = "You are not using classic about.<br><br>Please paste this code into a blog post on the first page so that the code will run automatically.<br><br>";
-      popupDataText.innerHTML = "[url=https://malcleansettings/]";
+      popupDataText.innerHTML = "[url=https://malcleansettings/] [/url]";
       popupLoading.append(popupDataText,popupDataTextButton);
       popupDataTextButton.addEventListener('click', function() {
         const tempInput = document.createElement('input');
@@ -979,7 +1011,7 @@ let styles = `
 }
 
 .favThemes .flex2x .fav-theme-container {
-
+    background: var(--color-foreground);
     padding: 10px;
     margin-bottom: 10px;
     min-height: 55px;
@@ -2465,7 +2497,7 @@ button#customColorUpdate {
   padding:10px
 }
 `;
-let defaultMal = 0;
+let defaultMal,settingsFounded = 0;
 if(location.pathname === "/rss.php") {
   return;
 }
@@ -2481,6 +2513,19 @@ styles3 = styles3.replace(/\n/g, '');
 defaultColors = defaultColors.replace(/\n/g, '');
 defaultColorsLight = defaultColorsLight.replace(/\n/g, '');
 defaultCSSFixes = defaultCSSFixes.replace(/\n/g, '');
+
+//Add CSS
+if ($('style:contains(--fg:)').length) {
+  styleSheet.innerText = styles;
+} else if ($('html').hasClass('dark-mode')) {
+  styleSheet.innerText = styles + defaultColors  + defaultCSSFixes;
+  defaultMal = 1;
+} else {
+  styleSheet.innerText = styles + defaultColorsLight + defaultCSSFixes;
+  defaultMal = 1;
+}
+document.head.appendChild(styleSheet);
+
 //MalClean Settings - Settings Button
 var stButton = create("li", {});
 stButton.onclick = () => {
@@ -2814,7 +2859,7 @@ function createDiv() {
     "Add custom banner to your profile. This will be visible to others with the script."
   );
   let custompfDiv = createCustomSettingDiv(
-    "Custom Avatar (Required Anilist Style Profile)",
+    "Custom Avatar",
     "Add custom avatar to your profile. This will be visible to others with the script."
   );
   let custombadgeDiv = createCustomSettingDiv(
@@ -2905,13 +2950,12 @@ function createDiv() {
     )
   );
 
-  listDiv.append(privateProfileDiv);
+  listDiv.append(privateProfileDiv,custompfDiv,custombadgeDiv, custombgDiv, customfgDiv);
+  custompfDiv.append(pfInput, pfButton,pfRemoveButton, pfInfo);
   //if anilist style profile active, add custom settings.
   if (svar.alstyle) {
-    listDiv.append(custombadgeDiv, custompfDiv, custombgDiv,customfgDiv);
     customfgDiv.append(fgColorSelector,updateFgButton,removeFgButton);
     custombgDiv.append(bgInput, bgButton, bgRemoveButton, bgInfo);
-    custompfDiv.append(pfInput, pfButton,pfRemoveButton, pfInfo);
     custombadgeDiv.append(badgeInput, badgeColorSelector, badgeColorLoop, badgeButton);
     buttons["profileHeaderBtn"].style.display = "none";
     buttons["profileHeaderBtn"].nextSibling.style.display = "none";
@@ -2997,19 +3041,6 @@ function delay(ms) {
   }
 
   var current = location.pathname;
-
-
-  //Add CSS
-  if ($('style:contains(--fg:)').length) {
-  styleSheet.innerText = styles;
-  } else if ($('html').hasClass('dark-mode')) {
-    styleSheet.innerText = styles + defaultColors  + defaultCSSFixes;
-    defaultMal = 1;
-  } else {
-    styleSheet.innerText = styles + defaultColorsLight + defaultCSSFixes;
-    defaultMal = 1;
-  }
-  document.head.appendChild(styleSheet);
 
   //Currently Watching //--START--//
   if (svar.currentlyWatching && location.pathname === "/") {
@@ -3508,21 +3539,21 @@ function delay(ms) {
         });
     }
     function removeBlockedUsers() {
-      //Remove Blocked User's Forum Reply
-      let forumReply = document.querySelectorAll(".message-wrapper > div.profile");
-      for (let x = 0; x < forumReply.length; x++) {
-        for (let y = 0; y < blockedUsers.length; y++) {
-          if (forumReply[x].children[0].innerText === blockedUsers[y]) {
-            forumReply[x].parentElement.parentElement.remove();
-          }
-        }
-      }
       //Remove Blocked User's Forum Topics
       let ForumTopic = document.querySelectorAll("#forumTopics tr[data-topic-id]");
       for (let x = 0; x < ForumTopic.length; x++) {
         for (let y = 0; y < blockedUsers.length; y++) {
           if (ForumTopic[x].children[1].children[4].innerText === blockedUsers[y]) {
             ForumTopic[x].remove();
+          }
+        }
+      }
+      //Remove Blocked User's Forum Reply
+      let forumReply = document.querySelectorAll(".message-wrapper > div.profile");
+      for (let x = 0; x < forumReply.length; x++) {
+        for (let y = 0; y < blockedUsers.length; y++) {
+          if (forumReply[x].children[0].innerText === blockedUsers[y]) {
+            forumReply[x].parentElement.parentElement.remove();
           }
         }
       }
@@ -3786,15 +3817,18 @@ function delay(ms) {
     const pfloading = create("div", { class: "actloading",style:{position:"fixed",top:"50%",left:"0",right:"0",fontSize:"16px"}},
                            "Loading"+'<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>');
     let username = current.split('/')[2];
-    let customfg,custombg,custompf,customcss,custombadge,customcolors,userimg,customFounded,privateProfile;
-    let fgRegex = /(customfg)\/([^"\/]+)/gm;
-    let bgRegex = /(custombg)\/([^"\/]+)/gm;
-    let pfRegex = /(custompf)\/([^"\/]+)/gm;
-    let cssRegex = /(customcss)\/([^"\/]+)/gm;
-    let badgeRegex = /(custombadge)\/([^"\/]+)/gm;
-    let colorRegex = /(customcolors)\/([^"\/]+)/gm;
-    let favSongEntryRegex = /(favSongEntry)\/([^\/]+.)/gm;
-    let privateProfileRegex = /(privateProfile)\/([^"\/]+)/gm;
+    let customfg,custombg,custompf,customcss,custombadge,customcolors,userimg,customAlStyleFounded,privateProfile;
+    let profileRegex = {
+      malClean: /(malcleansettings)\/([^"\/])/gm,
+      fg: /(customfg)\/([^"\/]+)/gm,
+      bg: /(custombg)\/([^"\/]+)/gm,
+      pf: /(custompf)\/([^"\/]+)/gm,
+      css: /(customcss)\/([^"\/]+)/gm,
+      badge: /(custombadge)\/([^"\/]+)/gm,
+      colors: /(customcolors)\/([^"\/]+)/gm,
+      favSongEntry: /(favSongEntry)\/([^\/]+.)/gm,
+      privateProfile: /(privateProfile)\/([^"\/]+)/gm
+    };
 
     //block user icon
      let blockU = create("i", {
@@ -3830,9 +3864,6 @@ function delay(ms) {
     async function startCustomProfile () {
       await imgLoad();
       await findCustomAbout();
-      if (!customFounded) {
-        await findCustomBlogPost();
-      }
       if(customcss && customcss.constructor === Array && customcss[1]){
         svar.alstyle = true;
         await applyAl();
@@ -3840,7 +3871,7 @@ function delay(ms) {
       else if (customcss && svar.customcss) {
         svar.alstyle = false;
         await applyAl();
-      } else if(customFounded || svar.alstyle === true) {
+      } else if(customAlStyleFounded || svar.alstyle === true) {
         svar.alstyle = true;
         await applyAl();
       }
@@ -3858,10 +3889,10 @@ function delay(ms) {
         }
       }
     }
-      //Add Block User Button
-      if(!/\/profile\/.*\/\w/gm.test(current) && username !== $(".header-profile-link").text() && $(".header-profile-link").text() !== '' && $(".header-profile-link").text() !== 'MALnewbie') {
-        $("a.header-right").after(blockU);
-      }
+    //Add Block User Button
+    if(!/\/profile\/.*\/\w/gm.test(current) && username !== $(".header-profile-link").text() && $(".header-profile-link").text() !== '' && $(".header-profile-link").text() !== 'MALnewbie') {
+      $("a.header-right").after(blockU);
+    }
 
     if (document.readyState === 'interactive' || document.readyState === 'complete') {
       document.querySelector('#contentWrapper').style.opacity = "0";
@@ -4080,24 +4111,32 @@ function delay(ms) {
     async function findCustomAbout() {
       const aboutSection = document.querySelector('.user-profile-about.js-truncate-outer');
       const processAboutSection = (aboutContent) => {
-      const fgMatch = aboutContent.match(fgRegex);
-      const bgMatch = aboutContent.match(bgRegex);
-      const pfMatch = aboutContent.match(pfRegex);
-      const cssMatch = aboutContent.match(cssRegex);
-      const badgeMatch = aboutContent.match(badgeRegex);
-      const colorMatch = aboutContent.match(colorRegex);
-      const favSongMatch = aboutContent.match(favSongEntryRegex);
-      const privateProfileMatch = aboutContent.match(privateProfileRegex);
+      const fgMatch = aboutContent.match(profileRegex.fg);
+      const bgMatch = aboutContent.match(profileRegex.bg);
+      const pfMatch = aboutContent.match(profileRegex.pf);
+      const cssMatch = aboutContent.match(profileRegex.css);
+      const badgeMatch = aboutContent.match(profileRegex.badge);
+      const colorMatch = aboutContent.match(profileRegex.colors);
+      const favSongMatch = aboutContent.match(profileRegex.favSongEntry);
+      const privateProfileMatch = aboutContent.match(profileRegex.privateProfile);
         if (fgMatch) {
-          const fgData = fgMatch[0].replace(fgRegex, '$2');
+          const fgData = fgMatch[0].replace(profileRegex.fg, '$2');
           if (fgData !== '...') {
             let fgBase64Url = fgData.replace(/_/g, "/");
             customfg = JSON.parse(LZString.decompressFromBase64(fgBase64Url));
             changeForeground(customfg);
           }
         }
+        if (pfMatch) {
+          const pfData = pfMatch[0].replace(profileRegex.pf, '$2');
+          if(pfData !== '...'){
+            let pfBase64Url = pfData.replace(/_/g, "/");
+            custompf = JSON.parse(LZString.decompressFromBase64(pfBase64Url));
+            document.querySelector('.user-image.mb8 > img').setAttribute('src', custompf);
+          }
+        }
         if (bgMatch) {
-          const bgData = bgMatch[0].replace(bgRegex, '$2');
+          const bgData = bgMatch[0].replace(profileRegex.bg, '$2');
           if(bgData !== '...'){
             let bgBase64Url = bgData.replace(/_/g, "/");
             custombg = JSON.parse(LZString.decompressFromBase64(bgBase64Url));
@@ -4105,11 +4144,11 @@ function delay(ms) {
               'style',
               `background-color: var(--color-foreground); background: url(${custombg}); background-position: 50% 35%; background-repeat: no-repeat; background-size: cover; height: 330px; position: relative;`
             );
-            customFounded = 1;
+            customAlStyleFounded = 1;
           }
         }
         if (colorMatch) {
-          const colorData = colorMatch[0].replace(colorRegex, '$2');
+          const colorData = colorMatch[0].replace(profileRegex.colors, '$2');
           if (colorData !== '...') {
             let colorBase64Url = colorData.replace(/_/g, "/");
             customcolors = JSON.parse(LZString.decompressFromBase64(colorBase64Url));
@@ -4117,7 +4156,7 @@ function delay(ms) {
           }
         }
         if (privateProfileMatch) {
-          const privateData = privateProfileMatch[0].replace(privateProfileRegex, '$2');
+          const privateData = privateProfileMatch[0].replace(profileRegex.privateProfile, '$2');
           if (privateData !== '...') {
             let privateBase64Url = privateData.replace(/_/g, "/");
             privateProfile = JSON.parse(LZString.decompressFromBase64(privateBase64Url));
@@ -4128,7 +4167,7 @@ function delay(ms) {
           }
         }
         if (badgeMatch) {
-          const badgeData = badgeMatch[0].replace(badgeRegex, '$2');
+          const badgeData = badgeMatch[0].replace(profileRegex.badge, '$2');
           if(badgeData !== '...'){
             let badgeBase64Url = badgeData.replace(/_/g, "/");
             custombadge = JSON.parse(LZString.decompressFromBase64(badgeBase64Url));
@@ -4140,27 +4179,18 @@ function delay(ms) {
               badgeDiv.style.background = custombadge[1];
             }
             container.append(badgeDiv);
-            customFounded = 1;
-          }
-        }
-        if (pfMatch) {
-          const pfData = pfMatch[0].replace(pfRegex, '$2');
-          if(pfData !== '...'){
-            let pfBase64Url = pfData.replace(/_/g, "/");
-            custompf = JSON.parse(LZString.decompressFromBase64(pfBase64Url));
-            document.querySelector('.user-image.mb8 > img').setAttribute('src', custompf);
-            customFounded = 1;
+            customAlStyleFounded = 1;
           }
         }
         if (cssMatch) {
-          const cssData = cssMatch[0].replace(cssRegex, '$2');
+          const cssData = cssMatch[0].replace(profileRegex.css, '$2');
           if(cssData !== '...'){
             let cssBase64Url = cssData.replace(/_/g, "/");
           customcss = JSON.parse(LZString.decompressFromBase64(cssBase64Url));
           }
         }
         if (favSongMatch) {
-          if(customFounded){
+          if(customAlStyleFounded){
             svar.alstyle = true;
           }
           if (customcss && customcss.constructor === Array && !customcss[1] || customcss && customcss.constructor !== Array){
@@ -4171,119 +4201,53 @@ function delay(ms) {
           }
         }
       };
-      if (aboutSection) {
+
+      // Find profile about and processAboutSection
+      if (aboutSection && aboutSection.innerHTML.match(profileRegex.malClean)) {
         processAboutSection(aboutSection.innerHTML);
-      } else {
-        await fetch('https://myanimelist.net/profile/'+username)
-          .then(response => {
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
-          }
-          return response.text();
-        })
-          .then(async html => {
+        settingsFounded = 1;
+      } else if (/\/profile\/.*\/\w/gm.test(current)) {
+        try {
+          const response = await fetch('https://myanimelist.net/profile/' + username);
+          if (!response.ok) throw new Error('Network response was not ok');
+          const html = await response.text();
           const parser = new DOMParser();
           const doc = parser.parseFromString(html, 'text/html');
           const userProfileAbout = doc.querySelector('.user-profile-about');
-          if (userProfileAbout) {
+
+          if (userProfileAbout && userProfileAbout.innerHTML.match(profileRegex.malClean)) {
             processAboutSection(userProfileAbout.innerHTML);
+            settingsFounded = 1;
           }
-        })
+        } catch (error) {
+          console.error('Error fetching profile data:', error);
+        }
+      }
+
+      // Find malclean settings on the blog page.
+      if (!settingsFounded) {
+        try {
+          const rssUrl = 'https://myanimelist.net/rss.php?type=blog&u=' + username;
+          const response = await fetch(rssUrl);
+          const str = await response.text();
+          const data = new window.DOMParser().parseFromString(str, "text/xml");
+          const items = data.querySelectorAll('item');
+
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const description = item.querySelector('description').textContent;
+            if (description.match(profileRegex.malClean)) {
+              processAboutSection(description);
+              settingsFounded = 2;
+              break;
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching RSS data:', error);
+        }
       }
     }
 
-    // for modern about, user can use blog post to add custom profile image, banner and css
-    async function findCustomBlogPost() {
-      let custompfLink, custombgLink;
-      const rssUrl = 'https://myanimelist.net/rss.php?type=blog&u=' + username;
-      const response = await fetch(rssUrl);
-      const str = await response.text();
-      const data = new window.DOMParser().parseFromString(str, "text/xml");
-      const items = data.querySelectorAll('item');
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        const description = item.querySelector('description').textContent;
-        const custompfMatch = description.match(pfRegex);
-        const customfgMatch = description.match(fgRegex);
-        const custombgMatch = description.match(bgRegex);
-        const customcssMatch = description.match(cssRegex);
-        const custombadgeMatch = description.match(badgeRegex);
-        const customcolorMatch = description.match(colorRegex);
-        const privateProfileMatch = description.match(privateProfileRegex);
-        const favSongMatch = description.match(favSongEntryRegex);
-        if (customfgMatch) {
-          const fgData = customfgMatch[0].replace(fgRegex, '$2');
-          if (fgData !== '...') {
-            let fgBase64Url = fgData.replace(/_/g, "/");
-            customfg = JSON.parse(LZString.decompressFromBase64(fgBase64Url));
-            changeForeground(customfg);
-          }
-        }
-        if (favSongMatch && !/\/profile\/.*\/\w/gm.test(current)) {
-          buildFavSongs(description);
-        }
-        if (privateProfileMatch) {
-          const privateData = privateProfileMatch[0].replace(privateProfileRegex, '$2');
-          if (privateData !== '...') {
-            let privateBase64Url = privateData.replace(/_/g, "/");
-            privateProfile = JSON.parse(LZString.decompressFromBase64(privateBase64Url));
-            privateButton.classList.toggle('btn-active-def', privateProfile);
-            applyPrivateProfile();
-          } else {
-            removePrivateButton.classList.toggle('btn-active-def', 1);
-          }
-        }
-        if (customcolorMatch) {
-          const colorData = customcolorMatch[0].replace(colorRegex, '$2');
-          if (colorData !== '...') {
-            let colorBase64Url = colorData.replace(/_/g, "/");
-            customcolors = JSON.parse(LZString.decompressFromBase64(colorBase64Url));
-            applyCustomColors(customcolors);
-          }
-        }
-        if (custombadgeMatch) {
-         const badgeData = custombadgeMatch[0].replace(badgeRegex, '$2');
-          if(badgeData !== '...'){
-            let badgeBase64Url = badgeData.replace(/_/g, "/");
-            custombadge = JSON.parse(LZString.decompressFromBase64(badgeBase64Url));
-            const badgeDiv = create('div', {class: 'maljsProfileBadge',});
-            badgeDiv.innerHTML = custombadge[0];
-            if(custombadge[1] === 'loop'){
-              $(badgeDiv).addClass('rainbow');
-            } else {
-              badgeDiv.style.background = custombadge[1];
-            }
-            container.append(badgeDiv);
-            customFounded = 1;
-          }
-        }
-        if (custompfMatch) {
-          custompfLink = custompfMatch[0].replace(pfRegex, '$2').replace('https://', '');
-          custompf = LZString.decompressFromBase64(custompfLink).replace(/"/gm, '');
-          if(custompf !== '...') {
-            document.querySelector('.user-image.mb8 > img').setAttribute('src', custompf);
-            customFounded = 1;
-          }
-        }
-        if (custombgMatch) {
-          custombgLink = custombgMatch[0].replace(bgRegex, '$2').replace('https://', '');
-          custombg = LZString.decompressFromBase64(custombgLink).replace(/"/gm, '');
-          if(custombg !== '...') {
-            banner.setAttribute(
-              'style',
-              `background-color: var(--color-foreground);background:url(${custombg});background-position: 50% 35%; background-repeat: no-repeat;background-size: cover;height: 330px;position: relative;`
-            );
-            customFounded = 1;
-          }
-        }
-        if (customcssMatch) {
-          const cssData = customcssMatch[0].replace(cssRegex, '$2');
-          if(customcss !== '...') {
-            customcss = LZString.decompressFromBase64(cssData).substring(1).slice(0, -1);
-          }
-        }
-      }
-    }
     //Apply Anilist Style Profile
     async function applyAl() {
     if (svar.customcss) {
@@ -5550,8 +5514,67 @@ function delay(ms) {
           }
         };
       }
-  }
   //Anilist Style Anime and Manga List //-END-//
+
+  //profile Mutual Friends //-START-//
+    async function mutualFriends() {
+      let myFriends = 0;
+      let userFriends = 0;
+      const friends = document.querySelectorAll(".boxlist .title");
+      const friendsHeader = document.querySelector(".boxlist-container.friend.mb16");
+      const mutualsButton = create('a', { class: 'mal-btn', style: { backgroundColor: "var(--color-foreground)" } }, "Mutual Friends");
+      const mutualsDiv = create('div', { class: 'boxlist-container' });
+      $(friendsHeader).before(mutualsButton);
+      $(friendsHeader).after(mutualsDiv);
+      mutualsButton.addEventListener('click', async function () {
+        if ($(mutualsButton).text() !== 'Loading..') {
+          mutualsButton.classList.toggle('active');
+          try {
+            $(mutualsButton).text("Loading..");
+            if (!myFriends) {
+              myFriends = await getFriends($(".header-profile-link").text());
+              myFriends = myFriends.map(friend => friend.username);
+            }
+            if (!userFriends) {
+              userFriends = await getFriends(username);
+            }
+            $(mutualsButton).text("Mutual Friends");
+            const userFriendsBoxes = document.querySelectorAll('.boxlist.col-3');
+            mutualsButton.classList[1] === 'active' ? $(mutualsButton).css({ backgroundColor: "var(--color-foreground2)" }) : $(mutualsButton).css({ backgroundColor: "var(--color-foreground)" });
+            if (!$(mutualsDiv).attr('done')) {
+              userFriends.forEach(user => {
+                if (mutualsButton.classList[1]) {
+                  $('.boxlist-container.friend.mb16, .mt4.mb8').hide();
+                  $(mutualsDiv).show();
+                  if (myFriends.includes(user.username)) {
+                    const mutualsBox = create('div', { class: 'boxlist col-3' , style:{minHeight:"48px"}});
+                    mutualsBox.innerHTML = '<div class="di-tc"><a href="' + user.url + '">' + '<img class="image profile-w48 lazyloaded" src="' + user.images.jpg.image_url +
+                      '" alt="Profile Image"></a></div>' + '<div class="di-tc va-t pl8 data"><div class="title"><a href="' + user.url + '">' + user.username + '</a></div></div>';
+                    mutualsDiv.append(mutualsBox);
+                  }
+                }
+              });
+              $(mutualsDiv).attr('done', '1');
+            }
+            if (!mutualsButton.classList[1]) {
+              $('.boxlist-container.friend.mb16, .mt4.mb8').show();
+              $(mutualsDiv).hide();
+            } else {
+              $('.boxlist-container.friend.mb16, .mt4.mb8').hide();
+              $(mutualsDiv).show();
+            }
+          } catch (error) {
+            console.error('Error fetching profile data:', error);
+          };
+
+        }
+      });
+    }
+    if (/\/profile\/.*\/friends/gm.test(current) && username !== $(".header-profile-link").text()) {
+      mutualFriends();
+    }
+  //profile Mutual Friends //-END-//
+  }
   //Profile Section //--END--//
 
   //Auto Hide/Show Header
@@ -6257,6 +6280,14 @@ function delay(ms) {
   }
   //Anime/Manga Section //--END--//
 
+  //Companies add border and shadow
+  if(/\/(anime|manga)\/producer\/\d.?([\w-]+)?\/?/.test(current)) {
+    let studioDivShadow = $('.mb16:contains("Member"):last');
+    if ($(studioDivShadow).length && $(studioDivShadow).children().css('flex') !== '1 1 0%') {
+      $(studioDivShadow).children().attr('style','background:0!important').wrapAll("<div class='spaceit-shadow-end-div'></div>");
+    }
+  }
+
   //People fix details and add shadow
   if (/\/(people)\/.?([\w-]+)?\/?/.test(current)) {
     peopleDetailsAddDiv('Family name:');
@@ -6268,14 +6299,6 @@ function delay(ms) {
       $('div:contains("Website:"):last').html() === 'Website: <a href="http://"></a>' ? $('div:contains("Website:"):last').remove() : null;
       $('div:contains("Family name:"):last').html() === 'Family name: ' ? $('div:contains("Family name:"):last').remove() : null;
       $('span:contains("More:"):last').css({display: 'block',padding: '2px',marginTop: '5px'});
-    }
-  }
-
-  //Companies add border and shadow
-  if(/\/(anime|manga)\/producer\/\d.?([\w-]+)?\/?/.test(current)) {
-    let studioDivShadow = $('.mb16:contains("Member"):last');
-    if ($(studioDivShadow).length && $(studioDivShadow).children().css('flex') !== '1 1 0%') {
-      $(studioDivShadow).children().attr('style','background:0!important').wrapAll("<div class='spaceit-shadow-end-div'></div>");
     }
   }
 
