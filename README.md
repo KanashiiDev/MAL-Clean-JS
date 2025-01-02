@@ -6,7 +6,9 @@ Made for the <a href="https://userstyles.world/style/10678/myanimelist-clean">My
 <h3>Features</h3>
 <b>Panel</b>
 <li>Add more info to seasonal anime.</li>
-<li>Show currently watching anime.</li>
+<li>Add recently added anime & manga.</li>
+<li>Show currently watching anime & manga.</li>
+<li>Auto add start/finish date to watching anime & reading manga.</li>
 <li>Add next episode countdown to currently watching anime.</li><br>
 <b>Anime</b>
 <li>Replace OPs and EDs with animethemes.moe</li><br>
@@ -27,6 +29,9 @@ Made for the <a href="https://userstyles.world/style/10678/myanimelist-clean">My
 <li>Add anime themes to your profile.</li>
 <li>Make Anime/Manga List like Anilist </li>
 <li>Make profile private. </li>
+<li>Add custom profile elements. </li>
+<li>Hide profile elements. </li>
+<li>Show mutual friends.</li>
 <li>Custom profile colors.</li>
-<li>Make profile looks like AniList <i>(Custom avatar, banner and badge will be visible to others with the script)</i></li>
-<li>Custom CSS <i>(This will be visible to others with the script)</i></li>
+<li>Make profile looks like AniList <i>(Custom avatar, banner and badge will be visible to users with the script)</i></li>
+<li>Custom CSS <i>(This will be visible to users with the script)</i></li>
