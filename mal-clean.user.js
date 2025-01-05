@@ -3,7 +3,7 @@
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
 // @grant       none
-// @version     1.29.2
+// @version     1.29.3
 // @author      KanashiiDev
 // @description Customizations and fixes for MyAnimeList
 // @license     GPL-3.0-or-later
@@ -17,7 +17,7 @@
 // @require     https://cdn.jsdelivr.net/npm/dompurify@3.1.4/dist/purify.min.js
 // ==/UserScript==
 
-//Create Element Shorthand Function
+//Simple Create Element Shorthand Function
 function create(e, t, n) {
   if (!e) throw SyntaxError("'tag' not defined");
   var r,
@@ -30,6 +30,7 @@ function create(e, t, n) {
   return n && (f.innerHTML = n), f;
 }
 
+//Advanced Create Element Shorthand Function
 function AdvancedCreate(HTMLtag, classes, text, appendLocation, cssText) {
     var element = document.createElement(HTMLtag);
     if (Array.isArray(classes)) {
@@ -145,7 +146,7 @@ function nativeTimeElement(e) {
   })();
 }
 
-//Fix Date for Make Anime/Manga List like Anilist option
+//Fix Date for Modern Anime/Manga List option
 function parseDate(dateString) {
   const parts = dateString.split("-");
   const day = parts[0];
@@ -384,6 +385,7 @@ function emptyInfoAddDiv(title,mode) {
   $(title).after(newDiv);
 }
 
+//Check Empty Anime & Manga info
 function handleEmptyInfo(divSelector, checkText, mode) {
   const $div = $(divSelector);
   if ($div.length) {
@@ -401,9 +403,9 @@ function handleEmptyInfo(divSelector, checkText, mode) {
 async function getRecentlyAdded(type,page) {
   const dataArray = [];
   try {
+    await delay(250);
     const response = await fetch(`https://myanimelist.net/${type ? 'manga' : 'anime'}.php?o=9&c%5B0%5D=a&c%5B1%5D=d&cv=2&w=1&show=${page ? page : '0'}`);
     const html = await response.text();
-
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     const rows = doc.querySelectorAll('div.js-categories-seasonal tr');
@@ -477,20 +479,16 @@ function updateRecentlyAddedSliders(slider, leftSlider,rightSlider) {
   }
     document.querySelector(leftSlider).classList.remove("active");
   $(".widget-container.left.recently-anime i").on('click', async function () {
-    infoExit('.widget-container.left.recently-anime .anime_suggestions');
-    const clickedFrom = $(this);
-    createInfo(clickedFrom,'.widget-container.left.recently-anime .anime_suggestions');
-  }).on('mouseleave',
-        async function () {
-    infoExit('.widget-container.left.recently-anime .anime_suggestions');
+    infoExit('.widget-container.left.recently-anime .anime_suggestions', $(this));
+    createInfo($(this), '.widget-container.left.recently-anime .anime_suggestions');
+  }).on('mouseleave', async function () {
+    infoExit('.widget-container.left.recently-anime .anime_suggestions', $(this));
   });
   $(".widget-container.left.recently-manga i").on('click', async function () {
-    infoExit('.widget-container.left.recently-manga .anime_suggestions');
-    const clickedFrom = $(this);
-    createInfo(clickedFrom,'.widget-container.left.recently-manga .anime_suggestions', 1);
-  }).on('mouseleave',
-        async function () {
-    infoExit('.widget-container.left.recently-manga .anime_suggestions');
+    infoExit('.widget-container.left.recently-manga .anime_suggestions', $(this));
+    createInfo($(this), '.widget-container.left.recently-manga .anime_suggestions', 1);
+  }).on('mouseleave', async function () {
+    infoExit('.widget-container.left.recently-manga .anime_suggestions', $(this));
   });
 }
 
@@ -523,6 +521,7 @@ async function createInfo(clickedSource, mainDiv, type) {
         info =
           '<div class="main">' +
           (info.title ? '<div class="text" style="position: relative;border-bottom: 1px solid;"><h3 style="max-width: 90%;margin-top: 5px;">' + info.title + "</h3><a id='" + info.mal_id + "' class='addtoList'>Add to List</a></div>" : "") +
+          (info.title_english && info.title_english !== info.title ? '<br><div class="text"><b>English Title</b><br>' + info.title_english + "</div>" : "") +
           (info.synopsis ? '<br><div class="text"><b>Synopsis</b><br>' + info.synopsis.replace(/(\[Written by MAL Rewrite\]+)/gm, '') + "</div>" : "") +
           (info.genres && info.genres[0]
             ? '<br><div class="text"><b>Genres</b><br>' +
@@ -536,6 +535,24 @@ async function createInfo(clickedSource, mainDiv, type) {
           (info.studios && info.studios[0]
             ? '<br><div class="text"><b>Studios</b><br>' +
             info.studios
+              .map((node) => "<a href='" + node.url + "'>" + node.name + "</a>")
+              .toString()
+              .split(",")
+              .join(", ") +
+            "</div>"
+            : "") +
+          (info.authors && info.authors[0]
+            ? '<br><div class="text"><b>Authors</b><br>' +
+            info.authors
+              .map((node) => "<a href='" + node.url + "'>" + node.name + "</a>")
+              .toString()
+              .split(",")
+              .join(", ") +
+            "</div>"
+            : "") +
+          (info.serializations && info.serializations[0]
+            ? '<br><div class="text"><b>Serialization</b><br>' +
+            info.serializations
               .map((node) => "<a href='" + node.url + "'>" + node.name + "</a>")
               .toString()
               .split(",")
@@ -563,8 +580,10 @@ async function createInfo(clickedSource, mainDiv, type) {
           (info.type ? '<br><div class="text"><b>Type</b><br>' + info.type + "</div>" : "") +
           (info.rating ? '<br><div class="text"><b>Rating</b><br>' + info.rating + "</div>" : "") +
           (info.aired && info.aired.string ? '<br><div class="text"><b>Start Date</b><br>' + info.aired.string.split(" to ?").join("") + "</div>" : "") +
-          (info.broadcast ? '<br><div class="text"><b>Broadcast</b><br>' + info.broadcast.string + "</div>" : "") +
+          (info.broadcast && info.broadcast.string  ? '<br><div class="text"><b>Broadcast</b><br>' + info.broadcast.string + "</div>" : "") +
           (info.episodes ? '<br><div class="text"><b>Episodes</b><br>' + info.episodes + "</div>" : "") +
+          (info.chapters ? '<br><div class="text"><b>Chapters</b><br>' + info.chapters + "</div>" : "") +
+          (info.volumes ? '<br><div class="text"><b>Volumes</b><br>' + info.volumes + "</div>" : "") +
           (info.trailer && info.trailer.embed_url ? '<br><div class="text"><b>Trailer</b><br>' +
             '<div class="spoiler">' +
             '<input type="button" class="button show_button" onclick="this.nextSibling.style.display=\'inline-block\';this.style.display=\'none\';" data-showname="Show Trailer" data-hidename="Hide Trailer" value="Show Trailer">' +
@@ -573,7 +592,7 @@ async function createInfo(clickedSource, mainDiv, type) {
             '<iframe width="700" height="400" class="movie youtube" frameborder="0" autoplay="0" allowfullscreen src="' + info.trailer.embed_url.split("&autoplay=1").join("") + '"></iframe></span></div>' +
             "</div>" : "") +
           '<br><div class="text"><b>Forum</b><br>' +
-          "<a href='" + info.url + "/forum" + "'>All</a> | <a href='" + info.url + "/forum?topic=episode" + "'>Episodes</a> | <a href='" + info.url + "/forum?topic=other" + "'>Other</a></div>" +
+          "<a href='" + info.url + "/forum" + "'>All</a> | <a href='" + info.url + "/forum?topic=episode" + "'>"+(type ? "Chapters" : "Episodes")+"</a> | <a href='" + info.url + "/forum?topic=other" + "'>Other</a></div>" +
           (info.external && info.external[0]
             ? '<br><div class="text"><b>Available At</b><br>' +
             info.external
@@ -611,34 +630,81 @@ async function createInfo(clickedSource, mainDiv, type) {
 }
 
 //Info Tooltip Check Mouse Leave
-async function infoExit(mainDiv) {
-  let timeoutId;
+async function infoExit(mainDiv, clickedFrom) {
+  let timeoutId, isElHover, isTTBHover;
   async function handleTooltipHide() {
+    isElHover = clickedFrom.parent().is(":hover");
+    isTTBHover = $(".tooltipBody:hover").length;
     // Check if neither the tooltip nor the target element is being hovered over
-    if ($(".tooltipBody:hover").length === 0 && $(mainDiv + ' i:hover').length === 0) {
-      await delay(150);
-      if ($(".tooltipBody:hover").length === 0 && $(mainDiv + ' i:hover').length === 0) {
+    if (!isTTBHover && !isElHover) {
+      await delay(250);
+      if (!isTTBHover && !isElHover) {
         // When both elements are not hovered, hide the tooltip
         $(".tooltipBody").slideUp(400, function () {
           $(this).remove(); // Remove tooltip
+          clearTimeout(timeoutId);
         });
       }
     } else {
       // If hovered, keep checking the condition at intervals
-      timeoutId = setTimeout(handleTooltipHide, 200);
+      timeoutId = setTimeout(handleTooltipHide, 400);
     }
   }
   // Initial check to start the hide process
-  timeoutId = setTimeout(handleTooltipHide, 200);
+  timeoutId = setTimeout(handleTooltipHide, 400);
+}
 
-  // Adding event listener to stop timeout on hover
-  $(mainDiv + ' i').on('mouseenter', function () {
-    clearTimeout(timeoutId); // Clear timeout if mouse enters
-  });
-
-  $(mainDiv + ' i').on('mouseleave', function () {
-    timeoutId = setTimeout(handleTooltipHide, 200); // Restart timeout on mouse leave
-  });
+async function getUserGenres(type, createDiv) {
+  const genreTitle = type ? 'Manga' : 'Anime';
+  const genreType = type ? 'manga' : 'anime';
+  const apiUrl = `https://myanimelist.net/profile/${username}/chart-data.json?type=${genreType}-genre-table&sort=count&order=desc&categories=genres%2Cthemes`;
+  fetch(apiUrl)
+    .then(response => response.json())
+    .then(data => {
+      const items = data.items;
+      if (items && items.length > 0 && createDiv) {
+        const itemsTop5 = data.items.slice(0, 5);
+        let genresDivMain = create("div", { class: "user-genres", id:  `user-${genreType}-genres` },`<h5 style="font-size: 11px;margin-bottom: 8px;margin-left: 2px;">${genreTitle} Genre Overview</h5>`);
+        let genresDiv = create("div", { class: "user-genres-container", id: "user-genres-container" });
+        let genresDivInner = create("div", { class: "user-genres-inner", id: "user-genres-inner" });
+        genresDivMain.append(genresDiv);
+        genresDiv.append(genresDivInner);
+        if($('#user-anime-genres').length){
+          $('#user-anime-genres').after(genresDivMain);
+        } else {
+          $('.user-button.clearfix.mb12').after(genresDivMain);
+        }
+        itemsTop5.forEach(item => {
+          const genreDiv = create("div", { class: "user-genre-div" });
+          const genreName = create("div", { class: "user-genre-name" }, `<a href="${item.item_list_url}">${item.item}</a>`);
+          const genreCount = create("div", { class: "user-genre-count" }, `<b>${item.item_count} </b><p>Entries</p>`);
+          genreDiv.append(genreName, genreCount);
+          genresDivInner.append(genreDiv);
+        });
+        while (genresDivInner.offsetWidth > 425) {
+          genresDivInner.lastChild.remove();
+        }
+      } else if (items && items.length > 0) {
+        return items;
+      }
+    })
+    .catch(error => {
+      console.error('An error occurred:', error);
+    });
+}
+async function getMalBadges(url) {
+  let badgesDivMain = create("div", { class: "user-mal-badges", id: "user-mal-badges" },`<h5 style="font-size: 11px;margin-bottom: 8px;margin-left: 2px;">Mal Badges</h5>`);
+  let badgesDivInner = create("div", { class: "badges-inner", id: "badges-inner" });
+  let badgesDivIframeInner = create("div", { class: "badges-iframe-inner", id: "badges-iframe-inner" });
+  let badgesIframe = create("iframe", { class: "badges-iframe", id: "badges-iframe", tabindex:"-1", scrolling: "no", width:"415", height:"315", src: url});
+  badgesIframe.onerror = function() {
+    badgesDivMain.remove();
+  };
+  badgesDivMain.append(badgesDivInner);
+  badgesDivInner.append(badgesDivIframeInner);
+  badgesDivIframeInner.append(badgesIframe);
+  $(badgesDivIframeInner).wrap(`<a href="${url}"></a>`);
+  $('#user-badges-div').after(badgesDivMain);
 }
 
 //Get Friends Info from JikanAPI
@@ -685,7 +751,7 @@ async function editAboutPopup(data, type) {
     const popupBack = create("a", { class: "popupBack fa-solid fa-arrow-left", href: "javascript:void(0);" });
     const popupMask = create("div", {
       class: "fancybox-overlay",
-      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "2" },
+      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "11" },
     });
     const popupDataText = create("div", {class: "dataTextDiv",});
     const popupDataTextButton = create("button", {class: "dataTextButton",},"Copy");
@@ -694,31 +760,11 @@ async function editAboutPopup(data, type) {
       style: { position: 'relative',left: '0px',right: '0px',fontSize: '16px',height: '100%',alignContent: 'center',zIndex: '2'},
     }, "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome;word-break: break-word;"></i>');
     const iframe = create("iframe", { src: "https://myanimelist.net/editprofile.php" });
+    iframe.style.pointerEvents = 'none';
     iframe.style.opacity = 0;
-
-    //Disable custom settings during update
-    function toggleCustomSettings(type, value) {
-      const validTypes = ['private', 'pf', 'fg', 'bg', 'css', 'badge', 'color'];
-      if (validTypes.includes(type)) {
-        const buttonSelectors = [
-          'privateProfile',
-          'privateRemove',
-          'custombg',
-          'customfg',
-          'custompf',
-          'customcss',
-          'custombadge',
-          'customColorUpdate'
-        ];
-        buttonSelectors.forEach(buttonId => {
-          $('button#' + buttonId).prop('disabled', value);
-        });
-      }
-    }
 
     // close popup function
     const close = () => {
-      toggleCustomSettings(type, false);
       popup.remove();
       popupMask.remove();
       document.body.style.removeProperty("overflow");
@@ -728,7 +774,6 @@ async function editAboutPopup(data, type) {
     popup.append(popupClose, popupLoading, iframe);
     document.body.append(popup,popupMask);
     document.body.style.overflow = "hidden";
-    toggleCustomSettings(type, true);
 
     $(iframe).on("load", async function () {
       let $iframeContents = $(iframe).contents();
@@ -743,9 +788,10 @@ async function editAboutPopup(data, type) {
         customPf: /(custompf)\/([^\/]+.)/gm,
         customFg: /(customfg)\/([^\/]+.)/gm,
         customBg: /(custombg)\/([^\/]+.)/gm,
-        customCss: /(customcss)\/([^\/]+.)/gm,
+        customCSS: /(customCSS)\/([^\/]+.)/gm,
         customBadge: /(custombadge)\/([^\/]+.)/gm,
         customColor: /(customcolors)\/([^\/]+.)/gm,
+        malBadges: /(malBadges)\/([^\/]+.)/gm,
         favSongEntry: /(favSongEntry)\/([^\/]+.)/gm,
         customProfileEl: /(customProfileEl)\/([^\/]+.)/gm
       };
@@ -794,7 +840,10 @@ async function editAboutPopup(data, type) {
           aboutText = replaceTextIfMatches(regexes.customColor, aboutText, `${data}/`);
         } else if (type === 'badge') {
           aboutText = replaceTextIfMatches(regexes.customBadge, aboutText, `${data}/`);
-        } else if (type === 'private') {
+        } else if (type === 'malBadges') {
+          aboutText = replaceTextIfMatches(regexes.malBadges, aboutText, `${data}/`);
+        }
+        else if (type === 'private') {
           aboutText = replaceTextIfMatches(regexes.privateProfile, aboutText, `${data}/`);
         } else if (type === 'pf') {
           aboutText = replaceTextIfMatches(regexes.custompf, aboutText, `${data}/`);
@@ -803,7 +852,7 @@ async function editAboutPopup(data, type) {
         } else if (type === 'bg') {
           aboutText = replaceTextIfMatches(regexes.customBg, aboutText, `${data}/`);
         } else if (type === 'css') {
-          aboutText = replaceTextIfMatches(regexes.customCss, aboutText, `${data}/`);
+          aboutText = replaceTextIfMatches(regexes.customCSS, aboutText, `${data}/`);
         } else if (type === 'hideProfileEl') {
           aboutText = replaceTextIfMatches(regexes.profileEl, aboutText, `${data}/`);
         } else if (type === 'customProfileEl') {
@@ -829,7 +878,6 @@ async function editAboutPopup(data, type) {
         if (canSubmit) {
          await updateAboutText(aboutText);
         }
-        toggleCustomSettings(type, false);
       }
 
       if (isClassic && settingsFounded !== 2) {
@@ -905,7 +953,7 @@ async function editPopup(id, type, add, addCount) {
     );
     const popupMask = create("div", {
       class: "fancybox-overlay",
-      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "2" },
+      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "11" },
     },);
     const iframe = create("iframe", { src: popupId });
     iframe.style.opacity = 0;
@@ -1060,7 +1108,7 @@ async function blockUser(id) {
     );
     const popupMask = create("div", {
       class: "fancybox-overlay",
-      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "2" },
+      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "11" },
     });
     const iframe = create("iframe", { src: popupId });
     iframe.style.opacity = 0;
@@ -1169,11 +1217,11 @@ async function createCustomDiv(appLoc, header, content, editData) {
       const contentText = scParserActions("content-input", "fromBBGetVal");
       document.querySelector("#custom-preview-div").innerHTML = `
       <h2>Preview</h2>
-      ${isRight && svar.alstyle ?
-      `<h4 style="border: 0;margin: 15px 0 4px 4px;">${headerText}</h4>`
-      :
-      `<h5 style="${svar.alstyle ? 'font-size: 11px; margin: 0 0 8px 2px;' : ''}">${headerText}</h5>`
-      }
+      ${isRight && svar.modernLayout ?
+          `<h4 style="border: 0;margin: 15px 0 4px 4px;">${headerText}</h4>`
+          :
+          `<h5 style="${svar.modernLayout ? 'font-size: 11px; margin: 0 0 8px 2px;' : ''}">${headerText}</h5>`
+        }
       <div>${contentText}</div><br>`;
     });
     newDiv.appendChild(previewButton);
@@ -1190,7 +1238,7 @@ async function createCustomDiv(appLoc, header, content, editData) {
           {
             header: headerText,
             content: contentText,
-            isRight : isRight,
+            isRight: isRight,
           },
         ];
         const customElBase64 = LZString.compressToBase64(JSON.stringify(customElArray));
@@ -1341,42 +1389,43 @@ async function createCustomDiv(appLoc, header, content, editData) {
         isInline: false,
         tags: {
           div: {
-            class: null,
             id: null,
+            class: null,
             style: null,
           },
         },
         format: function (element, content) {
-          var className = element.getAttribute("class") ? ' class="' + element.getAttribute("class") + '"' : "";
-          var id = element.getAttribute("id") ? ' id="' + element.getAttribute("id") + '"' : "";
-          var style = element.getAttribute("style") ? ' style="' + element.getAttribute("style") + '"' : "";
-          return "[div" + className + id + style + "]" + content + "[/div]";
+          let elId = element.getAttribute("id") ? ` id="${element.getAttribute("id")}"` : "";
+          let elClass = element.getAttribute("class") ? ` class="${element.getAttribute("class")}"` : "";
+          let elStyle = element.getAttribute("style") ? ` style="${element.getAttribute("style")}"` : "";
+          return `[div${elId}${elClass}${elStyle}]${content}[/div]`;
         },
 
         html: function (token, attrs, content) {
-          var className = attrs.class ? ' class="' + attrs.class + '"' : "";
-          var id = attrs.id ? ' id="' + attrs.id + '"' : "";
-          var style = attrs.style ? ' style="' + attrs.style + '"' : "";
-          return "<div" + className + id + style + ">" + content + "</div>";
+          let elId = attrs.id ? ` id="${attrs.id}"` : ` id="mc-div"`;
+          let elClass = attrs.class ? ` class="${attrs.class}"` : ` class="mc-div"`;
+          let elStyle = attrs.style ? ` style="${attrs.style}"` : "";
+          return `<div${elId}${elClass}${elStyle}>${content}</div>`;
         },
+
       });
       sceditor.command.set("div", {
         txtExec: function (caller, content) {
-          var editor = this;
-          var sce_div = '<div id="sce_divoptionsbox"><div class="sce_div-option" data-action="insertDiv">';
+          let editor = this;
+          let sce_div = '<div id="sce_divoptionsbox"><div class="sce_div-option" data-action="insertDiv">';
           sce_div += '<label for="div-id">ID (Optional):</label><input id="div-id" type="text" placeholder=".id" />';
           sce_div += '<label for="div-class">Class (Optional):</label><input id="div-class" type="text" placeholder="#class" />';
-          sce_div += '<label for="div-style">Style (Optional):</label><input id="div-style" type="text" placeholder="style" /><br>';
+          sce_div += '<label for="div-style">Style (Optional):</label><input id="div-style" type="text" placeholder="" /><br>';
           sce_div += '<input id="insert-div-btn" type="button" class="button" value="Insert"></input>';
           sce_div += "</div></div>";
-          var drop_content = $(sce_div);
+          let drop_content = $(sce_div);
 
           // Handle div insertion
           drop_content.find("#insert-div-btn").click(function (e) {
-            var divId = $("#div-id").val() ? ' id="' + $("#div-id").val() + '"' : ' id="mc-div"';
-            var divClass = $("#div-class").val() ? ' class="' + $("#div-class").val() + '"' : "";
-            var divStyle = $("#div-style").val() ? ' style="' + $("#div-style").val() + '"' : "";
-            var divTag = "[div" + divId + divClass + divStyle + "]" + content + "[/div]";
+            let divId = $("#div-id").val() ? ` id="${$("#div-id").val()}"` : "";
+            let divClass = $("#div-class").val() ? ` class="${$("#div-class").val()}"` : "";
+            let divStyle = $("#div-style").val() ? ` style="${$("#div-style").val()}"` : "";
+            let divTag = `[div${divId}${divClass}${divStyle}]${content}[/div]`;
             editor.insert(divTag);
             editor.closeDropDown(true);
             e.preventDefault();
@@ -1391,50 +1440,60 @@ async function createCustomDiv(appLoc, header, content, editData) {
         allowsEmpty: false,
         tags: {
           iframe: {
+            class: null,
+            style: null,
             src: null,
             width: null,
             height: null,
           },
         },
         format: function (element, content) {
-          var src = element.getAttribute("src");
-          var width = element.getAttribute("width") || 415;
-          var height = element.getAttribute("height") || 315;
-          var title = element.getAttribute("title") ? " title=" + element.getAttribute("title") : "";
-          var sandbox = element.getAttribute("sandbox") ? " sandbox=" + element.getAttribute("sandbox") : "";
-          var allow = element.getAttribute("allow") ? " allow=" + element.getAttribute("allow") : "";
-          var loading = element.getAttribute("loading") ? " loading=" + element.getAttribute("loading") : "";
-          var referrerpolicy = element.getAttribute("referrerpolicy") ? " referrerpolicy=" + element.getAttribute("referrerpolicy") : "";
-          var mergedAttributes = title + sandbox + allow + loading + referrerpolicy;
+          let elId = element.getAttribute("id") ? ` id="${element.getAttribute("id")}"` : "";
+          let elClass = element.getAttribute("class") ? ` class="${element.getAttribute("class")}"` : "";
+          let elStyle = element.getAttribute("style") ? ` style="${element.getAttribute("style")}"` : "";
+          let src = element.getAttribute("src");
+          let width = element.getAttribute("width") || 415;
+          let height = element.getAttribute("height") || 315;
+          let title = element.getAttribute("title") ? ` title="${element.getAttribute("title")}"` : "";
+          let sandbox = element.getAttribute("sandbox") ? ` sandbox="${element.getAttribute("sandbox")}"` : "";
+          let allow = element.getAttribute("allow") ? ` allow="${element.getAttribute("allow")}"` : "";
+          let loading = element.getAttribute("loading") ? ` loading="${element.getAttribute("loading")}"` : "";
+          let referrerpolicy = element.getAttribute("referrerpolicy") ? ` referrerpolicy="${element.getAttribute("referrerpolicy")}"` : "";
+          let mergedAttributes = `${title}${sandbox}${allow}${loading}${referrerpolicy}`;
+
           if (src && src.startsWith("https://")) {
-            return "[iframe width=" + width + " height=" + height + mergedAttributes + "]" + src + "[/iframe]";
+            return `[iframe${elId}${elClass}${elStyle} width="${width}" height="${height}"${mergedAttributes}]${src}[/iframe]`;
           }
           return content;
         },
-
         html: function (token, attrs, content) {
-          var width = attrs.width || 415;
-          var height = attrs.height || 315;
-          var title = attrs.title ? ' title="' + attrs.title + '"' : "";
-          var sandbox = attrs.sandbox ? ' sandbox="' + attrs.sandbox + '"' : "";
-          var allow = attrs.allow ? ' allow="' + attrs.allow + '"' : "";
-          var loading = attrs.loading ? ' loading="' + attrs.loading + '"' : "";
-          var referrerpolicy = attrs.referrerpolicy ? ' referrerpolicy="' + attrs.referrerpolicy + '"' : "";
-          var mergedAttributes = title + sandbox + allow + loading + referrerpolicy;
-          var sandbox = 'sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"';
+          let elId = attrs.id ? ` id="${attrs.id}"` : ` id="mc-iframe"`;
+          let elClass = attrs.class ? ` class="${attrs.class}"` : ` class="mc-iframe"`;
+          let elStyle = attrs.style ? ` style="${attrs.style}"` : "";
+          let width = attrs.width || 415;
+          let height = attrs.height || 315;
+          let title = attrs.title ? ` title="${attrs.title}"` : "";
+          let allow = attrs.allow ? ` allow="${attrs.allow}"` : "";
+          let loading = attrs.loading ? ` loading="${attrs.loading}"` : "";
+          let referrerpolicy = attrs.referrerpolicy ? ` referrerpolicy="${attrs.referrerpolicy}"` : "";
+          let sandbox = 'sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"';
+          let mergedAttributes = `${title}${allow}${loading}${referrerpolicy}`;
+
           if (content && content.startsWith("https://")) {
-            return '<iframe width="' + width + '" height="' + height + '" src="' + content + '" ' + mergedAttributes + sandbox + " allowfullscreen></iframe>";
+            return `<iframe${elId}${elClass}${elStyle} width="${width}" height="${height}" src="${content}" ${mergedAttributes} ${sandbox} allowfullscreen></iframe>`;
           }
           return "";
         },
+
       });
       sceditor.command.set("iframe", {
         txtExec: function (caller) {
           var editor = this;
           var sce_iframe = '<div id="sce_iframeoptionsbox"><div class="sce_iframe-option" data-action="insertIframe">';
           sce_iframe += '<label for="iframe-src">Iframe URL:</label><input id="iframe-src" type="text" placeholder="https://" />';
-          sce_iframe += '<label for="video-width">Width (Optional):</label><input id="iframe-width" type="text" placeholder="" />';
-          sce_iframe += '<label for="video-height">Height (Optional):</label><input id="iframe-height" type="text" placeholder="" />';
+          sce_iframe += '<label for="iframe-width">Width (Optional):</label><input id="iframe-width" type="text" placeholder="" />';
+          sce_iframe += '<label for="iframe-height">Height (Optional):</label><input id="iframe-height" type="text" placeholder="" />';
+          sce_iframe += '<label for="iframe-style">Style (Optional):</label><input id="iframe-style" type="text" placeholder="" /><br>';
           sce_iframe += '<label for="iframe-html-src">Iframe as HTML (Optional):</label><textarea id="iframe-html-src" placeholder="<iframe src=&quot;&quot;></iframe>" /></textarea>';
           sce_iframe += '<input id="insert-iframe-btn" type="button" class="button" value="Insert"></input>';
           sce_iframe += "</div></div>";
@@ -1442,16 +1501,17 @@ async function createCustomDiv(appLoc, header, content, editData) {
 
           // Handle iframe insertion
           drop_content.find("#insert-iframe-btn").click(function (e) {
-            var iframeSrc = $("#iframe-src").val();
-            var iframeHTMLSrc = $("#iframe-html-src").val();
-            var iframeWidth = $("#iframe-width").val() ? " width=" + $("#iframe-width").val() : "";
-            var iframeHeight = $("#iframe-height").val() ? " height=" + $("#iframe-height").val() : "";
+            let iframeSrc = $("#iframe-src").val();
+            let iframeHTMLSrc = $("#iframe-html-src").val();
+            let iframeWidth = $("#iframe-width").val() ? ` width="${$("#iframe-width").val()}"` : "";
+            let iframeHeight = $("#iframe-height").val() ? ` height="${$("#iframe-height").val()}"` : "";
+            let iframeStyle = $("#iframe-style").val() ? ` style="${$("#iframe-style").val()}"` : "";
 
             if (iframeHTMLSrc) {
               iframeSrc = "";
             }
             if (iframeSrc.startsWith("https://") && !iframeHTMLSrc) {
-              var iframeTag = "[iframe" + iframeWidth + iframeHeight + "]" + iframeSrc + "[/iframe]";
+              var iframeTag = `[iframe${iframeWidth}${iframeHeight}${iframeStyle}]${iframeSrc}[/iframe]`;
               editor.insert(iframeTag);
             }
             if (/src="https:\/\//.test(iframeHTMLSrc)) {
@@ -1461,6 +1521,7 @@ async function createCustomDiv(appLoc, header, content, editData) {
             editor.closeDropDown(true);
             e.preventDefault();
           });
+
 
           editor.createDropDown(caller, "iframe-picker", drop_content[0]);
         },
@@ -1478,28 +1539,35 @@ async function createCustomDiv(appLoc, header, content, editData) {
           },
         },
         format: function (element, content) {
-          var src = element.getAttribute("src");
-          var width = element.getAttribute("width") || 415;
-          var height = element.getAttribute("height") || 315;
-          var autoplay = element.getAttribute("autoplay") === "" ? " autoplay=1" : "";
-          var controls = element.getAttribute("controls") === "" ? "" : " controls=0";
-          var muted = element.getAttribute("muted") === "" ? " muted=1" : "";
-          var loop = element.getAttribute("loop") === "" ? " loop=1" : "";
-          var poster = element.getAttribute("poster") ? " poster=" + element.getAttribute("poster") : "";
-          var mergedAttributes = autoplay + controls + muted + loop + poster;
-          return src ? "[video width=" + width + " height=" + height + mergedAttributes + "]" + src + "[/video]" : content;
+          let elId = element.getAttribute("id") ? ` id="${element.getAttribute("id")}"` : "";
+          let elClass = element.getAttribute("class") ? ` class="${element.getAttribute("class")}"` : "";
+          let elStyle = element.getAttribute("style") ? ` style="${element.getAttribute("style")}"` : "";
+          let src = element.getAttribute("src");
+          let width = element.getAttribute("width") || 415;
+          let height = element.getAttribute("height") || 315;
+          let autoplay = element.getAttribute("autoplay") === "" ? " autoplay=1" : "";
+          let controls = element.getAttribute("controls") === "" ? "" : " controls=0";
+          let muted = element.getAttribute("muted") === "" ? " muted=1" : "";
+          let loop = element.getAttribute("loop") === "" ? " loop=1" : "";
+          let poster = element.getAttribute("poster") ? ` poster="${element.getAttribute("poster")}"` : "";
+          let mergedAttributes = `${autoplay}${controls}${muted}${loop}${poster}`;
+          return src ? `[video width="${width}" height="${height}"${mergedAttributes}]${src}[/video]` : content;
         },
         html: function (token, attrs, content) {
-          var width = attrs.width || 415;
-          var height = attrs.height || 315;
-          var autoplay = attrs.autoplay ? " autoplay" : "";
-          var controls = attrs.controls == 0 ? "" : " controls";
-          var muted = attrs.muted || autoplay ? " muted" : "";
-          var loop = attrs.loop ? " loop" : "";
-          var poster = attrs.poster ? ' poster="' + attrs.poster + '"' : "";
-          var mergedAttributes = autoplay + controls + muted + loop + poster;
-          return '<video width="' + width + '" height="' + height + '" frameborder="0" src="' + content + '" ' + mergedAttributes + ' onloadstart="this.volume=0.5"></video>';
+          let elId = attrs.id ? ` id="${attrs.id}"` : ` id="mc-video"`;
+          let elClass = attrs.class ? ` class="${attrs.class}"` : ` class="mc-video"`;
+          let elStyle = attrs.style ? ` style="${attrs.style}"` : "";
+          let width = attrs.width || 415;
+          let height = attrs.height || 315;
+          let autoplay = attrs.autoplay ? " autoplay" : "";
+          let controls = attrs.controls == 0 ? "" : " controls";
+          let muted = attrs.muted || autoplay ? " muted" : "";
+          let loop = attrs.loop ? " loop" : "";
+          let poster = attrs.poster ? ` poster="${attrs.poster}"` : "";
+          let mergedAttributes = `${autoplay}${controls}${muted}${loop}${poster}`;
+          return `<video ${elId}${elClass}${elStyle} width="${width}" height="${height}" frameborder="0" src="${content}" ${mergedAttributes} onloadstart="this.volume=0.5"></video>`;
         },
+
       });
       sceditor.command.set("video", {
         txtExec: function (caller) {
@@ -1508,6 +1576,7 @@ async function createCustomDiv(appLoc, header, content, editData) {
           sce_video += '<label for="video-url">Video URL:</label><input id="video-url" type="text" placeholder="https://" />';
           sce_video += '<label for="video-width">Width (Optional):</label><input id="video-width" type="text" placeholder="" />';
           sce_video += '<label for="video-height">Height (Optional):</label><input id="video-height" type="text" placeholder="" />';
+          sce_video += '<label for="video-style">Style (Optional):</label><input id="video-style" type="text" placeholder="" /><br>';
           sce_video += '<div><label><input type="checkbox" id="video-autoplay" /> Autoplay</label></div>';
           sce_video += '<div><label><input type="checkbox" id="video-muted" /> Muted</label></div>';
           sce_video += '<div><label><input type="checkbox" id="video-loop" /> Loop</label></div>';
@@ -1518,23 +1587,25 @@ async function createCustomDiv(appLoc, header, content, editData) {
 
           // Handle video insertion
           drop_content.find("#insert-video-btn").click(function (e) {
-            var videoSrc = $("#video-url").val();
-            var videoWidth = $("#video-width").val() ? " width=" + $("#video-width").val() : "";
-            var videoHeight = $("#video-height").val() ? " height=" + $("#video-height").val() : "";
+            let videoSrc = $("#video-url").val();
+            let videoWidth = $("#video-width").val() ? ` width="${$("#video-width").val()}"` : "";
+            let videoHeight = $("#video-height").val() ? ` height="${$("#video-height").val()}"` : "";
+            let videoStyle = $("#video-style").val() ? ` style="${$("#video-style").val()}"` : "";
 
             // Get checked attributes
-            var autoplay = $("#video-autoplay").is(":checked") ? " autoplay=1" : "";
-            var muted = $("#video-muted").is(":checked") ? " muted=1" : "";
-            var loop = $("#video-loop").is(":checked") ? " loop=1" : "";
-            var controls = $("#video-controls").is(":checked") ? "" : " controls=0";
+            let autoplay = $("#video-autoplay").is(":checked") ? " autoplay=1" : "";
+            let muted = $("#video-muted").is(":checked") ? " muted=1" : "";
+            let loop = $("#video-loop").is(":checked") ? " loop=1" : "";
+            let controls = $("#video-controls").is(":checked") ? "" : " controls=0";
 
             if (videoSrc) {
-              var videoTag = "[video" + videoWidth + videoHeight + autoplay + muted + loop + controls + "]" + videoSrc + "[/video]";
+              var videoTag = `[video${videoWidth}${videoHeight}${videoStyle}${autoplay}${muted}${loop}${controls}]${videoSrc}[/video]`;
               editor.insert(videoTag);
             }
             editor.closeDropDown(true);
             e.preventDefault();
           });
+
           editor.createDropDown(caller, "video-picker", drop_content[0]);
         },
         tooltip: "Insert a Video",
@@ -1579,11 +1650,12 @@ async function createCustomDiv(appLoc, header, content, editData) {
 }
 
 let svar = {
-  animebg: true,
-  charbg: true,
+  animeBg: true,
+  charBg: true,
   peopleHeader: true,
   animeHeader: true,
   animeBanner: true,
+  animeBannerMove: false,
   animeTag: true,
   animeRelation: true,
   animeInfoDesign: false,
@@ -1592,9 +1664,9 @@ let svar = {
   characterHeader: true,
   characterNameAlt: true,
   profileHeader: false,
-  customcss: false,
-  alstyle: false,
-  animeinfo: true,
+  customCSS: false,
+  modernLayout: false,
+  animeInfo: true,
   embed: true,
   currentlyWatching: true,
   currentlyReading: true,
@@ -1608,7 +1680,10 @@ let svar = {
   headerOpacity: true,
   replaceList: false,
   blogRedesign: false,
-  ActHistory: true,
+  actHistory: true,
+  profileAnimeGenre: true,
+  profileMangaGenre: false,
+  moveBadges: false,
 };
 
 svar.save = function () {
@@ -1690,8 +1765,47 @@ let styles = `
     margin-top:-4px
 }
 
-.maljsBlogDivContent{
+.maljsBlogDivContent {
     background: var(--color-foreground)!important
+}
+
+.user-genres .user-genres-container {
+    padding: 10px;
+    background: var(--color-foreground);
+    border: var(--border) solid var(--border-color);
+    -webkit-border-radius: var(--border-radius);
+    border-radius: var(--border-radius);
+    text-align: center
+}
+
+.user-genres .user-genres-inner {
+    display: -ms-inline-grid;
+    display: inline-grid;
+    grid-auto-flow: column;
+    -webkit-justify-content: space-around;
+    -ms-flex-pack: distribute;
+    justify-content: space-around;
+    min-width: 420px;
+    gap: 8px
+}
+
+.user-genres .user-genres-inner .user-genre-div {
+    text-align: center
+}
+
+.user-genres .user-genres-inner .user-genre-div .user-genre-name {
+    padding: 6px 16px;
+    margin-bottom: 8px;
+    background: var(--color-foreground2);
+    border: var(--border) solid var(--border-color);
+    -webkit-border-radius: var(--border-radius);
+    border-radius: var(--border-radius);
+}
+
+.user-genres .user-genres-inner .user-genre-div .user-genre-count p {
+    display: inline-block;
+    font-size: .6rem;
+    color: var(--color-main-text-light)
 }
 
 .favThemes img {
@@ -1854,7 +1968,7 @@ let styles = `
 
 .user-profile-about a[href*="/custombg"],
 .user-profile-about a[href*="/custompf"],
-.user-profile-about a[href*="/customcss"] {
+.user-profile-about a[href*="/customCSS"] {
     display: none
 }
 
@@ -2361,6 +2475,7 @@ input.maljsNativeInput {
     display: block;
     float: left;
     opacity: 1;
+    width: 85px;
     overflow: hidden;
     position: relative;
     -webkit-transition-duration: .3s;
@@ -2391,7 +2506,7 @@ input.maljsNativeInput {
 }
 
 .relationImg {
-    width: 86px;
+    width: 85px;
     height: 120px;
     transition: .3s
 }
@@ -2543,19 +2658,8 @@ input.maljsNativeInput {
     border-radius: var(--br);
     max-height: 435px;
     position: relative;
-    padding: 0 !important;
-    margin-left: -13px;
-    margin-top: -17px;
-    width: calc(100% + 25px);
-    display: -webkit-box;
-    display: -webkit-flex;
-    display: -ms-flexbox;
-    display: flex;
-    -webkit-box-align: center;
-    -webkit-align-items: center;
-    -ms-flex-align: center;
-    align-items: center;
-    overflow: hidden
+    width: auto;
+    margin: -30px -10px 0 -10px
 }
 
 .aniLeftSide {
@@ -3138,24 +3242,29 @@ button#hideProfileElementsUpdateButton,
 button#customColorUpdate,
 button#customColorRemove,
 button#custombgRemove,
+button#malBadgesRemove,
 button#customFgRemove,
 button#hideProfileElementsRemove,
 button#custompfRemove,
-button#customcssRemove,
-button#customcss,
+button#customCSSRemove,
+button#customCSS,
 button#privateProfile,
 button#privateRemove,
+button#malBadgesBtn,
+button#malBadgesRemove,
 button#custombg,
 button#custompf {
     height: 40px;
     width: 26%
 }
+
+button#malBadgesRemove,
 button#customFgRemove,
 button#hideProfileElementsRemove,
 button#customColorRemove,
 button#custombgRemove,
 button#custompfRemove,
-button#customcssRemove {
+button#customCSSRemove {
     width: 5%;
     font-family:FontAwesome
 }
@@ -3172,6 +3281,7 @@ button#custombadge{
     width: 15%
 }
 
+input#malBadgesInput,
 input#cssInput,
 input#bgInput,
 input#pfInput {
@@ -3208,8 +3318,6 @@ input#badgeInput {
 .malCleanMainContainer .malCleanSettingContainer h3 {
     font-weight: 500
 }
-`;
-let styles1 = `
 .anisong-accordion-button {
     text-align: right;
     cursor: pointer;
@@ -3237,6 +3345,7 @@ let styles1 = `
     -webkit-filter: invert(100%) hue-rotate(180deg) brightness(75%) !important;
     filter: invert(100%) hue-rotate(180deg) brightness(75%) !important
 }
+
 .theme-songs.js-theme-songs.has-video .fa-star {
     font-family: FontAwesome;
     opacity: .1;
@@ -3249,6 +3358,46 @@ let styles1 = `
 }
 .theme-songs.js-theme-songs.has-video:hover .fa-star {
     opacity: 1
+}
+
+#badges-iframe {
+  -ms-zoom: 0.75;
+  -moz-transform: scale(0.5);
+  -moz-transform-origin: 0 0;
+  -o-transform: scale(0.5);
+  -o-transform-origin: 0 0;
+  -webkit-transform: scale(0.5);
+  -webkit-transform-origin: 0 0;
+  width: 895px;
+  max-width: 895px;
+  height: 480px;
+  max-height: 480px;
+  -webkit-resize: none;
+  -moz-resize: none;
+  resize: none;
+  overflow: hidden;
+  margin-top: -95px;
+  margin-left: -20px
+}
+
+div#badges-inner {
+  padding: 10px;
+  transition: transform .3s ease-in-out;
+  background: var(--color-foreground);
+  border: var(--border) solid var(--border-color);
+  -webkit-border-radius: var(--border-radius);
+  border-radius: var(--border-radius)
+}
+
+div#badges-iframe-inner {
+  overflow: hidden;
+  pointer-events: none;
+  border: 1px solid var(--border-color);
+  -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+  box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+  height: 145px;
+  -webkit-border-radius: 10px;
+  border-radius: 10px
 }
 `;
 let styles2 = `
@@ -3415,7 +3564,12 @@ button#customColorUpdate {
 .tooltipBody {
   padding:10px
 }
+.bannerDiv {
+    margin: -5px -10px 0 -10px
+}
 `;
+// defaultMal = Mal without UserStyle
+// settingsFounded = Custom Profile Settings Founded
 let defaultMal,settingsFounded = 0;
 let current = location.pathname;
 let username = current.split('/')[2];
@@ -3424,11 +3578,9 @@ if(location.pathname === "/rss.php") {
 }
 //Create Style Elements
 let styleSheet = document.createElement('style');
-let styleSheet1 = document.createElement('style');
 let styleSheet2 = document.createElement('style');
 let styleSheet3 = document.createElement('style');
 styles = styles.replace(/\n/g, '');
-styles1 = styles1.replace(/\n/g, '');
 styles2 = styles2.replace(/\n/g, '');
 styles3 = styles3.replace(/\n/g, '');
 defaultColors = defaultColors.replace(/\n/g, '');
@@ -3473,37 +3625,14 @@ function reloadset() {
 }
 
 // MalClean Settings - Buttons Config
-const buttonsConfig = [
-  { id: "animeBgBtn", setting: "animebg" },
-  { id: "animeHeaderBtn", setting: "animeHeader" },
-  { id: "animeBannerBtn", setting: "animeBanner" },
-  { id: "animeTagBtn", setting: "animeTag" },
-  { id: "animeRelationBtn", setting: "animeRelation" },
-  { id: "charBgBtn", setting: "charbg" },
-  { id: "characterHeaderBtn", setting: "characterHeader" },
-  { id: "characterNameAltBtn", setting: "characterNameAlt" },
-  { id: "peopleHeaderBtn", setting: "peopleHeader" },
-  { id: "customCssBtn", setting: "customcss" },
-  { id: "profileHeaderBtn", setting: "profileHeader" },
-  { id: "alStyleBtn", setting: "alstyle" },
-  { id: "animeInfoBtn", setting: "animeinfo" },
-  { id: "embedBtn", setting: "embed" },
-  { id: "currentlyWatchingBtn", setting: "currentlyWatching" },
-  { id: "airingDateBtn", setting: "airingDate" },
-  { id: "animeSongsBtn", setting: "animeSongs" },
-  { id: "animeInfoDesignBtn", setting: "animeInfoDesign" },
-  { id: "autoAddDateBtn", setting: "autoAddDate" },
-  { id: "editPopupBtn", setting: "editPopup" },
-  { id: "currentlyReadingBtn", setting: "currentlyReading" },
-  { id: "recentlyAddedAnimeBtn", setting: "recentlyAddedAnime" },
-  { id: "recentlyAddedMangaBtn", setting: "recentlyAddedManga" },
-  { id: "forumDateBtn", setting: "forumDate" },
-  { id: "relationFilterBtn", setting: "relationFilter" },
-  { id: "replaceListBtn", setting: "replaceList" },
-  { id: "blogRedesignBtn", setting: "blogRedesign" },
-  { id: "ActHistoryBtn", setting: "ActHistory" },
-  { id: "removeAllCustomBtn", setting: "removeAllCustom", text: "Remove All Custom Settings" }
-];
+const buttonsConfig = Object.keys(svar).map(setting => ({
+  setting: setting,
+  id: setting + 'Btn',
+  text: null,
+  enabled: svar[setting]
+}));
+buttonsConfig.push({ setting: "removeAllCustom", text: "Remove All Custom Settings" });
+
 if (!defaultMal) {
   buttonsConfig.push(
     { id: "headerSlideBtn", setting: "headerSlide" },
@@ -3708,6 +3837,24 @@ customProfileElRightUpdateButton.onclick = () => {
   }
 }
 
+//Mal Badges
+let malBadgesInput = create("input", { class: "malBadgesInput", id: "malBadgesInput" });
+malBadgesInput.placeholder = "Paste your Mal-Badges Url Here";
+var malBadgesButton = create("button", { class: "mainbtns", id: "malBadgesBtn" }, "Update");
+var malBadgesRemoveButton = create("button", { class: "mainbtns fa fa-trash", id: "malBadgesRemove" });
+
+malBadgesButton.onclick = () => {
+  if (malBadgesInput.value.length > 1) {
+    const badgeBase64 = LZString.compressToBase64(JSON.stringify(malBadgesInput.value));
+    const badgeBase64Url = badgeBase64.replace(/\//g, '_');
+    editAboutPopup(`malBadges/${badgeBase64Url}`,'malBadges');
+    malBadgesInput.addEventListener(`focus`, () => bgInput.select());
+  }
+};
+malBadgesRemoveButton.onclick = () => {
+    editAboutPopup(`malBadges/...`,'malBadges');
+};
+
 //Custom Profile Background
 let bgInput = create("input", { class: "bgInput", id: "bgInput" });
 bgInput.placeholder = "Paste your Background Image Url here";
@@ -3750,30 +3897,30 @@ pfRemoveButton.onclick = () => {
 };
 
 //Custom CSS
-var cssButton = create("button", { class: "mainbtns", id: "customcss" }, "Update");
-var cssRemoveButton = create("button", { class: "mainbtns fa fa-trash", id: "customcssRemove" });
+var cssButton = create("button", { class: "mainbtns", id: "customCSS" }, "Update");
+var cssRemoveButton = create("button", { class: "mainbtns fa fa-trash", id: "customCSSRemove" });
 var cssInfo = create("p", { class: "textpb" }, "");
 let cssInput = create("input", { class: "cssInput", id: "cssInput" });
-var cssAlStyle = create("button", { class: "mainbtns", id: "cssAlStyle" ,style:{height:"32px",width:"32px",verticalAlign: "middle"} });
-var cssAlStyleText = create("h3", { style:{display: 'inline'}}, "Custom CSS + Make profile like Anilist");
-let cssAlStyleEnabled = false;
-cssAlStyle.onclick = () => {
-  cssAlStyleEnabled = !cssAlStyleEnabled;
-  cssAlStyle.classList.toggle('btn-active', cssAlStyleEnabled);
+var cssmodernLayout = create("button", { class: "mainbtns", id: "cssmodernLayout" ,style:{height:"32px",width:"32px",verticalAlign: "middle"} });
+var cssmodernLayoutText = create("h3", { style:{display: 'inline'}}, "Custom CSS + Modern Profile Layout");
+let cssmodernLayoutEnabled = false;
+cssmodernLayout.onclick = () => {
+  cssmodernLayoutEnabled = !cssmodernLayoutEnabled;
+  cssmodernLayout.classList.toggle('btn-active', cssmodernLayoutEnabled);
 }
 cssInput.placeholder = "Paste your CSS here";
 cssButton.onclick = () => {
   if (cssInput.value.length > 1) {
-    const cssBase64 = LZString.compressToBase64(JSON.stringify([cssInput.value,cssAlStyleEnabled]));
+    const cssBase64 = LZString.compressToBase64(JSON.stringify([cssInput.value,cssmodernLayoutEnabled]));
     const cssbase64url = cssBase64.replace(/\//g, '_');
-    editAboutPopup(`customcss/${cssbase64url}`,'css');
+    editAboutPopup(`customCSS/${cssbase64url}`,'css');
     cssInput.addEventListener(`focus`, () => cssInput.select());
   } else {
     cssInfo.innerText = "Css empty.";
   }
 };
 cssRemoveButton.onclick = () => {
-    editAboutPopup(`customcss/...`,'css');
+    editAboutPopup(`customCSS/...`,'css');
 };
 
 //Custom Badge
@@ -3874,39 +4021,14 @@ customColorRemoveButton.onclick = () => {
 
 // Toggle enabled Buttons
 function getSettings() {
-  animeBgBtn.classList.toggle('btn-active', svar.animebg);
-  charBgBtn.classList.toggle('btn-active', svar.charbg);
-  peopleHeaderBtn.classList.toggle('btn-active', svar.peopleHeader);
-  animeHeaderBtn.classList.toggle('btn-active', svar.animeHeader);
-  animeBannerBtn.classList.toggle('btn-active', svar.animeBanner);
-  animeTagBtn.classList.toggle('btn-active', svar.animeTag);
-  animeRelationBtn.classList.toggle('btn-active', svar.animeRelation);
-  animeInfoDesignBtn.classList.toggle('btn-active', svar.animeInfoDesign);
-  relationFilterBtn.classList.toggle('btn-active', svar.relationFilter);
-  characterHeaderBtn.classList.toggle('btn-active', svar.characterHeader);
-  characterNameAltBtn.classList.toggle('btn-active', svar.characterNameAlt);
-  customCssBtn.classList.toggle('btn-active', svar.customcss);
-  profileHeaderBtn.classList.toggle('btn-active', svar.profileHeader);
-  alStyleBtn.classList.toggle('btn-active', svar.alstyle);
-  animeInfoBtn.classList.toggle('btn-active', svar.animeinfo);
-  embedBtn.classList.toggle('btn-active', svar.embed);
-  currentlyWatchingBtn.classList.toggle('btn-active', svar.currentlyWatching);
-  currentlyReadingBtn.classList.toggle('btn-active', svar.currentlyReading);
-  recentlyAddedAnimeBtn.classList.toggle('btn-active', svar.recentlyAddedAnime);
-  recentlyAddedMangaBtn.classList.toggle('btn-active', svar.recentlyAddedManga);
-  airingDateBtn.classList.toggle('btn-active', svar.airingDate);
-  animeSongsBtn.classList.toggle('btn-active', svar.animeSongs);
-  autoAddDateBtn.classList.toggle('btn-active', svar.autoAddDate);
-  editPopupBtn.classList.toggle('btn-active', svar.editPopup);
-  forumDateBtn.classList.toggle('btn-active', svar.forumDate);
-  replaceListBtn.classList.toggle('btn-active', svar.replaceList);
-  blogRedesignBtn.classList.toggle('btn-active', svar.blogRedesign);
-  if (typeof ActHistoryBtn !== 'undefined') ActHistoryBtn.classList.toggle('btn-active', svar.ActHistory);
-  if(!defaultMal) {
-      headerSlideBtn.classList.toggle('btn-active', svar.headerSlide);
-      headerOpacityBtn.classList.toggle('btn-active', svar.headerOpacity);
-  }
+  Object.keys(svar).forEach(setting => {
+    const btn = window[`${setting}Btn`];
+    if (btn !== undefined && typeof svar[setting] !== 'undefined' && (setting !== 'headerSlide' && setting !== 'headerOpacity' || !defaultMal)) {
+      btn.classList.toggle('btn-active', svar[setting]);
+    }
+  });
 }
+
 
 //MalClean Settings - Create Custom Settings Div Function
 function createCustomSettingDiv(title, description) {
@@ -3924,11 +4046,11 @@ function createCustomSettingDiv(title, description) {
 function createDiv() {
   let listDiv = create("div", { class: "malCleanMainContainer" }, '<div class="malCleanMainHeader"><b>' + stLink.innerText + "</b></div>");
   let customfgDiv = createCustomSettingDiv(
-    "Custom Foreground Color (Required Anilist Style Profile)",
+    "Custom Foreground Color (Required Modern Profile Layout)",
     "Change profile foreground color. This will be visible to users with the script."
   );
   let custombgDiv = createCustomSettingDiv(
-    "Custom Banner (Required Anilist Style Profile)",
+    "Custom Banner (Required Modern Profile Layout)",
     "Add custom banner to your profile. This will be visible to users with the script."
   );
   let custompfDiv = createCustomSettingDiv(
@@ -3936,11 +4058,16 @@ function createDiv() {
     "Add custom avatar to your profile. This will be visible to users with the script."
   );
   let custombadgeDiv = createCustomSettingDiv(
-    "Custom Badge (Required Anilist Style Profile)",
+    "Custom Badge (Required Modern Profile Layout)",
     "Add custom badge to your profile. This will be visible to users with the script." +
     "<p>You can use HTML elements. Maximum size 300x150. Update empty to delete.</p>"
   );
-  let customcssDiv = createCustomSettingDiv(
+  let malBadgesDiv = createCustomSettingDiv(
+    "Mal-Badges (Required Modern Profile Layout)",
+    "You can add Mal-Badges to your profile. This will be visible to users with the script." +
+    "<p>If the badge does not appear, it means that the Mal-Badges is blocking access. There is nothing you can do about it.</p>"
+  );
+  let customCSSDiv = createCustomSettingDiv(
     "Custom CSS",
     "Add custom css to your profile. This will be visible to users with the script."
   );
@@ -3985,6 +4112,7 @@ function createDiv() {
       [
         { b: buttons["animeBgBtn"], t: "Add dynamic background color based cover art's color palette" },
         { b: buttons["animeBannerBtn"], t: "Add banner image from Anilist" },
+        { b: buttons["animeBannerMoveBtn"], t: "Move the cover image below the banner image." },
         { b: buttons["animeTagBtn"], t: "Add tags from Anilist" },
         { b: buttons["animeRelationBtn"], t: "Replace relations" },
         { b: buttons["relationFilterBtn"], t: "Add filter to replaced relations" },
@@ -4017,30 +4145,34 @@ function createDiv() {
     createListDiv(
       "Forum",
       [
-        { b: buttons["embedBtn"], t: "Make Anime/Manga links like Anilist" },
+        { b: buttons["embedBtn"], t: "Modern Anime/Manga Links" },
         { b: buttons["forumDateBtn"], t: "Change date format" },
       ]
     ),
     createListDiv(
       "Profile",
       [
-        { b: buttons["alStyleBtn"], t: "Make profile like Anilist" },
-        { b: buttons["replaceListBtn"], t: "Make Anime/Manga List like Anilist" },
+        { b: buttons["modernLayoutBtn"], t: "Modern Profile Layout" },
+        { b: buttons["replaceListBtn"], t: "Modern Anime/Manga List" },
         ...!defaultMal ? [{ b: buttons["headerOpacityBtn"], t: "Add auto opacity to the header if the user has a custom banner." }] : [],
-        ...svar.alstyle ? [{ b: buttons["ActHistoryBtn"], t: "Show activity history" }] : [],
-        { b: buttons["customCssBtn"], t: "Show custom CSS" },
+        ...svar.modernLayout ? [{ b: buttons["moveBadgesBtn"], t: "Move badges after the anime & manga list buttons." }] : [],
+        ...svar.modernLayout ? [{ b: buttons["actHistoryBtn"], t: "Show Activity History" }] : [],
+        ...svar.modernLayout ? [{ b: buttons["profileAnimeGenreBtn"], t: "Show Anime Genre Overview" }] : [],
+        ...svar.modernLayout ? [{ b: buttons["profileMangaGenreBtn"], t: "Show Manga Genre Overview" }] : [],
+        { b: buttons["customCSSBtn"], t: "Show custom CSS" },
         { b: buttons["profileHeaderBtn"], t: "Change username position" },
       ]
     )
   );
 
-  listDiv.append(privateProfileDiv,hideProfileElDiv,customProfileElDiv,custompfDiv,custombadgeDiv, custombgDiv, customfgDiv);
+  listDiv.append(privateProfileDiv,hideProfileElDiv,customProfileElDiv,malBadgesDiv,custompfDiv,custombadgeDiv, custombgDiv, customfgDiv);
   custompfDiv.append(pfInput, pfButton,pfRemoveButton, pfInfo);
-  //if anilist style profile active, add custom settings.
-  if (svar.alstyle) {
+  //if Modern Profile Layout active, add custom settings.
+  if (svar.modernLayout) {
     customfgDiv.append(fgColorSelector,updateFgButton,removeFgButton);
     custombgDiv.append(bgInput, bgButton, bgRemoveButton, bgInfo);
     custombadgeDiv.append(badgeInput, badgeColorSelector, badgeColorLoop, badgeButton);
+    malBadgesDiv.append(malBadgesInput, malBadgesButton, malBadgesRemoveButton);
     buttons["profileHeaderBtn"].style.display = "none";
     buttons["profileHeaderBtn"].nextSibling.style.display = "none";
   }
@@ -4048,8 +4180,8 @@ function createDiv() {
   privateProfileDiv.append(privateButton,removePrivateButton);
   hideProfileElDiv.append(hideProfileElButton,hideProfileElUpdateButton,removehideProfileElButton);
   customProfileElDiv.append(customProfileElUpdateButton,customProfileElRightUpdateButton);
-  listDiv.append(customColorsDiv,customcssDiv);
-  customcssDiv.append(cssInput, cssButton, cssRemoveButton, cssAlStyle, cssAlStyleText, cssInfo);
+  listDiv.append(customColorsDiv,customCSSDiv);
+  customCSSDiv.append(cssInput, cssButton, cssRemoveButton, cssmodernLayout, cssmodernLayoutText, cssInfo);
   document.querySelector("#headerSmall").insertAdjacentElement("afterend", listDiv);
   listDiv.append(buttons["removeAllCustomBtn"]);
   getSettings();
@@ -4719,27 +4851,26 @@ function delay(ms) {
   //Recently Added Manga //--END--//
 
   //Seasonal Info //--START--//
-  if (svar.animeinfo && location.pathname === "/") {
+  if (svar.animeInfo && location.pathname === "/") {
     //Get Seasonal Anime and add info button
-    const i = document.querySelectorAll(".widget.seasonal.left .btn-anime");
-    i.forEach((info) => {
-      let ib = create("i", {
-        class: "fa fa-info-circle",
-        style: { fontFamily: '"Font Awesome 6 Pro"', position: 'absolute', right: '3px', top: '3px', padding: "4px", opacity: "0", transition: ".4s",zIndex:"20"},
+    if (document.querySelector(".widget.seasonal.left")) {
+      const i = document.querySelectorAll(".widget.seasonal.left .btn-anime");
+      i.forEach((info) => {
+        let ib = create("i", {
+          class: "fa fa-info-circle",
+          style: { fontFamily: '"Font Awesome 6 Pro"', position: 'absolute', right: '3px', top: '3px', padding: "4px", opacity: "0", transition: ".4s",zIndex:"20"},
+        });
+        info.prepend(ib);
       });
-      info.prepend(ib);
-    });
 
-    //info button click event
-    $(".widget.seasonal.left i").on('click', async function () {
-        infoExit('.widget.seasonal.left');
-      const clickedFrom = $(this);
-      createInfo(clickedFrom,'.widget.seasonal.left');
-    }
-    ).on('mouseleave',
-      async function (){
-        infoExit('.widget.seasonal.left');
+      //info button click event
+      $(".widget.seasonal.left i").on('click', async function () {
+        infoExit('.widget.seasonal.left', $(this));
+        createInfo($(this), '.widget.seasonal.left');
+      }).on('mouseleave', async function () {
+        infoExit('.widget.seasonal.left', $(this));
       });
+    }
   }
   //Seasonal Info //--END--//
 
@@ -5050,14 +5181,15 @@ function delay(ms) {
     let container = create("div", { class: "container", id: "container" });
     const pfloading = create("div", { class: "actloading",style:{position:"fixed",top:"50%",left:"0",right:"0",fontSize:"16px"}},
                            "Loading"+'<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>');
-    let customfg,custombg,custompf,customcss,custombadge,customcolors,userimg,customAlStyleFounded,privateProfile;
+    let customfg,custombg,custompf,customCSS,custombadge,customcolors,userimg,customModernLayoutFounded,privateProfile,malBadgesUrl;
     let profileRegex = {
       malClean: /(malcleansettings)\/([^"\/])/gm,
       fg: /(customfg)\/([^"\/]+)/gm,
       bg: /(custombg)\/([^"\/]+)/gm,
       pf: /(custompf)\/([^"\/]+)/gm,
-      css: /(customcss)\/([^"\/]+)/gm,
+      css: /(customCSS)\/([^"\/]+)/gm,
       badge: /(custombadge)\/([^"\/]+)/gm,
+      malBadges: /(malBadges)\/([^"\/]+)/gm,
       colors: /(customcolors)\/([^"\/]+)/gm,
       favSongEntry: /(favSongEntry)\/([^\/]+.)/gm,
       privateProfile: /(privateProfile)\/([^"\/]+)/gm,
@@ -5099,15 +5231,15 @@ function delay(ms) {
     async function startCustomProfile () {
       await imgLoad();
       await findCustomAbout();
-      if(customcss && customcss.constructor === Array && customcss[1]){
-        svar.alstyle = true;
+      if(customCSS && customCSS.constructor === Array && customCSS[1]){
+        svar.modernLayout = true;
         await applyAl();
       }
-      else if (customcss && svar.customcss) {
-        svar.alstyle = false;
+      else if (customCSS && svar.customCSS) {
+        svar.modernLayout = false;
         await applyAl();
-      } else if(customAlStyleFounded || svar.alstyle === true) {
-        svar.alstyle = true;
+      } else if(customModernLayoutFounded || svar.modernLayout === true) {
+        svar.modernLayout = true;
         await applyAl();
       }
       else {
@@ -5115,7 +5247,7 @@ function delay(ms) {
         document.body.style.removeProperty("overflow");
         document.querySelector('#contentWrapper').style.opacity = "1";
       }
-      if (svar.profileHeader && !svar.alstyle) {
+      if (svar.profileHeader && !svar.modernLayout) {
         let title = document.querySelector('#contentWrapper h1');
         title.setAttribute('style', 'padding-left: 2px;margin-bottom:5px');
         let table = document.querySelector('.container-right');
@@ -5123,10 +5255,21 @@ function delay(ms) {
           table.prepend(title);
         }
       }
-      if (!svar.alstyle) {
+      if (!svar.modernLayout) {
         customProfileElUpdateButton.textContent = "Add";
         customProfileElUpdateButton.style.width = "98%";
         customProfileElRightUpdateButton.style.display = "none";
+      } else {
+        if(svar.profileAnimeGenre) {
+          await getUserGenres(0,1);
+        }
+        if(svar.profileMangaGenre) {
+          await getUserGenres(1,1);
+        }
+        if (svar.moveBadges) {
+          $('#user-button-div').after($('#user-badges-div'));
+          $('#user-badges-div').after($('#user-mal-badges'));
+        }
       }
     }
 
@@ -5144,7 +5287,7 @@ function delay(ms) {
       shadow.setAttribute('style', 'background: linear-gradient(180deg,rgba(6,13,34,0) 40%,rgba(6,13,34,.6));height: 100%;left: 0;position: absolute;top: 0;width: 100%;');
       banner.append(shadow);
 
-      if (!svar.customcss) {
+      if (!svar.customCSS) {
         document.querySelector("#contentWrapper").style.top = "60px";
       }
       startCustomProfile();
@@ -5174,7 +5317,7 @@ function delay(ms) {
       let customElContentRight = create("div", { class: "customProfileEls right", id: "customProfileEls" });
       let sortItem1 = null;
       let sortItem2 = null;
-      if (svar.alstyle) {
+      if (svar.modernLayout) {
         const appendLoc =  document.querySelector("#user-button-div");
         appendLoc.insertAdjacentElement("afterend", customElContent);
       } else {
@@ -5193,12 +5336,12 @@ function delay(ms) {
           <div class="fa fa-pen editCustomEl" order="${index}"></div>
           <div class="fa fa-sort sortCustomEl" order="${index}"></div>
           <div class="fa fa-x removeCustomEl" order="${index}"></div>
-          ${isRight && svar.alstyle ?
+          ${isRight && svar.modernLayout ?
           `<h4 style="border: 0;margin: 15px 0 4px 4px;">${item.header}</h4>`
           :
-          `<h5 style="${svar.alstyle ? 'font-size: 11px; margin: 0 0 8px 2px;' : ''}">${item.header}</h5>`
+          `<h5 style="${svar.modernLayout ? 'font-size: 11px; margin: 0 0 8px 2px;' : ''}">${item.header}</h5>`
           }
-          <div class="${svar.alstyle ? 'custom-el-inner' : 'custom-el-inner notAl'}">${item.content}</div>
+          <div class="${svar.modernLayout ? 'custom-el-inner' : 'custom-el-inner notAl'}">${item.content}</div>
           `;
           if (isRight) {
             customElContentRight.appendChild(customElContainer);
@@ -5288,7 +5431,7 @@ function delay(ms) {
       let FavContent = create("div", { class: "favThemes", id: "favThemes" });
       let sortItem1 = null;
       let sortItem2 = null;
-      if (svar.alstyle) {
+      if (svar.modernLayout) {
         $(FavContent).insertBefore($("#content > div > div.container-left > div li.icon-statistics.link").parent());
 
       } else {
@@ -5299,7 +5442,7 @@ function delay(ms) {
         edGroup.classList.add("flex2x");
       }
 
-        if (customcss && customcss.constructor === Array && customcss[1] || customcss && customcss.constructor !== Array || svar.alstyle){
+        if (customCSS && customCSS.constructor === Array && customCSS[1] || customCSS && customCSS.constructor !== Array || svar.modernLayout){
         const favbg = document.createElement('style');
         favbg.textContent = `.favThemes .fav-theme-container {background: var(--color-foreground);}`;
         document.head.appendChild(favbg);
@@ -5328,6 +5471,7 @@ function delay(ms) {
           FavContent.appendChild(favSongContainer);
         });
       });
+
       FavContent.append(opGroup, edGroup);
 
       const favThemes = document.querySelector(".favThemes");
@@ -5347,6 +5491,29 @@ function delay(ms) {
           $(edGroup).before(`<h5>Endings</h5>`);
         }
       });
+      function toggleShowMore(groupSelector) {
+        const accordionButton = create('a', { class:'anisong-accordion-button', id: `${groupSelector}-accordion-button`, style: { display: "none" }}, '<i class="fas fa-chevron-down mr4"></i>\nShow More\n');
+        if ($(`#${groupSelector}-accordion-button`).length === 0) {
+          $(`#${groupSelector}`).append(accordionButton);
+        }
+
+        if ($(`#${groupSelector} .fav-theme-container`).length > 5) {
+          $(`#${groupSelector} .fav-theme-container`).slice(5).hide();
+          $(`#${groupSelector}-accordion-button`).show();
+        }
+        $(`#${groupSelector}-accordion-button`).on('click', function() {
+          var isVisible = $(`#${groupSelector} .fav-theme-container`).slice(5).is(":visible");
+          if (isVisible) {
+            $(`#${groupSelector} .fav-theme-container`).slice(5).slideUp();
+            $(this).html('<i class="fas fa-chevron-down mr4"></i> Show More');
+          } else {
+            $(`#${groupSelector} .fav-theme-container`).slice(5).slideDown();
+            $(this).html('<i class="fas fa-chevron-up mr4"></i> Show Less');
+          }
+        });
+      }
+      toggleShowMore("op-group");
+      toggleShowMore("ed-group");
       //Sort Favorite Song click function
       document.querySelectorAll('.sortFavSong').forEach(element => {
         element.addEventListener('click', function() {
@@ -5390,7 +5557,7 @@ function delay(ms) {
 
       //Favorite Song Title click function
       $(".favThemeSongTitle").on("click", function () {
-        if (!svar.alstyle) {
+        if (!svar.modernLayout) {
           const title = $(this).prev();
           title.css("white-space", title.css("white-space") === "nowrap" || title.css("white-space") === "nowrap" ? "normal" : "nowrap");
           $(this).css("white-space", $(this).css("white-space") === "nowrap" || $(this).css("white-space") === "nowrap" ? "normal" : "nowrap");
@@ -5471,6 +5638,7 @@ function delay(ms) {
       const pfMatch = aboutContent.match(profileRegex.pf);
       const cssMatch = aboutContent.match(profileRegex.css);
       const badgeMatch = aboutContent.match(profileRegex.badge);
+      const malBadgesMatch = aboutContent.match(profileRegex.malBadges);
       const colorMatch = aboutContent.match(profileRegex.colors);
       const favSongMatch = aboutContent.match(profileRegex.favSongEntry);
       const privateProfileMatch = aboutContent.match(profileRegex.privateProfile);
@@ -5501,7 +5669,7 @@ function delay(ms) {
               'style',
               `background-color: var(--color-foreground); background: url(${custombg}); background-position: 50% 35%; background-repeat: no-repeat; background-size: cover; height: 330px; position: relative;`
             );
-            customAlStyleFounded = 1;
+            customModernLayoutFounded = 1;
           }
         }
         if (colorMatch) {
@@ -5544,33 +5712,41 @@ function delay(ms) {
               badgeDiv.style.background = custombadge[1];
             }
             container.append(badgeDiv);
-            customAlStyleFounded = 1;
+            customModernLayoutFounded = 1;
+          }
+        }
+        if (malBadgesMatch) {
+          const malBadgesData = malBadgesMatch[0].replace(profileRegex.malBadges, '$2');
+          if (malBadgesData !== '...') {
+            let malBadgesBase64Url = malBadgesData.replace(/_/g, "/");
+            malBadgesUrl = JSON.parse(LZString.decompressFromBase64(malBadgesBase64Url));
+            getMalBadges(malBadgesUrl);
           }
         }
         if (cssMatch) {
           const cssData = cssMatch[0].replace(profileRegex.css, '$2');
           if(cssData !== '...'){
             let cssBase64Url = cssData.replace(/_/g, "/");
-          customcss = JSON.parse(LZString.decompressFromBase64(cssBase64Url));
+          customCSS = JSON.parse(LZString.decompressFromBase64(cssBase64Url));
           }
         }
         if (favSongMatch) {
-          if(customAlStyleFounded){
-            svar.alstyle = true;
+          if(customModernLayoutFounded){
+            svar.modernLayout = true;
           }
-          if (customcss && customcss.constructor === Array && !customcss[1] || customcss && customcss.constructor !== Array){
-            svar.alstyle = false;
+          if (customCSS && customCSS.constructor === Array && !customCSS[1] || customCSS && customCSS.constructor !== Array){
+            svar.modernLayout = false;
           }
           if (!/\/profile\/.*\/\w/gm.test(current)) {
             buildFavSongs(aboutContent)
           }
         }
         if (customElMatch) {
-          if(customAlStyleFounded) {
-            svar.alstyle = true;
+          if(customModernLayoutFounded) {
+            svar.modernLayout = true;
           }
-          if (customcss && customcss.constructor === Array && !customcss[1] || customcss && customcss.constructor !== Array){
-            svar.alstyle = false;
+          if (customCSS && customCSS.constructor === Array && !customCSS[1] || customCSS && customCSS.constructor !== Array){
+            svar.modernLayout = false;
           }
           if (!/\/profile\/.*\/\w/gm.test(current)) {
             buildCustomElements(aboutContent)
@@ -5624,20 +5800,20 @@ function delay(ms) {
       }
     }
 
-    //Apply Anilist Style Profile
+    //Apply Modern Profile Layout
     async function applyAl() {
-    if (svar.customcss) {
+    if (svar.customCSS) {
       findcss();
       function findcss() {
-        let customcssData,customcssAl;
-        if(customcss && customcss.constructor === Array){
-          customcssData = customcss[0];
-          customcssAl = customcss[1];
+        let customCSSData,customCSSAl;
+        if(customCSS && customCSS.constructor === Array){
+          customCSSData = customCSS[0];
+          customCSSAl = customCSS[1];
         } else {
-          customcssData = customcss;
+          customCSSData = customCSS;
         }
-        if (customcss) {
-          if(!customcssAl) {
+        if (customCSS) {
+          if(!customCSSAl) {
             const malscss = document.createElement('style');
             malscss.textContent = `#currently-popup, .malCleanMainHeader, .malCleanMainContainer {background:#121212!important;}`;
             document.head.appendChild(malscss);
@@ -5650,16 +5826,16 @@ function delay(ms) {
           getdata();
           function getdata() {
             let css = document.createElement('style');
-            if(customcssData.match(/^https.*\.css$/)){
+            if(customCSSData.match(/^https.*\.css$/)){
               let cssLink = document.createElement("link");
               cssLink.rel = "stylesheet";
               cssLink.type = "text/css";
-              cssLink.href = customcss;
+              cssLink.href = customCSS;
               document.getElementsByTagName("head")[0].appendChild(cssLink);
             }
             else {
-              if(customcssData.length < 1e6){
-                css.innerText = customcssData;
+              if(customCSSData.length < 1e6){
+                css.innerText = customCSSData;
                 document.getElementsByTagName("head")[0].appendChild(css);
               }
             }
@@ -5667,8 +5843,8 @@ function delay(ms) {
         }
       }
     }
-      if (svar.alstyle) {
-        //CSS Fix for Anilist Style
+      if (svar.modernLayout) {
+        //CSS Fix for Modern Profile Layout
         let fixstyle = `
         .page-common #horiznav_nav.profile-nav > ul > li > a:not(.navactive){color: var(--color-main-text-light)!important;background:0!important}
         .page-common #horiznav_nav.profile-nav > ul > li > a.navactive,.page-common #horiznav_nav.profile-nav > ul > li > a:hover{color:  var(--color-link)!important;background:0!important}
@@ -5726,7 +5902,7 @@ function delay(ms) {
         .favs .btn-fav:hover, .user-badge:hover, .icon-friend:hover {overflow:visible!important}
         .favs .btn-fav:hover .favTooltip,.user-badge:hover .favTooltip, .icon-friend:hover .favTooltip{opacity:1}
         .user-profile .user-badges .user-badge:hover,.user-profile .user-friends .icon-friend:hover,.user-profile .user-friends .icon-friend:active{opacity:1!important}
-        .dark-mode .user-profile .user-badges .user-badge,.user-profile .user-badges .user-badge {margin:3.5px!important;}
+        .dark-mode .user-profile .user-badges .user-badge,.user-profile .user-badges .user-badge {${defaultMal ? 'margin:2px!important' : 'margin: 4px!important'}}
         .max{max-height:99999px!important}`;
         var fixstylesheet = document.createElement('style');
         fixstylesheet.innerText = fixstyle.replace(/\n/g, '');
@@ -5736,7 +5912,7 @@ function delay(ms) {
         document.body.style.setProperty('--color-foreground2', 'var(--color-foregroundOP2)','important');
 
         //Get Activity History from MAL and Cover Image from Jikan API
-        if (svar.ActHistory) {
+        if (svar.actHistory) {
           const titleImageMap = {};
           let historyMain = create("div", { class: "user-history-main", id: "user-history-div" });
           if (document.querySelector("#statistics")) {
@@ -5777,8 +5953,7 @@ function delay(ms) {
               ep = item[x].querySelector("strong").innerText;
               date = item[x].parentElement.children[1].innerText.split("Edit").join("");
               datenew = date.includes("Yesterday") || date.includes("Today") || date.includes("hour") || date.includes("minutes") || date.includes("seconds") ? true : false;
-              date = datenew ? date : date.includes(",") ? date : date + " " + new Date().getFullYear();
-
+              date = datenew ? date : /\b\d{4}\b/.test(date) ? date : date + " " + new Date().getFullYear();
               let dat = create("div", { class: "user-history" });
               let name = create("div", { class: "user-history-title" });
               let timestamp = new Date(date).getTime();
@@ -5844,7 +6019,7 @@ function delay(ms) {
             gethistory();
           }
         }
-        //Make Profile looks like Anilist
+        //Modern Profile Layout
         let about = document.querySelector(".user-profile-about.js-truncate-outer");
         let modernabout = document.querySelector("#modern-about-me");
         let avatar = document.querySelector(".user-image");
@@ -6105,7 +6280,7 @@ function delay(ms) {
     }
     //Private Profile Check
     async function changeForeground(color) {
-      if (svar.alstyle) {
+      if (svar.modernLayout) {
         await delay(200);
         $('style:contains(--fg:)').html('');
         let customColors = `
@@ -6141,7 +6316,7 @@ function delay(ms) {
         pfloading.innerHTML = "Private Profile";
       }
     }
-    //Anilist Style Anime and Manga List //-START-//
+    //Modern Profile Layout Anime and Manga List //-START-//
     let contLeft = $(".container-left").length ?  $(".container-left") : $("#content > table > tbody > tr td[valign='top']:nth-child(1)");
     let contRight = $(".container-right").length ?  $(".container-right") : $("#content > table > tbody > tr td[valign='top']:nth-child(2)");
     if(svar.replaceList) {
@@ -6326,7 +6501,6 @@ function delay(ms) {
       contRight.append(listLoading,listEntries);
         const html = await fetchAndCombineData().then(async allData => {
           let list = allData;
-
           if (list) {
             for (let x = 0; x < list.length; x++) {
               if (isManga) {
@@ -6382,7 +6556,7 @@ function delay(ms) {
       $('.loadmore').hide();
       listLoading.remove();
 
-      if (svar.alstyle) {
+      if (svar.modernLayout) {
         const contentDiv = document.querySelector("#content > div") ? document.querySelector("#content > div") : document.querySelector("#content > table > tbody > tr");
         if(contentDiv.className !==''){
           contentDiv.style.marginTop = "40px";
@@ -6407,7 +6581,7 @@ function delay(ms) {
           $("#content > div > div.container-right > div.favmore > h5:nth-child(1)").show();
           $("#content > div > div.container-right > div.favmore > h5:nth-child(3)").show();
 
-          if (svar.alstyle) {
+          if (svar.modernLayout) {
             const contentDiv = document.querySelector("#content > div") ? document.querySelector("#content > div") : document.querySelector("#content > table > tbody > tr");
             if(contentDiv.className !==''){
               contentDiv.style.marginTop = "20px";
@@ -6892,7 +7066,7 @@ function delay(ms) {
           }
         };
       }
-  //Anilist Style Anime and Manga List //-END-//
+  //Modern Profile Layout Anime and Manga List //-END-//
 
   //profile Mutual Friends //-START-//
     async function mutualFriends() {
@@ -7175,10 +7349,10 @@ function delay(ms) {
     if (document.querySelector('.js-alternative-titles.hide')) {
       document.querySelector('.js-alternative-titles.hide').setAttribute('style', 'border-radius:var(--br);overflow:hidden');
     }
-    if ($('.InformationDiv').length) {
+    if ($('.InformationDiv').length && !defaultMal) {
       $(".InformationDiv").nextUntil("br").not('h2').attr('style','background:0!important').addBack().wrapAll("<div class='spaceit-shadow-end-div'></div>");
     }
-    if ($('.StatisticsDiv').length) {
+    if ($('.StatisticsDiv').length && !defaultMal) {
       $(".StatisticsDiv").nextUntil("br").not('h2').attr('style','background:0!important').addBack().wrapAll("<div class='spaceit-shadow-end-div'></div>");
       $(".statistics-info").css('opacity','0');
       $(".spaceit_pad.po-r.js-statistics-info.di-ib sup").css('opacity','0');
@@ -7240,16 +7414,17 @@ function delay(ms) {
 
     // Change the design of the Information on the left side.
     if (svar.animeInfoDesign) {
-      $('.InformationDiv').next().children().children('.dark_text').each(function() {
+      let informationDiv = defaultMal ?  $('.InformationDiv').nextAll().children('.dark_text') :  $('.InformationDiv').next().children().children('.dark_text');
+      informationDiv.each(function() {
         let currentText = $(this).text();
         $(this).text(currentText.slice(0, -1));
       });
-      $('.InformationDiv').next().children().children('.dark_text').after('<br>');
+      informationDiv.after('<br>');
     }
 
     //Remove the "to ?" in the Aired in Information section on the left side
     if ($('.InformationDiv').length > 0) {
-      let InformationAired = $('.InformationDiv').next().children().children('.dark_text:contains("Aired")');
+      let InformationAired = defaultMal ?  $('.InformationDiv').nextAll().children('.dark_text:contains("Aired")') :  $('.InformationDiv').next().children().children('.dark_text:contains("Aired")');
       if (InformationAired.length > 0) {
         InformationAired = InformationAired.parent()[0].childNodes[3] ? InformationAired.parent()[0].childNodes[3] : InformationAired.parent()[0].childNodes[2];
         InformationAired.nodeValue = InformationAired.nodeValue.replace('to ?', '');
@@ -7278,7 +7453,8 @@ function delay(ms) {
     getAiringTime() ;
     async function getAiringTime() {
       if ($('.InformationDiv').length > 0) {
-        let InformationAiring = $('.InformationDiv').next().children().children('.dark_text:contains("Status")').parent();
+        let informationDiv = defaultMal ? $('.InformationDiv').nextAll() : $('.InformationDiv').next().children();
+        let InformationAiring = informationDiv.children('.dark_text:contains("Status")').parent();
         if (InformationAiring.length > 0) {
           InformationAiring = InformationAiring.text().replace(/Status:?\s*/, '').trim();
           if (InformationAiring === "Currently Airing") {
@@ -7291,7 +7467,7 @@ function delay(ms) {
               +'</span>'+(svar.animeInfoDesign ? '<br>' : '')+'<a>Ep '+ AiringEp + ': ' + (await airingTime(AiringTime)) +"</a></div>"
               : "";
               if (AiringInfo) {
-                $('.InformationDiv').next().children().first().before(AiringInfo)
+                informationDiv.first().before(AiringInfo)
               }
             }
           }
@@ -7337,12 +7513,18 @@ function delay(ms) {
           bannerTarget.prepend(bannerDiv);
           svar.animeHeader = true;
           headerPosChange(1);
-          $(bannerHover).on('mouseenter', async function() {
-            leftSide.style.top="0"
-          });
-          $(bannerHover).on('mouseleave', async function() {
-            leftSide.style.top="-85px"
-          });
+          document.querySelector('td.borderClass.aniLeftSide').style.borderWidth = '0';
+          if(svar.animeBannerMove) {
+            bannerHover.remove();
+            leftSide.style.top="0";
+          } else {
+            $(bannerHover).on('mouseenter', async function() {
+              leftSide.style.top="0";
+            });
+            $(bannerHover).on('mouseleave', async function() {
+              leftSide.style.top="-85px";
+            });
+          }
         }
       }
     }
@@ -7447,6 +7629,7 @@ function delay(ms) {
           }
         }
         if (relationCache && relationTarget) {
+        $('h2:contains("Related Entries"):last').parent().find('a').remove();
         $('h2:contains("Related Entries"):last').text("Relations");
         document.querySelector("#content > table > tbody > tr > td:nth-child(2) > div.rightside.js-scrollfix-bottom-rel > table").style.overflow = "visible";
         relationTarget.classList.add("relationsTarget");
@@ -7506,7 +7689,7 @@ function delay(ms) {
           }
 
           relationDetailsShow();
-          if(relationTarget.clientHeight > 140) {
+          if(relationTarget.clientHeight > 144) {
             relationHeight = relationTarget.clientHeight;
             const extraRelations = relationTarget.querySelectorAll(".relationEntry");
             relationTargetExpand.innerHTML = '<i class="fas fa-chevron-down mr4"></i>\nShow More\n';
@@ -7808,8 +7991,8 @@ function delay(ms) {
       /\/(anime|manga)\/producer|season|genre|magazine\/.?([\w-]+)?\/?/.test(current) ||
       /\/(anime|manga)\/adapted.?([\w-]+)?\/?/.test(current) ||
       /\/(anime.php|manga.php).?([\w-]+)?\/?/.test(current) ||
-      (/\/(character)\/?([\w-]+)?\/?/.test(current) && !svar.charbg) ||
-      (/\/(anime|manga)\/?([\w-]+)?\/?/.test(current) && !svar.animebg)
+      (/\/(character)\/?([\w-]+)?\/?/.test(current) && !svar.charBg) ||
+      (/\/(anime|manga)\/?([\w-]+)?\/?/.test(current) && !svar.animeBg)
     ) {
       m = 1
     }
@@ -7889,8 +8072,6 @@ function delay(ms) {
         !current.split('/')[4] &&
         !/\/(anime|manga)\/producer|genre|magazine|adapted\/.?([\w-]+)?\/?/.test(current) ? current.match(/(anime|manga)\/([0-9]+)\/*\/?(.*)/) : null;
     if (currentpath && currentpath[1] === "anime") {
-      styleSheet1.innerText = styles1;
-      document.head.appendChild(styleSheet1);
       anisongs_temp.id = currentpath[2];
       anisongs_temp.target = document.querySelector('.rightside.js-scrollfix-bottom-rel div.di-t:not(.w100)');
       if (anisongs_temp.last !== anisongs_temp.id) {
