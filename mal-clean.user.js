@@ -2,8 +2,9 @@
 // @name        MAL-Clean-JS
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
+// @match       https://www.mal-badges.com/users/*malbadges
 // @grant       none
-// @version     1.29.3
+// @version     1.29.4
 // @author      KanashiiDev
 // @description Customizations and fixes for MyAnimeList
 // @license     GPL-3.0-or-later
@@ -497,6 +498,7 @@ let waitForInfo = 0;
 async function createInfo(clickedSource, mainDiv, type) {
   if (!waitForInfo && $(".tooltipBody").length === 0) {
     waitForInfo = 1;
+    clickedSource.attr("class",'fa fa-circle-o-notch fa-spin');
     let info,isFailed;
     if (!clickedSource.closest(".btn-anime")[0].getAttribute("details")) {
       //Get info from Jikan API
@@ -625,6 +627,7 @@ async function createInfo(clickedSource, mainDiv, type) {
     $(".tooltipBody .addtoList").on('click', async function () {
       await editPopup($(this).attr('id'));
     });
+    clickedSource.attr("class",'fa fa-info-circle');
     waitForInfo = 0;
   }
 }
@@ -696,15 +699,22 @@ async function getMalBadges(url) {
   let badgesDivMain = create("div", { class: "user-mal-badges", id: "user-mal-badges" },`<h5 style="font-size: 11px;margin-bottom: 8px;margin-left: 2px;">Mal Badges</h5>`);
   let badgesDivInner = create("div", { class: "badges-inner", id: "badges-inner" });
   let badgesDivIframeInner = create("div", { class: "badges-iframe-inner", id: "badges-iframe-inner" });
-  let badgesIframe = create("iframe", { class: "badges-iframe", id: "badges-iframe", tabindex:"-1", scrolling: "no", width:"415", height:"315", src: url});
+  let badgesIframe = create("iframe", { class: "badges-iframe", id: "badges-iframe", tabindex:"-1", scrolling: "no", width:"415", height:"315", src: url, style:{display:'none'}});
+  let badgesIframeLoading = create("div", {class: "actloading",style: { position: 'relative',left: '0px',right: '0px',fontSize: '14px',height: '120px',alignContent: 'center',zIndex: '2'},
+    }, "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome;word-break: break-word;"></i>');
   badgesIframe.onerror = function() {
     badgesDivMain.remove();
   };
+  badgesIframe.onload = function() {
+    badgesIframeLoading.remove();
+    badgesIframe.style.display = "block";
+  };
   badgesDivMain.append(badgesDivInner);
   badgesDivInner.append(badgesDivIframeInner);
-  badgesDivIframeInner.append(badgesIframe);
-  $(badgesDivIframeInner).wrap(`<a href="${url}"></a>`);
+  badgesDivIframeInner.append(badgesIframeLoading,badgesIframe);
+  $(badgesDivIframeInner).wrap(`<a href="${url.replace('?simple','').replace(/(\?|\&)malbadges/,'')}"></a>`);
   $('#user-badges-div').after(badgesDivMain);
+
 }
 
 //Get Friends Info from JikanAPI
@@ -795,7 +805,7 @@ async function editAboutPopup(data, type) {
         favSongEntry: /(favSongEntry)\/([^\/]+.)/gm,
         customProfileEl: /(customProfileEl)\/([^\/]+.)/gm
       };
-      let userBlogPage = 'https://myanimelist.net/blog/'+ $(".header-profile-link").text();
+      let userBlogPage = 'https://myanimelist.net/blog/'+ headerUserName;
 
       popupLoading.innerHTML = "Updating" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
 
@@ -2740,13 +2750,6 @@ input.maljsNativeInput {
     margin: 10px
 }
 
-.widget.seasonal.left .btn-anime i:hover {
-    width: 160px;
-    height: 220px;
-    text-align: right;
-    background: 0 !important
-}
-
 #widget-currently-watching>div.widget-slide-outer>ul>li:hover span.epBehind,
 #recently-added-anime .btn-anime:hover i,
 #recently-added-manga .btn-anime:hover i,
@@ -3396,6 +3399,7 @@ div#badges-iframe-inner {
   -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
   box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
   height: 145px;
+  background: var(--color-foreground2);
   -webkit-border-radius: 10px;
   border-radius: 10px
 }
@@ -3568,14 +3572,19 @@ button#customColorUpdate {
     margin: -5px -10px 0 -10px
 }
 `;
+
 // defaultMal = Mal without UserStyle
 // settingsFounded = Custom Profile Settings Founded
 let defaultMal,settingsFounded = 0;
-let current = location.pathname;
-let username = current.split('/')[2];
+const current = location.pathname;
+const username = current.split('/')[2];
+const headerUserName = $(".header-profile-link").text();
+const userNotHeaderUser = username !== headerUserName;
+const isMainProfilePage = /\/profile\/.*\/\w/gm.test(current) ? 0 : 1;
 if(location.pathname === "/rss.php") {
   return;
 }
+
 //Create Style Elements
 let styleSheet = document.createElement('style');
 let styleSheet2 = document.createElement('style');
@@ -3685,15 +3694,15 @@ removeFgButton.onclick = () => {
 //Private Profile
 var privateButton = create("button", { class: "mainbtns", id: "privateProfile", style: {width:'48%'}}, "Private");
 var removePrivateButton = create("button", { class: "mainbtns", id: "privateRemove", style: {width:'48%'}}, "Public");
-if(username !== $(".header-profile-link").text()) {
+if(userNotHeaderUser) {
   privateButton.textContent = "Back to My Profile";
   privateButton.style.width = "98%";
   removePrivateButton.style.display = "none";
 }
 
 privateButton.onclick = () => {
-  if(username !== $(".header-profile-link").text()) {
-    window.location.href = "https://myanimelist.net/profile/"+ $(".header-profile-link").text();
+  if(userNotHeaderUser) {
+    window.location.href = "https://myanimelist.net/profile/"+ headerUserName;
   } else {
     editAboutPopup(`privateProfile/IxA=`,'private');
   }
@@ -3730,13 +3739,13 @@ const divIds = [
   "#fav-4-div",
   "#favThemes"
 ];
-if(username !== $(".header-profile-link").text()) {
+if(userNotHeaderUser) {
   hideProfileElButton.textContent = "Back to My Profile";
   hideProfileElButton.style.width = "98%";
   hideProfileElUpdateButton.style.display = "none";
   removehideProfileElButton.style.display ="none";
 }
-function clearHiddenDivs() {
+async function clearHiddenDivs() {
   divIds.forEach(item => {
     const div = document.querySelector(item);
     if(div) {
@@ -3749,6 +3758,7 @@ function clearHiddenDivs() {
     }
   });
   $('.hide-button').remove();
+  hideProfileElButton.textContent = "Hide";
 }
 
 function applyHiddenDivs() {
@@ -3763,8 +3773,8 @@ function applyHiddenDivs() {
 }
 
 hideProfileElButton.onclick = () => {
-  if(username !== $(".header-profile-link").text()) {
-    window.location.href = "https://myanimelist.net/profile/"+ $(".header-profile-link").text();
+  if(userNotHeaderUser) {
+    window.location.href = "https://myanimelist.net/profile/"+ headerUserName;
   } else {
   hiddenProfileElementsTemp = hiddenProfileElements.slice();
   if (hideProfileElButton.textContent === "Hide") {
@@ -3798,8 +3808,10 @@ hideProfileElButton.onclick = () => {
     });
   } else {
     clearHiddenDivs();
+    hideProfileElButton.textContent = hideProfileElButton.textContent === "Hide" ? "Cancel" : "Hide";
   }
-  hideProfileElButton.textContent = hideProfileElButton.textContent === "Hide" ? "Cancel" : "Hide";}
+    hideProfileElButton.textContent = hideProfileElButton.textContent === "Hide" ? "Cancel" : "Hide";
+  }
 };
 
 hideProfileElUpdateButton.onclick = () => {
@@ -3816,22 +3828,22 @@ removehideProfileElButton.onclick = () => {
 //Custom Profile Elements
 var customProfileElUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton", style: {width:'48%'}}, "Add to Left Side");
 var customProfileElRightUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton", style: {width:'48%'}}, "Add to Right Side");
-if(username !== $(".header-profile-link").text()) {
+if(userNotHeaderUser) {
   customProfileElUpdateButton.style.width = "98%";
   customProfileElUpdateButton.textContent = "Back to My Profile";
   customProfileElRightUpdateButton.style.display = "none";
 }
 customProfileElUpdateButton.onclick = () => {
-  if(username !== $(".header-profile-link").text()) {
-    window.location.href = "https://myanimelist.net/profile/"+ $(".header-profile-link").text();
+  if(userNotHeaderUser) {
+    window.location.href = "https://myanimelist.net/profile/"+ headerUserName;
   } else {
     createCustomDiv();
   }
 }
 
 customProfileElRightUpdateButton.onclick = () => {
-  if(username !== $(".header-profile-link").text()) {
-    window.location.href = "https://myanimelist.net/profile/"+ $(".header-profile-link").text();
+  if(userNotHeaderUser) {
+    window.location.href = "https://myanimelist.net/profile/"+ headerUserName;
   } else {
     createCustomDiv('right');
   }
@@ -3842,10 +3854,18 @@ let malBadgesInput = create("input", { class: "malBadgesInput", id: "malBadgesIn
 malBadgesInput.placeholder = "Paste your Mal-Badges Url Here";
 var malBadgesButton = create("button", { class: "mainbtns", id: "malBadgesBtn" }, "Update");
 var malBadgesRemoveButton = create("button", { class: "mainbtns fa fa-trash", id: "malBadgesRemove" });
+var malBadgesSimpleButton = create("button", { class: "mainbtns", id: "malBadgesBtn" ,style:{height:"32px",width:"32px",verticalAlign: "middle"} });
+var malBadgesSimpleButtonText = create("h3", { style:{display: 'inline'}}, "Simple Mode");
+let malBadgesSimpleButtonEnabled = false;
+malBadgesSimpleButton.onclick = () => {
+  malBadgesSimpleButtonEnabled = !malBadgesSimpleButtonEnabled;
+  malBadgesSimpleButton.classList.toggle('btn-active', malBadgesSimpleButtonEnabled);
+}
 
 malBadgesButton.onclick = () => {
-  if (malBadgesInput.value.length > 1) {
-    const badgeBase64 = LZString.compressToBase64(JSON.stringify(malBadgesInput.value));
+  if (malBadgesInput.value.length > 1 && malBadgesInput.value.includes('mal-badges.com')) {
+    const simpleMode = malBadgesSimpleButtonEnabled ? '?simple' :'';
+    const badgeBase64 = LZString.compressToBase64(JSON.stringify(malBadgesInput.value+simpleMode));
     const badgeBase64Url = badgeBase64.replace(/\//g, '_');
     editAboutPopup(`malBadges/${badgeBase64Url}`,'malBadges');
     malBadgesInput.addEventListener(`focus`, () => bgInput.select());
@@ -4172,7 +4192,7 @@ function createDiv() {
     customfgDiv.append(fgColorSelector,updateFgButton,removeFgButton);
     custombgDiv.append(bgInput, bgButton, bgRemoveButton, bgInfo);
     custombadgeDiv.append(badgeInput, badgeColorSelector, badgeColorLoop, badgeButton);
-    malBadgesDiv.append(malBadgesInput, malBadgesButton, malBadgesRemoveButton);
+    malBadgesDiv.append(malBadgesInput, malBadgesButton, malBadgesRemoveButton, malBadgesSimpleButton, malBadgesSimpleButtonText);
     buttons["profileHeaderBtn"].style.display = "none";
     buttons["profileHeaderBtn"].nextSibling.style.display = "none";
   }
@@ -4189,6 +4209,7 @@ function createDiv() {
 //MalClean Settings - Close Settings Div
 function closeDiv() {
   $('.malCleanMainContainer').remove();
+  clearHiddenDivs();
   active = !1;
 }
 
@@ -4208,10 +4229,29 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+
 //Main
 (function () {
   "use strict";
 
+ // Modern Profile - Mal Badges Fixes
+ if (/mal-badges\.com\/(user).*malbadges/.test(location.href)) {
+   $('#content  div[data-page-id="main"] .userv2-detail').css('background','#fff0');
+   $('#content  .mr-auto').css('background','#fff0');$('body').css('background-color','#fff0');
+   $('#content').css('background','#fff0');
+   $('.userv2-stats').css({'font-size': '16px','gap': '8px','padding-right': '5px'});
+   $('.user_badge img').css('max-width','initial');
+   $('.value-display.value-display--plain .count').css('font-size','45px');
+
+   // Simple View
+   if(location.href.endsWith('?simple&malbadges')) {
+     $('.userv2-stats').remove();
+     $('.value-display.value-display--plain .count').css('font-size','55px');
+     $('.userv2-detail__stats').css('grid-template-columns','1fr 1fr 1fr');
+     let statsDivs = $('.userv2-detail__stats .value-display');
+     statsDivs.eq(-2).before(statsDivs.eq(-1));
+   }
+  }
   // News and Forum - Load iframe only when the spoiler button is clicked
   if (/\/(forum)\/.?topicid([\w-]+)?\/?/.test(location.href) || /\/(news)\/\d/.test(location.href)) {
     const spoilers = document.querySelectorAll(".spoiler:has(.movie)");
@@ -4275,7 +4315,7 @@ function delay(ms) {
       }
       let idArray = [];
       let ep, left, infoData;
-      let user = $(".header-profile-link").text();
+      let user = headerUserName;
       if(user) {
       const currentlyWatchingDiv = create("article", { class: "widget-container left", id: "currently-watching" });
       currentlyWatchingDiv.innerHTML =
@@ -4455,7 +4495,7 @@ function delay(ms) {
       }
       let idArray = [];
       let ep, left, infoData;
-      let user = $(".header-profile-link").text();
+      let user = headerUserName;
       if(user) {
       const currentlyReadingDiv = create("article", { class: "widget-container left", id: "currently-reading" });
       currentlyReadingDiv.innerHTML =
@@ -4569,7 +4609,7 @@ function delay(ms) {
     buildRecentlyAddedAnime();
 
     async function buildRecentlyAddedAnime() {
-      let user = $(".header-profile-link").text();
+      let user = headerUserName;
       if (user) {
         const recentlyAddedDiv = create("article", { class: "widget-container left  recently-anime", id: "recently-added-anime", page: "0" });
         recentlyAddedDiv.innerHTML =
@@ -4712,7 +4752,7 @@ function delay(ms) {
     buildRecentlyAddedManga();
 
     async function buildRecentlyAddedManga() {
-      let user = $(".header-profile-link").text();
+      let user = headerUserName;
       if (user) {
         const recentlyAddedDiv = create("article", { class: "widget-container left recently-manga", id: "recently-added-manga", page: "0" });
         recentlyAddedDiv.innerHTML =
@@ -5260,21 +5300,24 @@ function delay(ms) {
         customProfileElUpdateButton.style.width = "98%";
         customProfileElRightUpdateButton.style.display = "none";
       } else {
-        if(svar.profileAnimeGenre) {
+        if(svar.profileAnimeGenre && isMainProfilePage) {
           await getUserGenres(0,1);
         }
-        if(svar.profileMangaGenre) {
+        if(svar.profileMangaGenre && isMainProfilePage) {
           await getUserGenres(1,1);
         }
         if (svar.moveBadges) {
           $('#user-button-div').after($('#user-badges-div'));
           $('#user-badges-div').after($('#user-mal-badges'));
+          if ($('#user-badges-div').next().is('ul')) {
+            $('#user-badges-div').css('margin-bottom','12px');
+          }
         }
       }
     }
 
     //Add Block User Button
-    if(!/\/profile\/.*\/\w/gm.test(current) && username !== $(".header-profile-link").text() && $(".header-profile-link").text() !== '' && $(".header-profile-link").text() !== 'MALnewbie') {
+    if(isMainProfilePage && userNotHeaderUser && headerUserName !== '' && headerUserName !== 'MALnewbie') {
       $("a.header-right").after(blockU);
     }
 
@@ -5404,7 +5447,7 @@ function delay(ms) {
         editAboutPopup(`customProfileEl/${base64url}/`, "removeCustomEl");
       });
 
-      if (username !== $(".header-profile-link").text()) {
+      if (userNotHeaderUser) {
         $(".sortCustomEl").remove();
         $(".editCustomEl").remove();
         $(".removeCustomEl").remove();
@@ -5492,22 +5535,23 @@ function delay(ms) {
         }
       });
       function toggleShowMore(groupSelector) {
+        let limit = svar.modernLayout ? 5 : 6;
         const accordionButton = create('a', { class:'anisong-accordion-button', id: `${groupSelector}-accordion-button`, style: { display: "none" }}, '<i class="fas fa-chevron-down mr4"></i>\nShow More\n');
         if ($(`#${groupSelector}-accordion-button`).length === 0) {
           $(`#${groupSelector}`).append(accordionButton);
         }
 
-        if ($(`#${groupSelector} .fav-theme-container`).length > 5) {
-          $(`#${groupSelector} .fav-theme-container`).slice(5).hide();
+        if ($(`#${groupSelector} .fav-theme-container`).length > limit) {
+          $(`#${groupSelector} .fav-theme-container`).slice(limit).hide();
           $(`#${groupSelector}-accordion-button`).show();
         }
         $(`#${groupSelector}-accordion-button`).on('click', function() {
-          var isVisible = $(`#${groupSelector} .fav-theme-container`).slice(5).is(":visible");
+          var isVisible = $(`#${groupSelector} .fav-theme-container`).slice(limit).is(":visible");
           if (isVisible) {
-            $(`#${groupSelector} .fav-theme-container`).slice(5).slideUp();
+            $(`#${groupSelector} .fav-theme-container`).slice(limit).slideUp();
             $(this).html('<i class="fas fa-chevron-down mr4"></i> Show More');
           } else {
-            $(`#${groupSelector} .fav-theme-container`).slice(5).slideDown();
+            $(`#${groupSelector} .fav-theme-container`).slice(limit).slideDown();
             $(this).html('<i class="fas fa-chevron-up mr4"></i> Show Less');
           }
         });
@@ -5566,7 +5610,7 @@ function delay(ms) {
         const currentDisplay = videoContainer.css("display");
         videoContainer.css("display", currentDisplay === "none" || currentDisplay === "" ? "block" : "none");
       });
-      if (username !== $(".header-profile-link").text()) {
+      if (userNotHeaderUser) {
         $(".sortFavSong").remove();
         $(".removeFavSong").remove();
       }
@@ -5672,6 +5716,13 @@ function delay(ms) {
             customModernLayoutFounded = 1;
           }
         }
+        if (cssMatch) {
+          const cssData = cssMatch[0].replace(profileRegex.css, '$2');
+          if(cssData !== '...'){
+            let cssBase64Url = cssData.replace(/_/g, "/");
+          customCSS = JSON.parse(LZString.decompressFromBase64(cssBase64Url));
+          }
+        }
         if (colorMatch) {
           const colorData = colorMatch[0].replace(profileRegex.colors, '$2');
           if (colorData !== '...') {
@@ -5715,40 +5766,28 @@ function delay(ms) {
             customModernLayoutFounded = 1;
           }
         }
+        if (customModernLayoutFounded) {
+          svar.modernLayout = true;
+        }
+        if (customCSS && customCSS.constructor === Array && !customCSS[1] || customCSS && customCSS.constructor !== Array) {
+          svar.modernLayout = false;
+        }
         if (malBadgesMatch) {
           const malBadgesData = malBadgesMatch[0].replace(profileRegex.malBadges, '$2');
-          if (malBadgesData !== '...') {
+          if (malBadgesData !== '...' && isMainProfilePage) {
             let malBadgesBase64Url = malBadgesData.replace(/_/g, "/");
             malBadgesUrl = JSON.parse(LZString.decompressFromBase64(malBadgesBase64Url));
-            getMalBadges(malBadgesUrl);
-          }
-        }
-        if (cssMatch) {
-          const cssData = cssMatch[0].replace(profileRegex.css, '$2');
-          if(cssData !== '...'){
-            let cssBase64Url = cssData.replace(/_/g, "/");
-          customCSS = JSON.parse(LZString.decompressFromBase64(cssBase64Url));
+            if(malBadgesUrl) malBadgesUrl += malBadgesUrl.endsWith('?simple') ? '&malbadges' : '?malbadges';
+             if(svar.modernLayout) getMalBadges(malBadgesUrl);
           }
         }
         if (favSongMatch) {
-          if(customModernLayoutFounded){
-            svar.modernLayout = true;
-          }
-          if (customCSS && customCSS.constructor === Array && !customCSS[1] || customCSS && customCSS.constructor !== Array){
-            svar.modernLayout = false;
-          }
-          if (!/\/profile\/.*\/\w/gm.test(current)) {
+          if (isMainProfilePage) {
             buildFavSongs(aboutContent)
           }
         }
         if (customElMatch) {
-          if(customModernLayoutFounded) {
-            svar.modernLayout = true;
-          }
-          if (customCSS && customCSS.constructor === Array && !customCSS[1] || customCSS && customCSS.constructor !== Array){
-            svar.modernLayout = false;
-          }
-          if (!/\/profile\/.*\/\w/gm.test(current)) {
+          if (isMainProfilePage) {
             buildCustomElements(aboutContent)
           }
         }
@@ -5758,7 +5797,7 @@ function delay(ms) {
       if (aboutSection && aboutSection.innerHTML.match(profileRegex.malClean)) {
         processAboutSection(aboutSection.innerHTML);
         settingsFounded = 1;
-      } else if (/\/profile\/.*\/\w/gm.test(current)) {
+      } else if (!isMainProfilePage) {
         try {
           const response = await fetch('https://myanimelist.net/profile/' + username);
           if (!response.ok) throw new Error('Network response was not ok');
@@ -5851,7 +5890,7 @@ function delay(ms) {
         .maljsNavBtn{background: var(--color-foreground);border-radius: 5px;cursor: pointer;display: inline-block;padding: 10px!important;text-align: center;}
         .maljsProfileBadge{background: var(--color-foreground);-webkit-border-radius: 4px;border-radius: 5px;color: #e9e9e9;font-weight:600;
         display: inline-block;margin-left: 10px;padding: 10px;text-align: center;-webkit-transition: .3s;-o-transition: .3s;transition: .3s;position: absolute;
-        bottom: 56px;right: -56px;max-width: 300px;max-height: 150px;overflow: hidden;}
+        bottom: 60px;right: -56px;max-width: 300px;max-height: 150px;overflow: hidden;}
         .maljsProfileBadge > * {width: auto; height: auto}
         .rainbow{-webkit-animation-duration: 20s;animation-duration: 20s;-webkit-animation-iteration-count: infinite;animation-iteration-count: infinite;
         -webkit-animation-name: rainbow;animation-name: rainbow;-webkit-animation-timing-function: ease-in-out;animation-timing-function: ease-in-out;cursor: default;}
@@ -5895,7 +5934,8 @@ function delay(ms) {
         display: -ms-flexbox;display: flex;-webkit-box-pack: justify;-webkit-justify-content: space-between;-ms-flex-pack: justify;justify-content: space-between;overflow: hidden;}
         #horiznav_nav .navactive {color: var(--color-text)!important;background: var(--color-foreground2)!important;padding: 5px!important;}
         .dark-mode .page-common #horiznav_nav ul li,.page-common #horiznav_nav ul li {background: 0 !important}
-        .favTooltip {z-index:2;text-indent:0;-webkit-transition:.4s;-o-transition:.4s;transition:.4s;position: absolute;background-color: var(--color-foreground4);color: var(--color-text);
+        .favTooltip {border: var(--border) solid var(--border-color);-webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color);box-shadow: 0 0 var(--shadow-strength) var(--shadow-color);
+        z-index:2;text-indent:0;-webkit-transition:.4s;-o-transition:.4s;transition:.4s;position: absolute;background-color: var(--color-foreground4);color: var(--color-text);
         padding: 5px;-webkit-border-radius: 6px;border-radius: 6px;opacity:0;width: -webkit-max-content;width: -moz-max-content;width: max-content;left: 0;right: 0;margin: auto;max-width: 420px;}
         .user-profile {width:auto!important}
         .favs .btn-fav, .user-badge, .icon-friend {overflow:hidden}
@@ -6023,7 +6063,7 @@ function delay(ms) {
         let about = document.querySelector(".user-profile-about.js-truncate-outer");
         let modernabout = document.querySelector("#modern-about-me");
         let avatar = document.querySelector(".user-image");
-        let name = $('span:contains("s Profile"):last');
+        let name = $('span:contains("s Profile"):first');
         let headerRight = document.querySelector("a.header-right.mt4.mr0");
         container.setAttribute("style", "margin: 0 auto;min-width: 320px;max-width: 1240px;left: -40px;position: relative;height: 100%;");
         if (!custombg) {
@@ -6052,7 +6092,7 @@ function delay(ms) {
         banner.append(container);
         headerRight ? banner.prepend(headerRight) : null;
         $('.header-right:contains("Profile Settings")').remove();
-        if(!/\/profile\/.*\/\w/gm.test(current) && username !== $(".header-profile-link").text() && $(".header-profile-link").text() !== '' && $(".header-profile-link").text() !== 'MALnewbie') {
+        if(isMainProfilePage && userNotHeaderUser && headerUserName !== '' && headerUserName !== 'MALnewbie') {
           $(headerRight).wrapAll("<div class='profileRightActions'></div>").after(blockU);
         }
         container.append(avatar);
@@ -6092,7 +6132,7 @@ function delay(ms) {
         set(2, "#container span.profile-team-title.js-profile-team-title", { sl: { top: "18px" } });
         container.append(document.querySelector(".user-function.mb8"));
 
-        if(username === $(".header-profile-link").text()) {
+        if(username === headerUserName) {
           $(".user-function.mb8").addClass('display-none');
         }
         $(".user-function.mb8").children('.icon-gift').remove();
@@ -6306,7 +6346,7 @@ function delay(ms) {
     }
     //Private Profile Check
     async function applyPrivateProfile() {
-      if (privateProfile && username !== $(".header-profile-link").text()) {
+      if (privateProfile && userNotHeaderUser) {
         await delay(200);
         $('#banner').hide();
         $('#content').hide();
@@ -6862,9 +6902,9 @@ function delay(ms) {
         }
 
         //Compare Button
-        if(username !== $(".header-profile-link").text()) {
+        if(userNotHeaderUser) {
         let compareBtn = create('a', {class: 'compareBtn'},"Compare");
-        let compareUrl = isManga ? 'https://myanimelist.net/sharedmanga.php?u1='+username+'&u2='+$(".header-profile-link").text() : 'https://myanimelist.net/sharedanime.php?u1='+username+'&u2='+$(".header-profile-link").text();
+        let compareUrl = isManga ? 'https://myanimelist.net/sharedmanga.php?u1='+username+'&u2='+headerUserName : 'https://myanimelist.net/sharedanime.php?u1='+username+'&u2='+headerUserName;
         compareBtn.href = compareUrl;
                 listFilter.appendChild(compareBtn);
         }
@@ -7084,7 +7124,7 @@ function delay(ms) {
           try {
             $(mutualsButton).text("Loading..");
             if (!myFriends) {
-              myFriends = await getFriends($(".header-profile-link").text());
+              myFriends = await getFriends(headerUserName);
               myFriends = myFriends.map(friend => friend.username);
             }
             if (!userFriends) {
@@ -7122,7 +7162,7 @@ function delay(ms) {
         }
       });
     }
-    if (/\/profile\/.*\/friends/gm.test(current) && username !== $(".header-profile-link").text()) {
+    if (/\/profile\/.*\/friends/gm.test(current) && userNotHeaderUser) {
       mutualFriends();
     }
   //profile Mutual Friends //-END-//
@@ -8422,7 +8462,7 @@ function delay(ms) {
             editAboutPopup(`favSongEntry/${base64url}`,'favSongEntry');
             $(favorite).parent().find('.oped-preview-button').click();
           }
-          if (themeSongs[x].className === 'theme-songs js-theme-songs has-video' && $(".header-profile-link").text() !== '') {
+          if (themeSongs[x].className === 'theme-songs js-theme-songs has-video' && headerUserName !== '') {
             themeSongs[x].append(favorite);
           }
         }
