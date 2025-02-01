@@ -4,7 +4,7 @@
 // @match       https://myanimelist.net/*
 // @match       https://www.mal-badges.com/users/*malbadges
 // @grant       none
-// @version     1.29.4
+// @version     1.29.5
 // @author      KanashiiDev
 // @description Customizations and fixes for MyAnimeList
 // @license     GPL-3.0-or-later
@@ -794,7 +794,7 @@ async function editAboutPopup(data, type) {
         match: /(\[url=).*(malcleansettings)\/.*([^.]]+)/gm,
         add: /(\[url=https:\/\/malcleansettings\/)(.*)(]‎)/gm,
         privateProfile: /(privateProfile)\/([^\/]+.)/gm,
-        profileEl: /(profileEl)\/([^\/]+.)/gm,
+        hideProfileEl: /(hideProfileEl)\/([^\/]+.)/gm,
         customPf: /(custompf)\/([^\/]+.)/gm,
         customFg: /(customfg)\/([^\/]+.)/gm,
         customBg: /(custombg)\/([^\/]+.)/gm,
@@ -864,7 +864,7 @@ async function editAboutPopup(data, type) {
         } else if (type === 'css') {
           aboutText = replaceTextIfMatches(regexes.customCSS, aboutText, `${data}/`);
         } else if (type === 'hideProfileEl') {
-          aboutText = replaceTextIfMatches(regexes.profileEl, aboutText, `${data}/`);
+          aboutText = replaceTextIfMatches(regexes.hideProfileEl, aboutText, `${data}/`);
         } else if (type === 'customProfileEl') {
           aboutText = replaceTextIfMatches(regexes.customProfileEl, aboutText, `${data}/`, 1);
         } else if (type === 'favSongEntry') {
@@ -1201,7 +1201,7 @@ async function createCustomDiv(appLoc, header, content, editData) {
       cont.remove();
     });
     newDiv.appendChild(closeButton);
-    $(newDiv).append("<h4>" + (appLoc ? "Edit" : "Add Custom") + " Profile Element" + "</h4>");
+    $(newDiv).append("<h4>" + (appLoc && appLoc !== 'right' ? "Edit" : "Add Custom") + " Profile Element" + "</h4>");
 
     // Header
     const headerInput = create("input", { id: "header-input" });
@@ -1237,7 +1237,7 @@ async function createCustomDiv(appLoc, header, content, editData) {
     newDiv.appendChild(previewButton);
 
     // Add Button
-    const addButton = create("button", { class: "mainbtns btn-active-def", id: "addButton", style: { width: "48%" } }, appLoc && !isRight ? "Edit" : "Add");
+    const addButton = create("button", { class: "mainbtns btn-active-def", id: "addButton", style: { width: "48%" } }, appLoc && appLoc !== 'right' ? "Edit" : "Add");
     addButton.addEventListener("click", function () {
       scParserActions("content-input", "bbRefresh");
       const headerText = headerInput.value;
@@ -3640,7 +3640,7 @@ const buttonsConfig = Object.keys(svar).map(setting => ({
   text: null,
   enabled: svar[setting]
 }));
-buttonsConfig.push({ setting: "removeAllCustom", text: "Remove All Custom Settings" });
+buttonsConfig.push({ setting: "removeAllCustom",   id: 'removeAllCustomBtn', text: "Remove All Custom Settings" });
 
 if (!defaultMal) {
   buttonsConfig.push(
@@ -3817,7 +3817,7 @@ hideProfileElButton.onclick = () => {
 hideProfileElUpdateButton.onclick = () => {
     const pfElBase64 = LZString.compressToBase64(JSON.stringify(hiddenProfileElementsTemp));
     const pfElbase64url = pfElBase64.replace(/\//g, '_');
-    editAboutPopup(`profileEl/${pfElbase64url}`,'hideProfileEl');
+    editAboutPopup(`hideProfileEl/${pfElbase64url}`,'hideProfileEl');
     clearHiddenDivs();
 };
 
@@ -4064,13 +4064,14 @@ function createCustomSettingDiv(title, description) {
 
 //MalClean Settings - Create Settings Div
 function createDiv() {
+  const modernBtn = '<a style="cursor: pointer;" onclick="document.getElementById(\'modernLayoutBtn\').scrollIntoView({ behavior: \'smooth\', block: \'center\' });">Modern Profile Layout</a>';
   let listDiv = create("div", { class: "malCleanMainContainer" }, '<div class="malCleanMainHeader"><b>' + stLink.innerText + "</b></div>");
   let customfgDiv = createCustomSettingDiv(
-    "Custom Foreground Color (Required Modern Profile Layout)",
+    "Custom Foreground Color (Required "+modernBtn+")",
     "Change profile foreground color. This will be visible to users with the script."
   );
   let custombgDiv = createCustomSettingDiv(
-    "Custom Banner (Required Modern Profile Layout)",
+    "Custom Banner (Required "+modernBtn+")",
     "Add custom banner to your profile. This will be visible to users with the script."
   );
   let custompfDiv = createCustomSettingDiv(
@@ -4078,12 +4079,12 @@ function createDiv() {
     "Add custom avatar to your profile. This will be visible to users with the script."
   );
   let custombadgeDiv = createCustomSettingDiv(
-    "Custom Badge (Required Modern Profile Layout)",
+    "Custom Badge (Required "+modernBtn+")",
     "Add custom badge to your profile. This will be visible to users with the script." +
     "<p>You can use HTML elements. Maximum size 300x150. Update empty to delete.</p>"
   );
   let malBadgesDiv = createCustomSettingDiv(
-    "Mal-Badges (Required Modern Profile Layout)",
+    "Mal-Badges (Required "+modernBtn+")",
     "You can add Mal-Badges to your profile. This will be visible to users with the script." +
     "<p>If the badge does not appear, it means that the Mal-Badges is blocking access. There is nothing you can do about it.</p>"
   );
@@ -4301,6 +4302,7 @@ function delay(ms) {
   //Currently Watching //--START--//
   let incCount = 0;
   let incTimer;
+  let incActive = 0;
   let lastClickTime = 0;
   const debounceDelay = 400;
   if (svar.currentlyWatching && location.pathname === "/") {
@@ -4415,8 +4417,11 @@ function delay(ms) {
                 };
                 increaseButton.onclick = async () => {
                   const currentTime = new Date().getTime();
-                  if (currentTime - lastClickTime < debounceDelay) {
+                  if (currentTime - lastClickTime < debounceDelay || incActive !== 0 && incActive !== ib.id) {
                     return;
+                  }
+                  if (incActive === 0) {
+                  incActive = ib.id;
                   }
                   lastClickTime = currentTime;
                   incCount++;
@@ -4427,6 +4432,7 @@ function delay(ms) {
                     currentlyWatchingDiv.remove();
                     getWatching();
                     incCount = 0;
+                    incActive = 0;
                   }, 2000);
                 };
               }
@@ -4529,8 +4535,11 @@ function delay(ms) {
                 let increaseButton = create("i", {class: "fa fa-plus incButton",id: list[x].anime_id});
                 increaseButton.onclick = async () => {
                   const currentTime = new Date().getTime();
-                  if (currentTime - lastClickTime < debounceDelay) {
+                  if (currentTime - lastClickTime < debounceDelay || incActive !== 0 && incActive !== ib.id) {
                     return;
+                  }
+                  if (incActive === 0) {
+                  incActive = ib.id;
                   }
                   lastClickTime = currentTime;
                   incCount++;
@@ -4541,6 +4550,7 @@ function delay(ms) {
                     currentlyReadingDiv.remove();
                     getreading();
                     incCount = 0;
+                    incActive = 0;
                   }, 2000);
                 };
                 // Create Reading Manga Div
@@ -5388,6 +5398,9 @@ function delay(ms) {
           `;
           if (isRight) {
             customElContentRight.appendChild(customElContainer);
+            if (svar.alstyle) {
+              $(".user-comments").css('top','-50px');
+            }
           } else {
             customElContent.appendChild(customElContainer);
           }
@@ -7526,6 +7539,7 @@ function delay(ms) {
         const bannerTarget = document.querySelector("#content");
         const BannerLocalForage = localforage.createInstance({ name: "MalJS", storeName: "banner" });
         const BannerCache = await BannerLocalForage.getItem(entryId+"-"+entryType);
+        const leftSide = document.querySelector("#content > table > tbody > tr > td:nth-child(1)");
         if(BannerCache) {
           bannerData = BannerCache;
         }
@@ -7540,10 +7554,9 @@ function delay(ms) {
             bannerData = null;
           }
         }
-        if(bannerData && bannerData?.bannerImage && bannerTarget) {
+        if(bannerData && bannerData?.bannerImage && bannerTarget && leftSide) {
           let bgColor = getComputedStyle(document.body);
           bgColor = tinycolor(bgColor.getPropertyValue('--bg'));
-          const leftSide = document.querySelector("#content > table > tbody > tr > td:nth-child(1)");
           const bannerHover = create("div", { class: "bannerHover"});
           const bannerShadowColor = [bgColor.setAlpha(.1).toRgbString(),bgColor.setAlpha(.0).toRgbString(),bgColor.setAlpha(.6).toRgbString()];
           bannerShadow.style.background = `linear-gradient(180deg,${bannerShadowColor[0]},${bannerShadowColor[1]} 50%,${bannerShadowColor[2]})`;
@@ -7589,7 +7602,7 @@ function delay(ms) {
             tagCache = await tagLocalForage.getItem(entryId+"-"+entryType);
           }
         }
-        if (tagCache) {
+        if (tagCache && tagTarget) {
           if (tagTarget.lastChild.lastElementChild && tagTarget.lastChild.lastElementChild.className === "clearfix mauto mt16") {
             tagTarget.lastChild.lastElementChild.remove();
           }
@@ -8023,7 +8036,12 @@ function delay(ms) {
   };
 
   //Anime-Manga Background Color from Cover Image //--START--//
-  if (/myanimelist.net\/(anime|manga|character|people)\/?([\w-]+)?\/?/.test(location.href) && !document.querySelector("#content > .error404")) {
+  if (!/\d*\/\w*\/episode\/(\d*)\/edit/.test(location.href)
+      && !location.href.endsWith('/episode/new')
+      && !location.href.endsWith('/edit/staff')
+      && !location.href.endsWith('/edit/character')
+      && /myanimelist.net\/(anime|manga|character|people)\/?([\w-]+)?\/?/.test(location.href)
+      && !document.querySelector("#content > .error404")) {
     let m;
     if (
       /\/(character.php)\/?([\w-]+)?/.test(current) ||
