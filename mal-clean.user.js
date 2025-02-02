@@ -4,7 +4,7 @@
 // @match       https://myanimelist.net/*
 // @match       https://www.mal-badges.com/users/*malbadges
 // @grant       none
-// @version     1.29.5
+// @version     1.29.6
 // @author      KanashiiDev
 // @description Customizations and fixes for MyAnimeList
 // @license     GPL-3.0-or-later
@@ -287,6 +287,14 @@ async function episodesBehind(c, w) {
     }
 }
 
+//Rgb to Hex
+function rgbToHex(rgb) {
+  let result = rgb.match(/\d+/g);
+  if (!result || result.length < 3) return rgb;
+  return (
+    "#" + ((1 << 24) + (parseInt(result[0]) << 16) + (parseInt(result[1]) << 8) + parseInt(result[2])).toString(16).slice(1).toUpperCase());
+}
+
 // Anime-Manga Add Class
 function aniMangaAddClass(main, name) {
   const h2 = $('h2:contains("' + main + '"):last');
@@ -332,6 +340,474 @@ function getTextUntil(selector) {
   return textContent.trim();
 }
 
+//Add SCEditor Commands
+async function addSCEditorCommands() {
+  //ScEditor Color Picker
+  sceditor.command.set("colorpick", {
+    _dropDown: function (e, t) {
+      if ($("input.bbcode-message-color-picker").length === 0) {
+        $('<input type="color" class="bbcode-message-color-picker" />').css({ position: "absolute", opacity: 0, width: 0, height: 0 }).appendTo("body").val("#ff0000");
+      }
+      var colorPicker = $("input.bbcode-message-color-picker");
+      colorPicker.css({
+        top: $(t).offset().top + 24 + "px",
+        left: $(t).offset().left + 12 + "px",
+      });
+      colorPicker.trigger("click");
+      colorPicker.off("change").on("change", function () {
+        var color = colorPicker.val();
+        if (e.inSourceMode()) {
+          e.insertText("[color=" + color + "]", "[/color]");
+        } else {
+          e.execCommand("forecolor", color);
+        }
+      });
+    },
+    exec: function (e) {
+      sceditor.command.get("colorpick")._dropDown(this, e);
+    },
+    txtExec: function (e) {
+      sceditor.command.get("colorpick")._dropDown(this, e);
+    },
+    tooltip: "Font Color",
+  });
+
+  //ScEditor Spoiler
+  sceditor.formats.bbcode.set("spoiler", {
+    allowsEmpty: true,
+    breakAfter: false,
+    breakBefore: false,
+    isInline: false,
+    format: function (element, content) {
+      var desc = "";
+      var $elm = $(element);
+      var $button = $elm.children("button").first();
+      if ($button.length === 1 || $elm.data("desc")) {
+        desc = $button.text() || $elm.data("desc");
+        $button.remove();
+        content = this.elementToBbcode(element);
+        if (desc === "spoiler") {
+          desc = "";
+        } else if (desc.charAt(0) !== "=") {
+          desc = "=" + desc;
+          $elm.data("desc", desc);
+        }
+        $elm.prepend($button);
+      }
+
+      return "[spoiler" + desc + "]" + content + "[/spoiler]";
+    },
+    html: function (token, attrs, content) {
+      var data = "";
+      var desc = attrs.defaultattr || "Spoiler";
+      content =
+        '<div class="spoiler">' +
+        '<input type="button" class="button show_button" onclick="this.nextSibling.style.display=\'inline-block\';this.style.display=\'none\';" data-showname="Show Spoiler" data-hidename="Hide Spoiler" value="Show ' +
+        desc +
+        '">' +
+        '<span class="spoiler_content" style="display:none">' +
+        '<input type="button" class="button hide_button" onclick="this.parentNode.style.display=\'none\';this.parentNode.parentNode.childNodes[0].style.display=\'inline-block\';" value="Hide ' +
+        desc +
+        '">' +
+        "<br>" +
+        content +
+        "</span></div>";
+      if (attrs.defaultattr) {
+        data += ' data-desc="' + sceditor.escapeEntities(attrs.defaultattr) + '"';
+      }
+      return "<blockquote" + data + ' class="spoiler">' + content + "</blockquote>";
+    },
+  });
+  sceditor.command.set("spoiler", {
+    exec: function (caller) {
+      var html = '<blockquote class="spoiler"><button>spoiler</button><span class="spoiler_content" style="display:none"></span></blockquote>';
+      this.wysiwygEditorInsertHtml(html);
+      $(this.getBody())
+        .find("blockquote.spoiler")
+        .each(function () {
+          if ($(this).find("button").length == 0) {
+            $(this).prepend("<button>spoiler</button>");
+          }
+        });
+    },
+    txtExec: ["[spoiler]", "[/spoiler]"],
+    tooltip: "Insert a spoiler",
+  });
+
+  //ScEditor Center
+  sceditor.formats.bbcode.set("center", {
+    styles: {
+      "text-align": ["center", "-webkit-center", "-moz-center", "-khtml-center"],
+    },
+    isInline: false,
+    allowsEmpty: true,
+    breakAfter: false,
+    breakBefore: false,
+    format: function (element, content) {
+      return "[center]" + content + "[/center]";
+    },
+    html: function (token, attrs, content) {
+      return '<div style="text-align: center;">' + content + '</div>';
+    }
+  });
+
+  //ScEditor Right
+  sceditor.formats.bbcode.set("right", {
+    styles: {
+      "text-align": ["right", "-webkit-right", "-moz-right", "-khtml-right"],
+    },
+    isInline: false,
+    allowsEmpty: true,
+    breakAfter: false,
+    breakBefore: false,
+    format: function (element, content) {
+      return "[right]" + content + "[/right]";
+    },
+    html: function (token, attrs, content) {
+      return '<div style="text-align: right;">' + content + '</div>';
+    }
+  });
+
+  //ScEditor Color
+  sceditor.formats.bbcode.set("color", {
+    styles: {
+      "color": null
+    },
+    isInline: true,
+    allowsEmpty: true,
+    format: function (element, content) {
+      let color = element.style.color;
+      if (color.startsWith("rgb")) color = rgbToHex(color);
+      return "[color=" + color + "]" + content + "[/color]";
+    },
+    html: function (token, attrs, content) {
+      return '<span style="color: ' + (attrs.defaultattr || "inherit") + ';">' + content + '</span>';
+    }
+  });
+
+  //ScEditor Size
+  sceditor.formats.bbcode.set("size", {
+    styles: {
+      "font-size": null
+    },
+    isInline: true,
+    allowsEmpty: true,
+    format: function (element, content) {
+      let fontSize = element.style.fontSize;
+      if (!fontSize) return content;
+      return `[size=${fontSize.replace("px", "").replace("%", "")}]${content}[/size]`;
+    },
+    html: function (token, attrs, content) {
+      let sizeValue = attrs.defaultattr ? attrs.defaultattr + "%" : "inherit";
+      return `<span style="font-size: ${sizeValue};">${content}</span>`;
+    }
+  });
+
+  //ScEditor Font
+  sceditor.formats.bbcode.set("font", {
+    styles: {
+      "font-family": null
+    },
+    isInline: true,
+    allowsEmpty: true,
+    format: function (element, content) {
+      return "[font=" + element.style.fontFamily + "]" + content + "[/font]";
+    },
+    html: function (token, attrs, content) {
+      return '<span style="font-family: ' + (attrs.defaultattr || "inherit") + ';">' + content + '</span>';
+    }
+  });
+  //ScEditor Div
+  sceditor.formats.bbcode.set("div", {
+    allowsEmpty: true,
+    breakAfter: false,
+    breakBefore: false,
+    isInline: false,
+    tags: {
+      div: {
+        id: null,
+        class: null,
+        style: null,
+      },
+    },
+    format: function (element, content) {
+      let elId = element.getAttribute("id") ? ` id="${element.getAttribute("id")}"` : "";
+      let elClass = element.getAttribute("class") ? ` class="${element.getAttribute("class")}"` : "";
+      let elStyle = element.getAttribute("style") ? ` style="${element.getAttribute("style")}"` : "";
+      return `[div${elId}${elClass}${elStyle}]${content}[/div]`;
+    },
+
+    html: function (token, attrs, content) {
+      let elId = attrs.id ? ` id="${attrs.id}"` : ` id="mc-div"`;
+      let elClass = attrs.class ? ` class="${attrs.class}"` : ` class="mc-div"`;
+      let elStyle = attrs.style ? ` style="${attrs.style}"` : "";
+      return `<div${elId}${elClass}${elStyle}>${content}</div>`;
+    },
+
+  });
+  sceditor.command.set("div", {
+    txtExec: function (caller, content) {
+      let editor = this;
+      let sce_div = '<div id="sce_divoptionsbox"><div class="sce_div-option" data-action="insertDiv">';
+      sce_div += '<label for="div-id">ID (Optional):</label><input id="div-id" type="text" placeholder=".id" />';
+      sce_div += '<label for="div-class">Class (Optional):</label><input id="div-class" type="text" placeholder="#class" />';
+      sce_div += '<label for="div-style">Style (Optional):</label><input id="div-style" type="text" placeholder="" /><br>';
+      sce_div += '<input id="insert-div-btn" type="button" class="button" value="Insert"></input>';
+      sce_div += "</div></div>";
+      let drop_content = $(sce_div);
+
+      // Handle div insertion
+      drop_content.find("#insert-div-btn").click(function (e) {
+        let divId = $("#div-id").val() ? ` id="${$("#div-id").val()}"` : "";
+        let divClass = $("#div-class").val() ? ` class="${$("#div-class").val()}"` : "";
+        let divStyle = $("#div-style").val() ? ` style="${$("#div-style").val()}"` : "";
+        let divTag = `[div${divId}${divClass}${divStyle}]${content}[/div]`;
+        editor.insert(divTag);
+        editor.closeDropDown(true);
+        e.preventDefault();
+      });
+      editor.createDropDown(caller, "div-picker", drop_content[0]);
+    },
+    tooltip: "Insert a Div",
+  });
+
+  //ScEditor Iframe
+  sceditor.formats.bbcode.set("iframe", {
+    allowsEmpty: false,
+    tags: {
+      iframe: {
+        class: null,
+        style: null,
+        src: null,
+        width: null,
+        height: null,
+      },
+    },
+    format: function (element, content) {
+      let elId = element.getAttribute("id") ? ` id="${element.getAttribute("id")}"` : "";
+      let elClass = element.getAttribute("class") ? ` class="${element.getAttribute("class")}"` : "";
+      let elStyle = element.getAttribute("style") ? ` style="${element.getAttribute("style")}"` : "";
+      let src = element.getAttribute("src");
+      let width = element.getAttribute("width") || 415;
+      let height = element.getAttribute("height") || 315;
+      let title = element.getAttribute("title") ? ` title="${element.getAttribute("title")}"` : "";
+      let sandbox = element.getAttribute("sandbox") ? ` sandbox="${element.getAttribute("sandbox")}"` : "";
+      let allow = element.getAttribute("allow") ? ` allow="${element.getAttribute("allow")}"` : "";
+      let loading = element.getAttribute("loading") ? ` loading="${element.getAttribute("loading")}"` : "";
+      let referrerpolicy = element.getAttribute("referrerpolicy") ? ` referrerpolicy="${element.getAttribute("referrerpolicy")}"` : "";
+      let mergedAttributes = `${title}${sandbox}${allow}${loading}${referrerpolicy}`;
+
+      if (src && src.startsWith("https://")) {
+        return `[iframe${elId}${elClass}${elStyle} width="${width}" height="${height}"${mergedAttributes}]${src}[/iframe]`;
+      }
+      return content;
+    },
+    html: function (token, attrs, content) {
+      let elId = attrs.id ? ` id="${attrs.id}"` : ` id="mc-iframe"`;
+      let elClass = attrs.class ? ` class="${attrs.class}"` : ` class="mc-iframe"`;
+      let elStyle = attrs.style ? ` style="${attrs.style}"` : "";
+      let width = attrs.width || 415;
+      let height = attrs.height || 315;
+      let title = attrs.title ? ` title="${attrs.title}"` : "";
+      let allow = attrs.allow ? ` allow="${attrs.allow}"` : "";
+      let loading = attrs.loading ? ` loading="${attrs.loading}"` : "";
+      let referrerpolicy = attrs.referrerpolicy ? ` referrerpolicy="${attrs.referrerpolicy}"` : "";
+      let sandbox = 'sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"';
+      let mergedAttributes = `${title}${allow}${loading}${referrerpolicy}`;
+
+      if (content && content.startsWith("https://")) {
+        return `<iframe${elId}${elClass}${elStyle} width="${width}" height="${height}" src="${content}" ${mergedAttributes} ${sandbox} allowfullscreen></iframe>`;
+      }
+      return "";
+    },
+
+  });
+  sceditor.command.set("iframe", {
+    txtExec: function (caller) {
+      var editor = this;
+      var sce_iframe = '<div id="sce_iframeoptionsbox"><div class="sce_iframe-option" data-action="insertIframe">';
+      sce_iframe += '<label for="iframe-src">Iframe URL:</label><input id="iframe-src" type="text" placeholder="https://" />';
+      sce_iframe += '<label for="iframe-width">Width (Optional):</label><input id="iframe-width" type="text" placeholder="" />';
+      sce_iframe += '<label for="iframe-height">Height (Optional):</label><input id="iframe-height" type="text" placeholder="" />';
+      sce_iframe += '<label for="iframe-style">Style (Optional):</label><input id="iframe-style" type="text" placeholder="" /><br>';
+      sce_iframe += '<label for="iframe-html-src">Iframe as HTML (Optional):</label><textarea id="iframe-html-src" placeholder="<iframe src=&quot;&quot;></iframe>" /></textarea>';
+      sce_iframe += '<input id="insert-iframe-btn" type="button" class="button" value="Insert"></input>';
+      sce_iframe += "</div></div>";
+      var drop_content = $(sce_iframe);
+
+      // Handle iframe insertion
+      drop_content.find("#insert-iframe-btn").click(function (e) {
+        let iframeSrc = $("#iframe-src").val();
+        let iframeHTMLSrc = $("#iframe-html-src").val();
+        let iframeWidth = $("#iframe-width").val() ? ` width="${$("#iframe-width").val()}"` : "";
+        let iframeHeight = $("#iframe-height").val() ? ` height="${$("#iframe-height").val()}"` : "";
+        let iframeStyle = $("#iframe-style").val() ? ` style="${$("#iframe-style").val()}"` : "";
+
+        if (iframeHTMLSrc) {
+          iframeSrc = "";
+        }
+        if (iframeSrc.startsWith("https://") && !iframeHTMLSrc) {
+          var iframeTag = `[iframe${iframeWidth}${iframeHeight}${iframeStyle}]${iframeSrc}[/iframe]`;
+          editor.insert(iframeTag);
+        }
+        if (/src="https:\/\//.test(iframeHTMLSrc)) {
+          var iframeTag = iframeHTMLSrc;
+          editor.insert(iframeTag);
+        }
+        editor.closeDropDown(true);
+        e.preventDefault();
+      });
+
+
+      editor.createDropDown(caller, "iframe-picker", drop_content[0]);
+    },
+    tooltip: "Insert an Iframe",
+  });
+
+  //ScEditor Video
+  sceditor.formats.bbcode.set("video", {
+    allowsEmpty: false,
+    tags: {
+      video: {
+        src: null,
+        width: null,
+        height: null,
+      },
+    },
+    format: function (element, content) {
+      let elId = element.getAttribute("id") ? ` id="${element.getAttribute("id")}"` : "";
+      let elClass = element.getAttribute("class") ? ` class="${element.getAttribute("class")}"` : "";
+      let elStyle = element.getAttribute("style") ? ` style="${element.getAttribute("style")}"` : "";
+      let src = element.getAttribute("src");
+      let width = element.getAttribute("width") || 415;
+      let height = element.getAttribute("height") || 315;
+      let autoplay = element.getAttribute("autoplay") === "" ? " autoplay=1" : "";
+      let controls = element.getAttribute("controls") === "" ? "" : " controls=0";
+      let muted = element.getAttribute("muted") === "" ? " muted=1" : "";
+      let loop = element.getAttribute("loop") === "" ? " loop=1" : "";
+      let poster = element.getAttribute("poster") ? ` poster="${element.getAttribute("poster")}"` : "";
+      let mergedAttributes = `${autoplay}${controls}${muted}${loop}${poster}`;
+      return src ? `[video width="${width}" height="${height}"${mergedAttributes}]${src}[/video]` : content;
+    },
+    html: function (token, attrs, content) {
+      let elId = attrs.id ? ` id="${attrs.id}"` : ` id="mc-video"`;
+      let elClass = attrs.class ? ` class="${attrs.class}"` : ` class="mc-video"`;
+      let elStyle = attrs.style ? ` style="${attrs.style}"` : "";
+      let width = attrs.width || 415;
+      let height = attrs.height || 315;
+      let autoplay = attrs.autoplay ? " autoplay" : "";
+      let controls = attrs.controls == 0 ? "" : " controls";
+      let muted = attrs.muted || autoplay ? " muted" : "";
+      let loop = attrs.loop ? " loop" : "";
+      let poster = attrs.poster ? ` poster="${attrs.poster}"` : "";
+      let mergedAttributes = `${autoplay}${controls}${muted}${loop}${poster}`;
+      return `<video ${elId}${elClass}${elStyle} width="${width}" height="${height}" frameborder="0" src="${content}" ${mergedAttributes} onloadstart="this.volume=0.5"></video>`;
+    },
+
+  });
+  sceditor.command.set("video", {
+    txtExec: function (caller) {
+      var editor = this;
+      var sce_video = '<div id="sce_videooptionsbox"><div class="sce_video-option" data-action="insertVideo">';
+      sce_video += '<label for="video-url">Video URL:</label><input id="video-url" type="text" placeholder="https://" />';
+      sce_video += '<label for="video-width">Width (Optional):</label><input id="video-width" type="text" placeholder="" />';
+      sce_video += '<label for="video-height">Height (Optional):</label><input id="video-height" type="text" placeholder="" />';
+      sce_video += '<label for="video-style">Style (Optional):</label><input id="video-style" type="text" placeholder="" /><br>';
+      sce_video += '<div><label><input type="checkbox" id="video-autoplay" /> Autoplay</label></div>';
+      sce_video += '<div><label><input type="checkbox" id="video-muted" /> Muted</label></div>';
+      sce_video += '<div><label><input type="checkbox" id="video-loop" /> Loop</label></div>';
+      sce_video += '<div><label><input type="checkbox" id="video-controls" checked /> Controls</label></div>';
+      sce_video += '<input id="insert-video-btn" type="button" class="button" value="Insert"></input>';
+      sce_video += "</div></div>";
+      var drop_content = $(sce_video);
+
+      // Handle video insertion
+      drop_content.find("#insert-video-btn").click(function (e) {
+        let videoSrc = $("#video-url").val();
+        let videoWidth = $("#video-width").val() ? ` width="${$("#video-width").val()}"` : "";
+        let videoHeight = $("#video-height").val() ? ` height="${$("#video-height").val()}"` : "";
+        let videoStyle = $("#video-style").val() ? ` style="${$("#video-style").val()}"` : "";
+
+        // Get checked attributes
+        let autoplay = $("#video-autoplay").is(":checked") ? " autoplay=1" : "";
+        let muted = $("#video-muted").is(":checked") ? " muted=1" : "";
+        let loop = $("#video-loop").is(":checked") ? " loop=1" : "";
+        let controls = $("#video-controls").is(":checked") ? "" : " controls=0";
+
+        if (videoSrc) {
+          var videoTag = `[video${videoWidth}${videoHeight}${videoStyle}${autoplay}${muted}${loop}${controls}]${videoSrc}[/video]`;
+          editor.insert(videoTag);
+        }
+        editor.closeDropDown(true);
+        e.preventDefault();
+      });
+
+      editor.createDropDown(caller, "video-picker", drop_content[0]);
+    },
+    tooltip: "Insert a Video",
+  });
+
+}
+
+//Add SCEditor
+async function addSCEditor(source, mode) {
+  await addSCEditorCommands();
+  sceditor.create(source, {
+    format: "bbcode",
+    style: "/css/sceditor.inner.css",
+    width: "100%",
+    height: "180px",
+    charset: "utf-8",
+    emoticonsEnabled: true,
+    resizeMaxHeight: -1,
+    resizeMinHeight: 100,
+    resizeMinWidth: 440,
+    resizeHeight: true,
+    resizeWidth: false,
+    startInSourceMode: true,
+    autoUpdate: true,
+    toolbar: "bold,italic,underline,strike|size,center,right,colorpick|bulletlist,orderedlist|code,quote,spoiler|image,link,youtube|" + (mode ? "" : "video,iframe,div"),
+    allowIFrame: true,
+    allowedIframeUrls: [],
+    toolbarExclude: null,
+    parserOptions: {},
+    allowedTags: ['*'],
+    allowElements: ['*'],
+    allowedAttributes: ['*'],
+    disallowedTags: [],
+    disallowedAttibs: [],
+  });
+}
+
+//Add Default SCEditor to Textarea
+async function addDefaultSCEditor(textarea, parent, color) {
+  await delay(500);
+  if (typeof sceditor !== "undefined" && textarea) {
+    await addSCEditor(textarea, 1);
+    // Preview Button
+    const textareaID = textarea.id;
+    const defID = color ? "custom-preview-div-bb-def" : "custom-preview-div-bb";
+    const previewButton = create("a", { class: "mainbtns btn-active-def-2", id: "previewButton", style: { display: "inline-block", padding: "8px" } }, "Preview");
+    const closeButton = create("a", { class: "mainbtns", id: "closePrevButton", style: {display: "inline-block", padding: "8px"} }, "Close Preview");
+    closeButton.addEventListener("click", function () {
+      $('#custom-preview-div-bb,#custom-preview-div-bb-def,#closePrevButton').remove();
+    });
+    previewButton.addEventListener("click", function () {
+
+      addSCEditorCommands();
+      if (!document.querySelector('#' + defID)) {
+        const previewDiv = create("div", { id: defID });
+        parent.append(previewDiv);
+      }
+      const contentText = scParserActions(textareaID, "fromBBGetVal").replace(/(<img)([^>]*\>)/gm, '$1 class="userimg" $2');
+      document.querySelector('#' + defID).innerHTML = `<h2>Preview</h2><div>${contentText}</div><br>`;
+      previewButton.after(closeButton);
+    });
+    parent.append(previewButton);
+    await delay(250);
+    document.querySelector('textarea[dir="ltr"]').setAttribute('style','width:96%!important');
+  }
+}
 //ScParser toBBCode Function
 function scParserActions(elementId,type) {
   const scParser = sceditor.instance(document.getElementById(elementId));
@@ -344,6 +820,7 @@ function scParserActions(elementId,type) {
   }
   if (type === 'bbRefresh') {
     let bbCodeContent = scParser.toBBCode(scText);
+
     scParser.val(bbCodeContent);
   }
 }
@@ -1222,6 +1699,7 @@ async function createCustomDiv(appLoc, header, content, editData) {
         const previewDiv = create("div", { id: "custom-preview-div" });
         cont.prepend(previewDiv);
       }
+      addSCEditorCommands();
       scParserActions("content-input", "bbRefresh");
       const headerText = headerInput.value || "No Title";
       const contentText = scParserActions("content-input", "fromBBGetVal");
@@ -1265,387 +1743,7 @@ async function createCustomDiv(appLoc, header, content, editData) {
 
     //ScEditor - Required Commands and Formats
     if (typeof sceditor !== "undefined") {
-      //ScEditor Color Picker
-      sceditor.command.set("colorpick", {
-        _dropDown: function (e, t) {
-          if ($("input.bbcode-message-color-picker").length === 0) {
-            $('<input type="color" class="bbcode-message-color-picker" />').css({ position: "absolute", opacity: 0, width: 0, height: 0 }).appendTo("body").val("#ff0000");
-          }
-          var colorPicker = $("input.bbcode-message-color-picker");
-          colorPicker.css({
-            top: $(t).offset().top + 24 + "px",
-            left: $(t).offset().left + 12 + "px",
-          });
-          colorPicker.trigger("click");
-          colorPicker.off("change").on("change", function () {
-            var color = colorPicker.val();
-            if (e.inSourceMode()) {
-              e.insertText("[color=" + color + "]", "[/color]");
-            } else {
-              e.execCommand("forecolor", color);
-            }
-          });
-        },
-        exec: function (e) {
-          sceditor.command.get("colorpick")._dropDown(this, e);
-        },
-        txtExec: function (e) {
-          sceditor.command.get("colorpick")._dropDown(this, e);
-        },
-        tooltip: "Font Color",
-      });
-
-      //ScEditor Spoiler
-      sceditor.formats.bbcode.set("spoiler", {
-        allowsEmpty: true,
-        breakAfter: false,
-        breakBefore: false,
-        isInline: false,
-        format: function (element, content) {
-          var desc = "";
-          var $elm = $(element);
-          var $button = $elm.children("button").first();
-          if ($button.length === 1 || $elm.data("desc")) {
-            desc = $button.text() || $elm.data("desc");
-            $button.remove();
-            content = this.elementToBbcode(element);
-            if (desc === "spoiler") {
-              desc = "";
-            } else if (desc.charAt(0) !== "=") {
-              desc = "=" + desc;
-              $elm.data("desc", desc);
-            }
-            $elm.prepend($button);
-          }
-
-          return "[spoiler" + desc + "]" + content + "[/spoiler]";
-        },
-        html: function (token, attrs, content) {
-          var data = "";
-          var desc = attrs.defaultattr || "Spoiler";
-          content =
-            '<div class="spoiler">' +
-            '<input type="button" class="button show_button" onclick="this.nextSibling.style.display=\'inline-block\';this.style.display=\'none\';" data-showname="Show Spoiler" data-hidename="Hide Spoiler" value="Show ' +
-            desc +
-            '">' +
-            '<span class="spoiler_content" style="display:none">' +
-            '<input type="button" class="button hide_button" onclick="this.parentNode.style.display=\'none\';this.parentNode.parentNode.childNodes[0].style.display=\'inline-block\';" value="Hide ' +
-            desc +
-            '">' +
-            "<br>" +
-            content +
-            "</span></div>";
-          if (attrs.defaultattr) {
-            data += ' data-desc="' + sceditor.escapeEntities(attrs.defaultattr) + '"';
-          }
-          return "<blockquote" + data + ' class="spoiler">' + content + "</blockquote>";
-        },
-      });
-      sceditor.command.set("spoiler", {
-        exec: function (caller) {
-          var html = '<blockquote class="spoiler"><button>spoiler</button><span class="spoiler_content" style="display:none"></span></blockquote>';
-          this.wysiwygEditorInsertHtml(html);
-          $(this.getBody())
-            .find("blockquote.spoiler")
-            .each(function () {
-              if ($(this).find("button").length == 0) {
-                $(this).prepend("<button>spoiler</button>");
-              }
-            });
-        },
-        txtExec: ["[spoiler]", "[/spoiler]"],
-        tooltip: "Insert a spoiler",
-      });
-
-      //ScEditor Center
-      sceditor.formats.bbcode.set("center", {
-        styles: {
-          "text-align": ["center", "-webkit-center", "-moz-center", "-khtml-center"],
-        },
-        isInline: false,
-        allowsEmpty: true,
-        breakAfter: false,
-        breakBefore: false,
-        format: function (element, content) {
-          return "[center]" + content + "[/center]";
-        },
-        html: function (token, attrs, content) {
-          return '<div style="text-align: center;">' + content + '</div>';
-        }
-      });
-
-      //ScEditor Right
-      sceditor.formats.bbcode.set("right", {
-        styles: {
-          "text-align": ["right", "-webkit-right", "-moz-right", "-khtml-right"],
-        },
-        isInline: false,
-        allowsEmpty: true,
-        breakAfter: false,
-        breakBefore: false,
-        format: function (element, content) {
-          return "[right]" + content + "[/right]";
-        },
-        html: function (token, attrs, content) {
-          return '<div style="text-align: right;">' + content + '</div>';
-        }
-      });
-
-      //ScEditor Div
-      sceditor.formats.bbcode.set("div", {
-        allowsEmpty: true,
-        breakAfter: false,
-        breakBefore: false,
-        isInline: false,
-        tags: {
-          div: {
-            id: null,
-            class: null,
-            style: null,
-          },
-        },
-        format: function (element, content) {
-          let elId = element.getAttribute("id") ? ` id="${element.getAttribute("id")}"` : "";
-          let elClass = element.getAttribute("class") ? ` class="${element.getAttribute("class")}"` : "";
-          let elStyle = element.getAttribute("style") ? ` style="${element.getAttribute("style")}"` : "";
-          return `[div${elId}${elClass}${elStyle}]${content}[/div]`;
-        },
-
-        html: function (token, attrs, content) {
-          let elId = attrs.id ? ` id="${attrs.id}"` : ` id="mc-div"`;
-          let elClass = attrs.class ? ` class="${attrs.class}"` : ` class="mc-div"`;
-          let elStyle = attrs.style ? ` style="${attrs.style}"` : "";
-          return `<div${elId}${elClass}${elStyle}>${content}</div>`;
-        },
-
-      });
-      sceditor.command.set("div", {
-        txtExec: function (caller, content) {
-          let editor = this;
-          let sce_div = '<div id="sce_divoptionsbox"><div class="sce_div-option" data-action="insertDiv">';
-          sce_div += '<label for="div-id">ID (Optional):</label><input id="div-id" type="text" placeholder=".id" />';
-          sce_div += '<label for="div-class">Class (Optional):</label><input id="div-class" type="text" placeholder="#class" />';
-          sce_div += '<label for="div-style">Style (Optional):</label><input id="div-style" type="text" placeholder="" /><br>';
-          sce_div += '<input id="insert-div-btn" type="button" class="button" value="Insert"></input>';
-          sce_div += "</div></div>";
-          let drop_content = $(sce_div);
-
-          // Handle div insertion
-          drop_content.find("#insert-div-btn").click(function (e) {
-            let divId = $("#div-id").val() ? ` id="${$("#div-id").val()}"` : "";
-            let divClass = $("#div-class").val() ? ` class="${$("#div-class").val()}"` : "";
-            let divStyle = $("#div-style").val() ? ` style="${$("#div-style").val()}"` : "";
-            let divTag = `[div${divId}${divClass}${divStyle}]${content}[/div]`;
-            editor.insert(divTag);
-            editor.closeDropDown(true);
-            e.preventDefault();
-          });
-          editor.createDropDown(caller, "div-picker", drop_content[0]);
-        },
-        tooltip: "Insert a Div",
-      });
-
-      //ScEditor Iframe
-      sceditor.formats.bbcode.set("iframe", {
-        allowsEmpty: false,
-        tags: {
-          iframe: {
-            class: null,
-            style: null,
-            src: null,
-            width: null,
-            height: null,
-          },
-        },
-        format: function (element, content) {
-          let elId = element.getAttribute("id") ? ` id="${element.getAttribute("id")}"` : "";
-          let elClass = element.getAttribute("class") ? ` class="${element.getAttribute("class")}"` : "";
-          let elStyle = element.getAttribute("style") ? ` style="${element.getAttribute("style")}"` : "";
-          let src = element.getAttribute("src");
-          let width = element.getAttribute("width") || 415;
-          let height = element.getAttribute("height") || 315;
-          let title = element.getAttribute("title") ? ` title="${element.getAttribute("title")}"` : "";
-          let sandbox = element.getAttribute("sandbox") ? ` sandbox="${element.getAttribute("sandbox")}"` : "";
-          let allow = element.getAttribute("allow") ? ` allow="${element.getAttribute("allow")}"` : "";
-          let loading = element.getAttribute("loading") ? ` loading="${element.getAttribute("loading")}"` : "";
-          let referrerpolicy = element.getAttribute("referrerpolicy") ? ` referrerpolicy="${element.getAttribute("referrerpolicy")}"` : "";
-          let mergedAttributes = `${title}${sandbox}${allow}${loading}${referrerpolicy}`;
-
-          if (src && src.startsWith("https://")) {
-            return `[iframe${elId}${elClass}${elStyle} width="${width}" height="${height}"${mergedAttributes}]${src}[/iframe]`;
-          }
-          return content;
-        },
-        html: function (token, attrs, content) {
-          let elId = attrs.id ? ` id="${attrs.id}"` : ` id="mc-iframe"`;
-          let elClass = attrs.class ? ` class="${attrs.class}"` : ` class="mc-iframe"`;
-          let elStyle = attrs.style ? ` style="${attrs.style}"` : "";
-          let width = attrs.width || 415;
-          let height = attrs.height || 315;
-          let title = attrs.title ? ` title="${attrs.title}"` : "";
-          let allow = attrs.allow ? ` allow="${attrs.allow}"` : "";
-          let loading = attrs.loading ? ` loading="${attrs.loading}"` : "";
-          let referrerpolicy = attrs.referrerpolicy ? ` referrerpolicy="${attrs.referrerpolicy}"` : "";
-          let sandbox = 'sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"';
-          let mergedAttributes = `${title}${allow}${loading}${referrerpolicy}`;
-
-          if (content && content.startsWith("https://")) {
-            return `<iframe${elId}${elClass}${elStyle} width="${width}" height="${height}" src="${content}" ${mergedAttributes} ${sandbox} allowfullscreen></iframe>`;
-          }
-          return "";
-        },
-
-      });
-      sceditor.command.set("iframe", {
-        txtExec: function (caller) {
-          var editor = this;
-          var sce_iframe = '<div id="sce_iframeoptionsbox"><div class="sce_iframe-option" data-action="insertIframe">';
-          sce_iframe += '<label for="iframe-src">Iframe URL:</label><input id="iframe-src" type="text" placeholder="https://" />';
-          sce_iframe += '<label for="iframe-width">Width (Optional):</label><input id="iframe-width" type="text" placeholder="" />';
-          sce_iframe += '<label for="iframe-height">Height (Optional):</label><input id="iframe-height" type="text" placeholder="" />';
-          sce_iframe += '<label for="iframe-style">Style (Optional):</label><input id="iframe-style" type="text" placeholder="" /><br>';
-          sce_iframe += '<label for="iframe-html-src">Iframe as HTML (Optional):</label><textarea id="iframe-html-src" placeholder="<iframe src=&quot;&quot;></iframe>" /></textarea>';
-          sce_iframe += '<input id="insert-iframe-btn" type="button" class="button" value="Insert"></input>';
-          sce_iframe += "</div></div>";
-          var drop_content = $(sce_iframe);
-
-          // Handle iframe insertion
-          drop_content.find("#insert-iframe-btn").click(function (e) {
-            let iframeSrc = $("#iframe-src").val();
-            let iframeHTMLSrc = $("#iframe-html-src").val();
-            let iframeWidth = $("#iframe-width").val() ? ` width="${$("#iframe-width").val()}"` : "";
-            let iframeHeight = $("#iframe-height").val() ? ` height="${$("#iframe-height").val()}"` : "";
-            let iframeStyle = $("#iframe-style").val() ? ` style="${$("#iframe-style").val()}"` : "";
-
-            if (iframeHTMLSrc) {
-              iframeSrc = "";
-            }
-            if (iframeSrc.startsWith("https://") && !iframeHTMLSrc) {
-              var iframeTag = `[iframe${iframeWidth}${iframeHeight}${iframeStyle}]${iframeSrc}[/iframe]`;
-              editor.insert(iframeTag);
-            }
-            if (/src="https:\/\//.test(iframeHTMLSrc)) {
-              var iframeTag = iframeHTMLSrc;
-              editor.insert(iframeTag);
-            }
-            editor.closeDropDown(true);
-            e.preventDefault();
-          });
-
-
-          editor.createDropDown(caller, "iframe-picker", drop_content[0]);
-        },
-        tooltip: "Insert an Iframe",
-      });
-
-      //ScEditor Video
-      sceditor.formats.bbcode.set("video", {
-        allowsEmpty: false,
-        tags: {
-          video: {
-            src: null,
-            width: null,
-            height: null,
-          },
-        },
-        format: function (element, content) {
-          let elId = element.getAttribute("id") ? ` id="${element.getAttribute("id")}"` : "";
-          let elClass = element.getAttribute("class") ? ` class="${element.getAttribute("class")}"` : "";
-          let elStyle = element.getAttribute("style") ? ` style="${element.getAttribute("style")}"` : "";
-          let src = element.getAttribute("src");
-          let width = element.getAttribute("width") || 415;
-          let height = element.getAttribute("height") || 315;
-          let autoplay = element.getAttribute("autoplay") === "" ? " autoplay=1" : "";
-          let controls = element.getAttribute("controls") === "" ? "" : " controls=0";
-          let muted = element.getAttribute("muted") === "" ? " muted=1" : "";
-          let loop = element.getAttribute("loop") === "" ? " loop=1" : "";
-          let poster = element.getAttribute("poster") ? ` poster="${element.getAttribute("poster")}"` : "";
-          let mergedAttributes = `${autoplay}${controls}${muted}${loop}${poster}`;
-          return src ? `[video width="${width}" height="${height}"${mergedAttributes}]${src}[/video]` : content;
-        },
-        html: function (token, attrs, content) {
-          let elId = attrs.id ? ` id="${attrs.id}"` : ` id="mc-video"`;
-          let elClass = attrs.class ? ` class="${attrs.class}"` : ` class="mc-video"`;
-          let elStyle = attrs.style ? ` style="${attrs.style}"` : "";
-          let width = attrs.width || 415;
-          let height = attrs.height || 315;
-          let autoplay = attrs.autoplay ? " autoplay" : "";
-          let controls = attrs.controls == 0 ? "" : " controls";
-          let muted = attrs.muted || autoplay ? " muted" : "";
-          let loop = attrs.loop ? " loop" : "";
-          let poster = attrs.poster ? ` poster="${attrs.poster}"` : "";
-          let mergedAttributes = `${autoplay}${controls}${muted}${loop}${poster}`;
-          return `<video ${elId}${elClass}${elStyle} width="${width}" height="${height}" frameborder="0" src="${content}" ${mergedAttributes} onloadstart="this.volume=0.5"></video>`;
-        },
-
-      });
-      sceditor.command.set("video", {
-        txtExec: function (caller) {
-          var editor = this;
-          var sce_video = '<div id="sce_videooptionsbox"><div class="sce_video-option" data-action="insertVideo">';
-          sce_video += '<label for="video-url">Video URL:</label><input id="video-url" type="text" placeholder="https://" />';
-          sce_video += '<label for="video-width">Width (Optional):</label><input id="video-width" type="text" placeholder="" />';
-          sce_video += '<label for="video-height">Height (Optional):</label><input id="video-height" type="text" placeholder="" />';
-          sce_video += '<label for="video-style">Style (Optional):</label><input id="video-style" type="text" placeholder="" /><br>';
-          sce_video += '<div><label><input type="checkbox" id="video-autoplay" /> Autoplay</label></div>';
-          sce_video += '<div><label><input type="checkbox" id="video-muted" /> Muted</label></div>';
-          sce_video += '<div><label><input type="checkbox" id="video-loop" /> Loop</label></div>';
-          sce_video += '<div><label><input type="checkbox" id="video-controls" checked /> Controls</label></div>';
-          sce_video += '<input id="insert-video-btn" type="button" class="button" value="Insert"></input>';
-          sce_video += "</div></div>";
-          var drop_content = $(sce_video);
-
-          // Handle video insertion
-          drop_content.find("#insert-video-btn").click(function (e) {
-            let videoSrc = $("#video-url").val();
-            let videoWidth = $("#video-width").val() ? ` width="${$("#video-width").val()}"` : "";
-            let videoHeight = $("#video-height").val() ? ` height="${$("#video-height").val()}"` : "";
-            let videoStyle = $("#video-style").val() ? ` style="${$("#video-style").val()}"` : "";
-
-            // Get checked attributes
-            let autoplay = $("#video-autoplay").is(":checked") ? " autoplay=1" : "";
-            let muted = $("#video-muted").is(":checked") ? " muted=1" : "";
-            let loop = $("#video-loop").is(":checked") ? " loop=1" : "";
-            let controls = $("#video-controls").is(":checked") ? "" : " controls=0";
-
-            if (videoSrc) {
-              var videoTag = `[video${videoWidth}${videoHeight}${videoStyle}${autoplay}${muted}${loop}${controls}]${videoSrc}[/video]`;
-              editor.insert(videoTag);
-            }
-            editor.closeDropDown(true);
-            e.preventDefault();
-          });
-
-          editor.createDropDown(caller, "video-picker", drop_content[0]);
-        },
-        tooltip: "Insert a Video",
-      });
-
-      // SCEditor Create
-      sceditor.create(contentInput, {
-        format: "bbcode",
-        style: "/css/sceditor.inner.css",
-        width: "100%",
-        height: "180px",
-        emoticonsEnabled: true,
-        resizeMaxHeight: -1,
-        resizeMinHeight: 100,
-        resizeMinWidth: 440,
-        resizeMaxWidth: 440,
-        resizeWidth: true,
-        startInSourceMode: true,
-        autoUpdate: true,
-        toolbar: "bold,italic,underline,strike|size,center,right,colorpick|bulletlist,orderedlist|code,quote,spoiler|image,link,youtube|video,iframe,div",
-        allowIFrame: true,
-        allowedIframeUrls: [],
-        toolbarExclude: null,
-        parserOptions: {},
-        allowedTags: ['*'],
-        allowElements: ['*'],
-        allowedAttributes: ['*'],
-        disallowedTags: [],
-        disallowedAttibs: [],
-      });
+      await addSCEditor(contentInput);
       scParserActions("content-input", "bbRefresh");
     }
   }
@@ -1694,6 +1792,10 @@ let svar = {
   profileAnimeGenre: true,
   profileMangaGenre: false,
   moveBadges: false,
+  blogBBText: false,
+  clubBBText: false,
+  profileBBText: false,
+  clubComments: false,
 };
 
 svar.save = function () {
@@ -2820,6 +2922,12 @@ font-family: "Font Awesome 6 Pro";
    top: 26px
 }
 
+#customAddContainer.right {
+   z-index: 2;
+   position: relative;
+   margin-bottom: 10px
+}
+
 #customAddContainer #custom-preview-div {
    border-bottom: 1px solid;
    margin-bottom: 10px
@@ -2841,6 +2949,8 @@ font-family: "Font Awesome 6 Pro";
     min-height: 100px
 }
 
+#custom-preview-div-bb > div,
+#custom-preview-div-bb-def > div,
 #customAddContainer #custom-preview-div > div {
     background: var(--color-foreground);
     border-radius: var(--border-radius);
@@ -2851,6 +2961,10 @@ font-family: "Font Awesome 6 Pro";
     border: var(--border) solid var(--border-color);
     -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color);
     box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)
+}
+
+#custom-preview-div-bb-def > div {
+    background: var(--color-foreground2);
 }
 
 #customProfileEls .custom-el-container > .custom-el-inner *,
@@ -3196,6 +3310,11 @@ div#custom-preview-div > div blockquote.spoiler {
 
 .btn-active-def {
     background-color: var(--color-foreground4) !important;
+    color: rgb(159, 173, 189)
+}
+
+.btn-active-def-2 {
+    background-color: var(--color-foreground2) !important;
     color: rgb(159, 173, 189)
 }
 
@@ -4161,6 +4280,14 @@ function createDiv() {
       "Blog",
       [
         { b: buttons["blogRedesignBtn"], t: "Redesign blog page" },
+        { b: buttons["blogBBTextBtn"], t: "Add BBCode editor to textarea" },
+      ]
+    ),
+    createListDiv(
+      "Club",
+      [
+        { b: buttons["clubBBTextBtn"], t: "Add BBCode editor to textarea" },
+        { b: buttons["clubCommentsBtn"], t: "Expand club comments" },
       ]
     ),
     createListDiv(
@@ -4182,6 +4309,7 @@ function createDiv() {
         ...svar.modernLayout ? [{ b: buttons["profileMangaGenreBtn"], t: "Show Manga Genre Overview" }] : [],
         { b: buttons["customCSSBtn"], t: "Show custom CSS" },
         { b: buttons["profileHeaderBtn"], t: "Change username position" },
+        { b: buttons["profileBBTextBtn"], t: "Add BBCode editor to textarea" },
       ]
     )
   );
@@ -4271,24 +4399,70 @@ function delay(ms) {
   }
 
   //onload Function
-  function on_load() {
-  //Replace anime.php
+  async function on_load() {
+    //Replace anime.php
     const phpUrl = window.location.href;
     if (phpUrl.includes('/anime.php?id=')) {
       const newUrl = phpUrl.replace('/anime.php?id=', '/anime/');
-      window.location.href = newUrl+'/';
+      window.location.href = newUrl + '/';
     }
     //Add MalClean Settings to header dropdown
     let pfHeader = $('li:contains("Account Settings")')[0];
     if (!pfHeader) {
       pfHeader = document.querySelector(".header-profile-dropdown > ul > li:nth-last-child(3)");
     }
+
     if (pfHeader) {
       var gear = pfHeader.querySelector("a > i");
       var gearClone = gear.cloneNode(!0);
       stLink.prepend(gearClone);
       stButton.append(stLink);
       pfHeader.insertAdjacentElement("afterend", stButton);
+    }
+
+    if (svar.blogBBText) {
+      if (location.href === 'https://myanimelist.net/myblog.php' ||
+        (location.href.includes('myblog.php') && location.search.includes('go=edit'))) {
+        let blogTextArea = document.querySelectorAll('textarea')[0];
+        if (blogTextArea) {
+          blogTextArea.setAttribute('id', 'content-input');
+          const blogTextParent = blogTextArea.parentElement;
+          await addDefaultSCEditor(blogTextArea, blogTextParent,1);
+        }
+      }
+    }
+
+    if (svar.clubBBText) {
+      if (location.search.includes("cid") && location.pathname === '/clubs.php' || location.pathname === '/editclub.php' && location.search.includes("&action=details")) {
+        let clubTextArea = document.querySelectorAll('textarea')[0];
+        if (clubTextArea) {
+          clubTextArea.setAttribute('id', 'content-input');
+          const clubTextParent =  location.search.includes("&action=details") ? clubTextArea.parentElement : clubTextArea.nextElementSibling;
+          await addDefaultSCEditor(clubTextArea, clubTextParent, (location.search.includes("&action=details") ? 1 : 0));
+        }
+      }
+    }
+
+    if (svar.profileBBText) {
+      if (location.href === 'https://myanimelist.net/editprofile.php' && !location.search) {
+        let profileTextArea = document.querySelectorAll('textarea')[1];
+        if (profileTextArea) {
+          profileTextArea.setAttribute('id', 'classic-about-me-textarea content-input');
+          const profileTextParent = profileTextArea.parentElement;
+          profileTextParent.insertAdjacentHTML('beforeend', '<br>');
+          await addDefaultSCEditor(profileTextArea, profileTextParent);
+        }
+      }
+    }
+
+    if (svar.clubComments) {
+      if (location.search.includes("cid") && location.pathname === '/clubs.php'){
+        document.querySelector("#content > table > tbody > tr").style.display = "inline-block";
+        const commHeader = $(".normal_header:contains('Club Comments')");
+        const commDiv = $(".normal_header:contains('Club Comments')").next();
+        commDiv.css('width','100%');
+        $("#content > table > tbody").append(commHeader,commDiv);
+      }
     }
   };
 
@@ -5390,15 +5564,15 @@ function delay(ms) {
           <div class="fa fa-sort sortCustomEl" order="${index}"></div>
           <div class="fa fa-x removeCustomEl" order="${index}"></div>
           ${isRight && svar.modernLayout ?
-          `<h4 style="border: 0;margin: 15px 0 4px 4px;">${item.header}</h4>`
+          `<h4 class="custom-el-header" style="border: 0;margin: 15px 0 4px 4px;">${item.header}</h4>`
           :
-          `<h5 style="${svar.modernLayout ? 'font-size: 11px; margin: 0 0 8px 2px;' : ''}">${item.header}</h5>`
+          `<h5 class="custom-el-header" style="${svar.modernLayout ? 'font-size: 11px; margin: 0 0 8px 2px;' : ''}">${item.header}</h5>`
           }
           <div class="${svar.modernLayout ? 'custom-el-inner' : 'custom-el-inner notAl'}">${item.content}</div>
           `;
           if (isRight) {
             customElContentRight.appendChild(customElContainer);
-            if (svar.alstyle) {
+            if (svar.alstyle && !defaultMal) {
               $(".user-comments").css('top','-50px');
             }
           } else {
@@ -5445,7 +5619,7 @@ function delay(ms) {
       //Edit Custom Element click function -not-tested
       $(".editCustomEl").on("click", function () {
         const appLoc = $(this).parent()[0];
-        const header = $(this).nextUntil('h5').next('h5').text();
+        const header = $(this).nextUntil('.custom-el-header').next('.custom-el-header').text();
         const content = $(this).nextUntil('.custom-el-inner').next('.custom-el-inner').html();
         const compressedBase64 = LZString.compressToBase64(JSON.stringify(favarray[$(this).attr("order")]));
         const base64url = compressedBase64.replace(/\//g, "_");
