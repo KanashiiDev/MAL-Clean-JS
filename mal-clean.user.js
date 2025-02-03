@@ -4,7 +4,7 @@
 // @match       https://myanimelist.net/*
 // @match       https://www.mal-badges.com/users/*malbadges
 // @grant       none
-// @version     1.29.6
+// @version     1.29.65
 // @author      KanashiiDev
 // @description Customizations and fixes for MyAnimeList
 // @license     GPL-3.0-or-later
@@ -750,7 +750,7 @@ async function addSCEditorCommands() {
 }
 
 //Add SCEditor
-async function addSCEditor(source, mode) {
+async function addSCEditor(source) {
   await addSCEditorCommands();
   sceditor.create(source, {
     format: "bbcode",
@@ -766,7 +766,7 @@ async function addSCEditor(source, mode) {
     resizeWidth: false,
     startInSourceMode: true,
     autoUpdate: true,
-    toolbar: "bold,italic,underline,strike|size,center,right,colorpick|bulletlist,orderedlist|code,quote,spoiler|image,link,youtube|" + (mode ? "" : "video,iframe,div"),
+    toolbar: "bold,italic,underline,strike|size,center,right,colorpick|bulletlist,orderedlist|code,quote,spoiler|image,link,youtube|video,iframe,div",
     allowIFrame: true,
     allowedIframeUrls: [],
     toolbarExclude: null,
@@ -779,35 +779,6 @@ async function addSCEditor(source, mode) {
   });
 }
 
-//Add Default SCEditor to Textarea
-async function addDefaultSCEditor(textarea, parent, color) {
-  await delay(500);
-  if (typeof sceditor !== "undefined" && textarea) {
-    await addSCEditor(textarea, 1);
-    // Preview Button
-    const textareaID = textarea.id;
-    const defID = color ? "custom-preview-div-bb-def" : "custom-preview-div-bb";
-    const previewButton = create("a", { class: "mainbtns btn-active-def-2", id: "previewButton", style: { display: "inline-block", padding: "8px" } }, "Preview");
-    const closeButton = create("a", { class: "mainbtns", id: "closePrevButton", style: {display: "inline-block", padding: "8px"} }, "Close Preview");
-    closeButton.addEventListener("click", function () {
-      $('#custom-preview-div-bb,#custom-preview-div-bb-def,#closePrevButton').remove();
-    });
-    previewButton.addEventListener("click", function () {
-
-      addSCEditorCommands();
-      if (!document.querySelector('#' + defID)) {
-        const previewDiv = create("div", { id: defID });
-        parent.append(previewDiv);
-      }
-      const contentText = scParserActions(textareaID, "fromBBGetVal").replace(/(<img)([^>]*\>)/gm, '$1 class="userimg" $2');
-      document.querySelector('#' + defID).innerHTML = `<h2>Preview</h2><div>${contentText}</div><br>`;
-      previewButton.after(closeButton);
-    });
-    parent.append(previewButton);
-    await delay(250);
-    document.querySelector('textarea[dir="ltr"]').setAttribute('style','width:96%!important');
-  }
-}
 //ScParser toBBCode Function
 function scParserActions(elementId,type) {
   const scParser = sceditor.instance(document.getElementById(elementId));
@@ -1792,9 +1763,6 @@ let svar = {
   profileAnimeGenre: true,
   profileMangaGenre: false,
   moveBadges: false,
-  blogBBText: false,
-  clubBBText: false,
-  profileBBText: false,
   clubComments: false,
 };
 
@@ -3522,6 +3490,10 @@ div#badges-iframe-inner {
   -webkit-border-radius: 10px;
   border-radius: 10px
 }
+
+.sceditor-container.sourceMode.ltr {
+  min-height: 100px
+}
 `;
 let styles2 = `
 .lazyloading {
@@ -4280,13 +4252,11 @@ function createDiv() {
       "Blog",
       [
         { b: buttons["blogRedesignBtn"], t: "Redesign blog page" },
-        { b: buttons["blogBBTextBtn"], t: "Add BBCode editor to textarea" },
       ]
     ),
     createListDiv(
       "Club",
       [
-        { b: buttons["clubBBTextBtn"], t: "Add BBCode editor to textarea" },
         { b: buttons["clubCommentsBtn"], t: "Expand club comments" },
       ]
     ),
@@ -4309,7 +4279,6 @@ function createDiv() {
         ...svar.modernLayout ? [{ b: buttons["profileMangaGenreBtn"], t: "Show Manga Genre Overview" }] : [],
         { b: buttons["customCSSBtn"], t: "Show custom CSS" },
         { b: buttons["profileHeaderBtn"], t: "Change username position" },
-        { b: buttons["profileBBTextBtn"], t: "Add BBCode editor to textarea" },
       ]
     )
   );
@@ -4418,51 +4387,6 @@ function delay(ms) {
       stLink.prepend(gearClone);
       stButton.append(stLink);
       pfHeader.insertAdjacentElement("afterend", stButton);
-    }
-
-    if (svar.blogBBText) {
-      if (location.href === 'https://myanimelist.net/myblog.php' ||
-        (location.href.includes('myblog.php') && location.search.includes('go=edit'))) {
-        let blogTextArea = document.querySelectorAll('textarea')[0];
-        if (blogTextArea) {
-          blogTextArea.setAttribute('id', 'content-input');
-          const blogTextParent = blogTextArea.parentElement;
-          await addDefaultSCEditor(blogTextArea, blogTextParent,1);
-        }
-      }
-    }
-
-    if (svar.clubBBText) {
-      if (location.search.includes("cid") && location.pathname === '/clubs.php' || location.pathname === '/editclub.php' && location.search.includes("&action=details")) {
-        let clubTextArea = document.querySelectorAll('textarea')[0];
-        if (clubTextArea) {
-          clubTextArea.setAttribute('id', 'content-input');
-          const clubTextParent =  location.search.includes("&action=details") ? clubTextArea.parentElement : clubTextArea.nextElementSibling;
-          await addDefaultSCEditor(clubTextArea, clubTextParent, (location.search.includes("&action=details") ? 1 : 0));
-        }
-      }
-    }
-
-    if (svar.profileBBText) {
-      if (location.href === 'https://myanimelist.net/editprofile.php' && !location.search) {
-        let profileTextArea = document.querySelectorAll('textarea')[1];
-        if (profileTextArea) {
-          profileTextArea.setAttribute('id', 'classic-about-me-textarea content-input');
-          const profileTextParent = profileTextArea.parentElement;
-          profileTextParent.insertAdjacentHTML('beforeend', '<br>');
-          await addDefaultSCEditor(profileTextArea, profileTextParent);
-        }
-      }
-    }
-
-    if (svar.clubComments) {
-      if (location.search.includes("cid") && location.pathname === '/clubs.php'){
-        document.querySelector("#content > table > tbody > tr").style.display = "inline-block";
-        const commHeader = $(".normal_header:contains('Club Comments')");
-        const commDiv = $(".normal_header:contains('Club Comments')").next();
-        commDiv.css('width','100%');
-        $("#content > table > tbody").append(commHeader,commDiv);
-      }
     }
   };
 
@@ -8151,14 +8075,56 @@ function delay(ms) {
   }
   //Anime and Manga Header Position Change //--END--//
 
+  //Add BBCode Editor
+  if (location.href === 'https://myanimelist.net/myblog.php' ||
+      location.href.includes('myblog.php') && location.search.includes('go=edit') ||
+      location.href.includes('blog.php') && location.search.includes('eid')) {
+    let blogTextArea = document.querySelectorAll('textarea')[0];
+    if (blogTextArea) {
+      blogTextArea.classList.add("bbcode-message-editor");
+    }
+  }
+
+  if (location.search.includes("cid") && location.pathname === '/clubs.php' ||
+      location.pathname === '/editclub.php' && location.search.includes("&action=details")) {
+    let clubTextArea = document.querySelectorAll('textarea')[0];
+    if (clubTextArea) {
+      clubTextArea.classList.add("bbcode-message-editor");
+    }
+  }
+  if (location.href === 'https://myanimelist.net/editprofile.php' && !location.search) {
+    let profileTextArea = document.querySelectorAll('textarea')[1];
+    if (profileTextArea) {
+      profileTextArea.classList.add("bbcode-message-editor");
+    }
+  }
+  if(location.href === 'https://myanimelist.net/editprofile.php?go=signature') {
+    let profileTextArea = document.querySelectorAll('textarea')[0];
+    if (profileTextArea) {
+      profileTextArea.classList.add("bbcode-message-editor");
+    }
+  }
+
+  //Clubs Page Fixes
   //Clubs Page add class to Divs
   if (/\/(clubs.php).?([\w-]+)?\/?/.test(current)) {
-    $("div.normal_header").next("table").addClass("clubDivs");
-    $("div.bgNone").addClass("clubDivs");
-    $("div.bgColor1").addClass("clubDivs");
-    $('div.normal_header:contains("Club Pictures")').next().children().children().children().addClass("clubDivs");
-    $("#content > table > tbody > tr > td[valign=top]:last-child").addClass("clubDivs");
-    set(2, ".clubDivs", { sal: { 0: "border-radius:var(--br);overflow:hidden" } });
+    $("div.normal_header:contains('Club Members')").next("table").addClass("club-container");
+    $("div.bgNone").addClass("club-container");
+    $("div.bgColor1").addClass("club-container");
+    $('div.normal_header:contains("Club Pictures")').next().children().children().children().addClass("club-container");
+    $("#content > table > tbody > tr > td[valign=top]:last-child").addClass("club-container");
+    set(2, ".club-container", { sal: { 0: "border-radius:var(--br);overflow:hidden" } });
+  }
+
+  //Club Comments Expand
+  if (svar.clubComments) {
+    if (location.search.includes("cid") && location.pathname === '/clubs.php'){
+      document.querySelector("#content > table > tbody > tr").style.display = "inline-block";
+      const commHeader = $(".normal_header:contains('Club Comments')");
+      const commDiv = $(".normal_header:contains('Club Comments')").next();
+      commDiv.css('width','100%');
+      $("#content > table > tbody").append(commHeader,commDiv);
+    }
   }
 
   //Blog Page Fixes
