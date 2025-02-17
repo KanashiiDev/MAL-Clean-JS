@@ -4,7 +4,7 @@
 // @match       https://myanimelist.net/*
 // @match       https://www.mal-badges.com/users/*malbadges
 // @grant       none
-// @version     1.29.65
+// @version     1.29.7
 // @author      KanashiiDev
 // @description Customizations and fixes for MyAnimeList
 // @license     GPL-3.0-or-later
@@ -295,6 +295,15 @@ function rgbToHex(rgb) {
     "#" + ((1 << 24) + (parseInt(result[0]) << 16) + (parseInt(result[1]) << 8) + parseInt(result[2])).toString(16).slice(1).toUpperCase());
 }
 
+//Days to TTL
+function daysToTTL(days,toDay) {
+  if (isNaN(days) || days <= 0) {
+    return 86400000;
+  }
+  const ttl =  toDay ? days / (1000 * 60 * 60 * 24) : days * 24 * 60 * 60 * 1000;
+  return ttl;
+}
+
 // Anime-Manga Add Class
 function aniMangaAddClass(main, name) {
   const h2 = $('h2:contains("' + main + '"):last');
@@ -309,8 +318,9 @@ function aniMangaAddClass(main, name) {
 function createListDiv(title,buttons) {
   let btns = create("div",{class:'mainListBtnsDiv'});
   for(let x = 0; x<buttons.length;x++) {
-    btns.append(buttons[x].b);
-    btns.insertAdjacentHTML('beforeend', "<h3>"+buttons[x].t+"</h3>");
+    let mainDiv =  create("div",{class:'mainListBtnDiv', id:buttons[x].b.id+'Option'});
+    $(mainDiv).append(buttons[x].b,"<h3>"+buttons[x].t+"</h3>",buttons[x]?.s);
+    btns.append(mainDiv);
   }
   let div = create("div",{class: "malCleanSettingContainer"},'<div class="malCleanSettingHeader"><h2>' + title + "</h2></div>");
   div.append(btns);
@@ -1254,7 +1264,6 @@ async function editAboutPopup(data, type) {
         customProfileEl: /(customProfileEl)\/([^\/]+.)/gm
       };
       let userBlogPage = 'https://myanimelist.net/blog/'+ headerUserName;
-
       popupLoading.innerHTML = "Updating" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
 
       if ($iframeContents.find(".goodresult")[0]) {
@@ -1631,6 +1640,29 @@ async function blockUser(id) {
   });
 }
 
+//Custom Anime/Manga Cover
+async function loadCustomCover() {
+  const coverLocalForage = localforage.createInstance({ name: "MalJS", storeName: "cover" });
+  coverLocalForage.iterate((value, key) => {
+    if (value.defaultImage && value.coverImage) {
+      const excludedParentSelector = '.js-picture-gallery, .gallery-anime';
+      $("img").each(function () {
+        const $img = $(this);
+        if ($img.closest(excludedParentSelector).length === 0) {
+          const dataSrc = $img.attr("data-src") || "";
+          const imgSrc = $img.attr("src") || "";
+          const imgAlt = $img.attr("alt") || "";
+          if ((imgSrc.includes(value.defaultImage) || dataSrc.includes(value.defaultImage)) && imgAlt.includes(value.title) ||
+              imgAlt.includes(value.title) && (value.type && imgSrc.toUpperCase().includes(`/${value.type}/`) || dataSrc.toUpperCase().includes(`/${value.type}/`))) {
+            $img.attr('src', value.coverImage).attr('data-src', value.coverImage).removeAttr('srcset').removeAttr('data-srcset');
+            $img.css('max-width','225px');
+          }
+        }
+      });
+    }
+  });
+}
+
 async function createCustomDiv(appLoc, header, content, editData) {
   $("#customAddContainer").remove();
   if (!document.querySelector("#customAddContainer")) {
@@ -1731,6 +1763,7 @@ async function createCustomDiv(appLoc, header, content, editData) {
 let svar = {
   animeBg: true,
   charBg: true,
+  customCover: true,
   peopleHeader: true,
   animeHeader: true,
   animeBanner: true,
@@ -1747,10 +1780,14 @@ let svar = {
   modernLayout: false,
   animeInfo: true,
   embed: true,
+  embedTTL: 2592000000,
+  relationTTL: 604800000,
+  tagTTL: 604800000,
   currentlyWatching: true,
   currentlyReading: true,
   recentlyAddedAnime: true,
   recentlyAddedManga: true,
+  listAiringStatus: true,
   airingDate: true,
   autoAddDate: true,
   editPopup: true,
@@ -2079,7 +2116,7 @@ let styles = `
     cursor: pointer;
     vertical-align: middle;
     bottom: 2px;
-    left: -5px;
+    left: -15px;
     -webkit-appearance: none;
     position: relative;
     -webkit-box-sizing: border-box;
@@ -2182,6 +2219,7 @@ input#year-filter-slider {
 }
 
 .maljs-dropdown-content label {
+    margin: 2px;
     padding: 12px 16px;
     display: block;
 }
@@ -2192,7 +2230,8 @@ input#year-filter-slider {
 
 .maljs-dropdown-content label:has(input.genre-filter:checked) {
     background: var(--color-foreground2);
-    border-bottom: 1px solid
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
 }
 
 .list-entries .status-section {
@@ -2349,6 +2388,14 @@ input.maljsNativeInput {
     padding: 3px;
     width: 70px
 }
+
+.container-left > #filter #filter-input,
+.sort-container #sort-asc,
+.sort-container #sort-desc {
+    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+    border: 1px solid var(--border-color);
+}
+
 .sort-container #sort-asc,
 .sort-container #sort-desc,
 #maljsDraw3x3,
@@ -2411,13 +2458,29 @@ input.maljsNativeInput {
 }
 
 .list-entries .entry .cover .image {
-    background-position: 50%;
-    background-repeat: no-repeat;
-    background-size: cover;
+    object-fit: cover;
     -webkit-border-radius: 3px;
     border-radius: 3px;
     height: 40px;
     width: 40px
+}
+
+.list-entries .entry .airing-dot {
+    position: relative;
+    left: -7px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50px;
+    background: #7bd555;
+    box-shadow: 0 0 5px rgba(123, 213, 85, .8);
+    -webkit-transition: .15s;
+    -o-transition: .15s;
+    transition: .15s;
+    opacity: 1
+}
+
+.list-entries .row:hover .airing-dot {
+    opacity:0;
 }
 
 .list-entries .entry .title {
@@ -2480,7 +2543,7 @@ input.maljsNativeInput {
 .list-entries .section-name {
     border-bottom: 1px solid!important;
     padding: 10px!important;
-    padding-top:0!important;
+    margin: 0!important;
     margin-bottom: 0!important;
     font-weight:bold!important
 }
@@ -2798,7 +2861,7 @@ input.maljsNativeInput {
     height: 100%;
     -webkit-border-radius: var(--br);
     border-radius: var(--br);
-    border: 1px solid
+    border: 1px solid var(--border-color)
 }
 
 #currently-popup .popupBack {
@@ -3203,14 +3266,46 @@ div#custom-preview-div > div blockquote.spoiler {
     margin-top: 10px
 }
 
+.malCleanSettingPopup {
+    display: inline-grid;
+    padding: 10px;
+    background: var(--color-foreground4);
+    border-radius: var(--border-radius);
+    border: var(--border) solid var(--border-color);
+    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+    grid-column: 1 / -1;
+    margin-bottom: 5px;
+    grid-column: 1/-1
+}
+
 .malCleanMainContainer > .malCleanSettingContainer:nth-child(2) {
     margin-top: 45px
 }
 
-.mainListBtnsDiv {
+.mainListBtnDiv,.malCleanSettingPopup.svar {
+    display: -ms-grid;
     display: grid;
-    grid-template-columns: 40px 1fr;
-    gap: 0px 2px
+    -ms-grid-columns: 35px auto auto 1fr;
+    grid-template-columns: 35px auto auto 1fr;
+    -webkit-box-pack: start;
+    -webkit-justify-content: start;
+    -ms-flex-pack: start;
+    justify-content: start;
+    gap:5px
+}
+
+.malCleanSettingPopup.svar {
+    -ms-grid-columns: 35px auto;
+    grid-template-columns: 35px auto
+}
+
+.mainListBtnDiv .fa-gear {
+   font-family: "Font Awesome 6 Pro";
+   cursor:pointer;
+    -webkit-align-content: center;
+    -ms-flex-line-pack: center;
+    align-content: center
 }
 
 .textpb {
@@ -3268,6 +3363,11 @@ div#custom-preview-div > div blockquote.spoiler {
 
 .btn-active {
     background-color: var(--color-foreground4) !important;
+    color: rgb(159, 173, 189)
+}
+
+.malCleanSettingPopup.svar .btn-active {
+    background-color: var(--color-foreground2) !important;
     color: rgb(159, 173, 189)
 }
 
@@ -3375,12 +3475,15 @@ input#malBadgesInput,
 input#cssInput,
 input#bgInput,
 input#pfInput {
+    border: 1px solid var(--border-color);
+    padding: 10px;
     width: 60%;
     height: 15px;
     margin-right: 5px
 }
 
 input#badgeInput {
+    border: 1px solid var(--border-color);
     width: 45%;
     height: 15px;
     margin-right: 5px
@@ -3400,7 +3503,7 @@ input#badgeInput {
 }
 
 .malCleanMainContainer .malCleanSettingContainer h2 {
-    background: var(--fg2);
+    background: var(--color-foreground2);
     border-radius: var(--br);
     padding: 5px
 }
@@ -3641,18 +3744,16 @@ let defaultCSSFixes = `
   height:90px!important
 }
 #fgcolorselector {
-  width:62%
+  width: 64%
 }
 button#customColorUpdate {
-  width:460px
+  width: 460px
 }
 .profileRightActions {
   position: relative;
   top: -50px
 }
-.list-entries .section-name {
-  padding-top:10px!important
-}
+
 .widget-slide-block .widget-slide .btn-anime .link .title.color-pc-constant {
   color: var(--color-main-text-normal)
 }
@@ -3731,7 +3832,7 @@ const buttonsConfig = Object.keys(svar).map(setting => ({
   text: null,
   enabled: svar[setting]
 }));
-buttonsConfig.push({ setting: "removeAllCustom",   id: 'removeAllCustomBtn', text: "Remove All Custom Settings" });
+buttonsConfig.push({ setting: "removeAllCustom", id: 'removeAllCustomBtn', text: "Remove All Custom Settings" });
 
 if (!defaultMal) {
   buttonsConfig.push(
@@ -3759,6 +3860,156 @@ function createButton({ id, setting, text }) {
   return button;
 }
 
+//Add Custom Profile Colors
+async function applyCustomColors(customcolors) {
+  let styleElement = document.getElementById("customProfileColors");
+  const colorStyles = `
+  .profile .statistics-updates .data .graph .graph-inner.watching, .profile .user-statistics .stats-status .circle.watching:after,
+  .profile .user-statistics .stats-graph .graph.watching {background:${customcolors[0]}!important}
+  .profile .statistics-updates .data .graph .graph-inner.completed, .profile .user-statistics .stats-status .circle.completed:after,
+  .profile .user-statistics .stats-graph .graph.completed {background:${customcolors[1]}!important}
+  .profile .statistics-updates .data .graph .graph-inner.on_hold, .profile .user-statistics .stats-status .circle.on_hold:after,
+  .profile .user-statistics .stats-graph .graph.on_hold {background:${customcolors[2]}!important}
+  .profile .statistics-updates .data .graph .graph-inner.dropped, .profile .user-statistics .stats-status .circle.dropped:after,
+  .profile .user-statistics .stats-graph .graph.dropped {background:${customcolors[3]}!important}
+  .profile .statistics-updates .data .graph .graph-inner.plan_to_watch, .profile .user-statistics .stats-status .circle.plan_to_watch:after,
+  .profile .user-statistics .stats-graph .graph.plan_to_watch {background:${customcolors[4]}!important}
+  .profile .statistics-updates .data .graph .graph-inner.manga.reading, .profile .user-statistics .stats-status .circle.reading:after,
+  .profile .user-statistics .stats-graph .graph.reading {background:${customcolors[5]}!important}
+  .profile .statistics-updates .data .graph .graph-inner.manga.completed, .profile .user-statistics .stats-status .circle.manga.completed:after,
+  .profile .user-statistics .stats-graph .graph.manga.completed {background:${customcolors[6]}!important}
+  .profile .statistics-updates .data .graph .graph-inner.manga.on_hold, .profile .user-statistics .stats-status .circle.manga.on_hold:after,
+  .profile .user-statistics .stats-graph .graph.manga.on_hold {background:${customcolors[7]}!important}
+  .profile .statistics-updates .data .graph .graph-inner.manga.dropped, .profile .user-statistics .stats-status .circle.manga.dropped:after,
+  .profile .user-statistics .stats-graph .graph.manga.dropped {background:${customcolors[8]}!important}
+  .profile .statistics-updates .data .graph .graph-inner.manga.plan_to_read, .profile .user-statistics .stats-status .circle.manga.plan_to_read:after,
+  .profile .user-statistics .stats-graph .graph.plan_to_read {background:${customcolors[9]}!important}
+  .profile #profile-stats-anime-genre-table table .list-item .data.ratio > div .mal-progress .mal-progress-bar.primary{background:${customcolors[10]}!important}
+  #profile-stats-anime-score-dist g.amcharts-Sprite-group.amcharts-Container-group[fill="#338543"]{fill:${customcolors[0]}!important;}
+  #profile-stats-anime-score-dist g.amcharts-Sprite-group.amcharts-Container-group[fill="#2d4276"]{fill:${customcolors[1]}!important;}
+  #profile-stats-anime-score-dist g.amcharts-Sprite-group.amcharts-Container-group[fill="#c9a31f"]{fill:${customcolors[2]}!important;}
+  #profile-stats-anime-score-dist g.amcharts-Sprite-group.amcharts-Container-group[fill="#832f30"]{fill:${customcolors[3]}!important;}
+  #profile-stats-manga-score-dist g.amcharts-Sprite-group.amcharts-Container-group[fill="#338543"]{fill:${customcolors[5]}!important;}
+  #profile-stats-manga-score-dist g.amcharts-Sprite-group.amcharts-Container-group[fill="#2d4276"]{fill:${customcolors[6]}!important;}
+  #profile-stats-manga-score-dist g.amcharts-Sprite-group.amcharts-Container-group[fill="#c9a31f"]{fill:${customcolors[7]}!important;}
+  #profile-stats-manga-score-dist g.amcharts-Sprite-group.amcharts-Container-group[fill="#832f30"]{fill:${customcolors[8]}!important;}
+  #profile-stats-anime-score-dist g.amcharts-Sprite-group.amcharts-Container-group span[style="color: #338543;"]{color:${customcolors[0]}!important}
+  #profile-stats-anime-score-dist g.amcharts-Sprite-group.amcharts-Container-group span[style="color: #2d4276;"]{color:${customcolors[1]}!important}
+  #profile-stats-anime-score-dist g.amcharts-Sprite-group.amcharts-Container-group span[style="color: #c9a31f;"]{color:${customcolors[2]}!important}
+  #profile-stats-anime-score-dist g.amcharts-Sprite-group.amcharts-Container-group span[style="color: #832f30;"]{color:${customcolors[3]}!important}
+  #profile-stats-manga-score-dist g.amcharts-Sprite-group.amcharts-Container-group span[style="color: #338543;"]{color:${customcolors[5]}!important}
+  #profile-stats-manga-score-dist g.amcharts-Sprite-group.amcharts-Container-group span[style="color: #2d4276;"]{color:${customcolors[6]}!important}
+  #profile-stats-manga-score-dist g.amcharts-Sprite-group.amcharts-Container-group span[style="color: #c9a31f;"]{color:${customcolors[7]}!important}
+  #profile-stats-manga-score-dist g.amcharts-Sprite-group.amcharts-Container-group span[style="color: #832f30;"]{color:${customcolors[8]}!important}
+  .profile #myanimelist li.btn-fav .title.fs10{color:${customcolors[10]}!important}
+  #myanimelist #horiznav_nav.profile-nav > ul > li > a.navactive,#myanimelist .user-function .icon-user-function:not(.disabled) i,
+  #myanimelist a:not(.user-function.mb8 a):not(.profile-nav > ul > li > a):not(.icon-team-title):not(.header-profile-link):not(.header-menu-dropdown.header-profile-dropdown a):not(#nav ul a):not(.header-list-dropdown ul li a),
+  #myanimelist a:visited:not(.profile-nav > ul > li > a):not(.icon-team-title):not(.header-menu-dropdown.header-profile-dropdown a):not(#nav ul a):not(.header-list-dropdown ul li a) {color:${customcolors[10]}!important;}
+  .loadmore:hover, .favThemes .fav-theme-container .sortFavSong:hover, .favThemes .fav-theme-container .removeFavSong:hover,
+  #myanimelist #header-menu > div.header-menu-unit.header-profile.js-header-menu-unit > a:hover,#myanimelist #menu > #menu_left > #nav > li > a:hover,#myanimelist .header-list-button .icon:hover,
+  #myanimelist .header-notification-dropdown .header-notification-dropdown-inner .header-notification-item > .inner.is-read .header-notification-item-header .category,
+  #myanimelist a:not(.user-function.mb8 a):not(.icon-team-title):not(.header-profile-link):hover,.header-list .header-list-dropdown ul li a:hover,.header-profile-dropdown.color-pc-constant ul li a:hover,
+  .page-common #nav.color-pc-constant li a:hover,.profile #myanimelist #header-menu ul > li > a:hover,#myanimelist > div.header-menu-unit.header-profile.js-header-menu-unit > a:hover,
+  #myanimelist #top-search-bar.color-pc-constant #topSearchButon:hover,#myanimelist .header-message-button:hover .icon,#myanimelist .header-notification-button:hover .icon,
+  #myanimelist #menu #topSearchText:hover:not(:focus-within) + #topSearchButon i:before,.dark-mode .profile #myanimelist #menu #nav ul a:hover,#myanimelist #horiznav_nav.profile-nav > ul > li > a:hover,
+  .profile #myanimelist #menu #nav ul a:hover {
+  color:${tinycolor(customcolors[10]).brighten(25)}!important;}`;
+  if (!styleElement) {
+    styleElement = create("style", { id: "customProfileColors" });
+    document.head.appendChild(styleElement);
+  }
+  styleElement.innerHTML = colorStyles.replace(/\n/g, '');
+}
+
+//Change Foreground Color
+async function changeForeground(color) {
+  let cArr = [
+    `--fg: ${color}!important;`,
+    `--fg2: ${tinycolor(color).brighten(3)}!important;`,
+    `--fg4: ${tinycolor(color).brighten(6)}!important;`,
+    `--fgOP: ${color}!important;`,
+    `--fgOP2: ${tinycolor(color).brighten(3)}!important;`,
+    `--bg: ${tinycolor(color).darken(3)}!important;`,
+    `--bgo: ${tinycolor(color).setAlpha(.8).toRgbString()}!important;`,
+    `--color-background: ${tinycolor(color).darken(3)}!important;`,
+    `--color-backgroundo: ${tinycolor(color).setAlpha(.8).toRgbString()}!important;`,
+    `--color-foreground: ${color}!important;`,
+    `--color-foreground2: ${tinycolor(color).brighten(3)}!important;`,
+    `--color-foreground3: ${tinycolor(color).brighten(4)}!important;`,
+    `--color-foreground4: ${tinycolor(color).brighten(6)}!important;`,
+    `--color-foregroundOP: ${color}!important;`,
+    `--color-foregroundOP2: ${tinycolor(color).brighten(3)}!important;`,
+    `--border-color: ${tinycolor(color).brighten(8)}!important;`,
+  ];
+  if (svar.modernLayout) {
+    await delay(200);
+    $('style').each(function() {
+      let styleContent = $(this).html();
+      if (styleContent.includes('--fg:') || styleContent.includes('--color-')) {
+        let updatedStyle = styleContent
+        .replace(/--fg:\s*[^;]+;/g, cArr[0])
+        .replace(/--fg2:\s*[^;]+;/g, cArr[1])
+        .replace(/--fg4:\s*[^;]+;/g, cArr[2])
+        .replace(/--fgOP:\s*[^;]+;/g, cArr[3])
+        .replace(/--fgOP2:\s*[^;]+;/g, cArr[4])
+        .replace(/--bg:\s*[^;]+!important;/g, cArr[5])
+        .replace(/--bgo:\s*[^;]+!important;/g, cArr[6])
+        .replace(/--color-background:\s*[^;]+!important;/g, cArr[7])
+        .replace(/--color-backgroundo:\s*[^;]+!important;/g, cArr[8])
+        .replace(/--color-foreground:\s*[^;]+!important;/g, cArr[9])
+        .replace(/--color-foreground2:\s*[^;]+!important;/g, cArr[10])
+        .replace(/--color-foreground3:\s*[^;]+!important;/g, cArr[11])
+        .replace(/--color-foreground4:\s*[^;]+!important;/g, cArr[12])
+        .replace(/--color-foregroundOP:\s*[^;]+!important;/g, cArr[13])
+        .replace(/--color-foregroundOP2:\s*[^;]+!important;/g, cArr[14])
+        .replace(/--border-color:\s*[^;]+!important;/g, cArr[15]);
+        $(this).html(updatedStyle);
+      }
+    });
+
+    let customColors = `:root, body {${cArr.join("\n")}}
+    .dark-mode .page-common #headerSmall,.page-common #headerSmall,html .page-common #contentWrapper, .dark-mode .page-common #contentWrapper,.dark-mode .page-common #content
+    {background-color: var(--color-background)!important}
+    .dark-mode .profile.statistics .content-container .container-right .chart-wrapper>.filter,.dark-mode .mal-alert,.dark-mode .mal-alert.danger,.dark-mode .profile.statistics .chart-container-rf .right .filter,
+    .dark-mode .mal-alert.secondary,.dark-mode .sceditor-container,.dark-mode .head-config,.dark-mode .profile .navi .tabs .btn-tab,.dark-mode .profile .boxlist-container .boxlist,
+    .dark-mode .sceditor-container iframe,.dark-mode .sceditor-container textarea,.dark-mode .user-profile .user-status li,.dark-mode .user-profile .user-status li:nth-of-type(even),
+    .profile.statistics .content-container .container-right .chart-wrapper>.filter,.mal-alert,.mal-alert.danger,.profile.statistics .chart-container-rf .right .filter,.mal-alert.secondary,
+    .sceditor-container,.head-config,.profile .navi .tabs .btn-tab,.profile .boxlist-container .boxlist,.sceditor-container iframe, .sceditor-container textarea,.user-profile .user-status li,
+    .user-profile .user-status li:nth-of-type(even),.dark-mode .page-common #footer-block, .page-common #footer-block,.page-common ul#nav ul li a,
+    .dark-mode .page-common .header-profile .header-profile-dropdown ul li a,.page-common .header-profile .header-profile-dropdown ul li a,
+     .header-list .header-list-dropdown ul li a,.dark-mode .page-common .header-notification-dropdown .arrow_box,.page-common .header-notification-dropdown .arrow_box
+    {background: var(--color-foreground)!important}
+    .dark-mode .mal-alert.primary,.dark-mode .profile .navi .tabs .btn-tab:hover, .dark-mode .profile .navi .tabs .btn-tab.on,.dark-mode .page-common .quotetext, .dark-mode .page-common .codetext,
+    .dark-mode .mal-tabs a.item.active,.dark-mode div.sceditor-toolbar,.mal-alert.primary,.profile .navi .tabs .btn-tab:hover, .profile .navi .tabs .btn-tab.on,.page-common .quotetext, .page-common .codetext,
+    .mal-tabs a.item.active,div.sceditor-toolbar,.dark-mode .page-common #menu,.page-common #menu
+    {background: 0!important}
+    .page-common .content-container * {border-color:var(--border-color)!important}
+    .dark-mode .page-common #searchBar.searchBar #topSearchText,.page-common #searchBar.searchBar #topSearchText
+    {border-left: var(--border-color) 1px solid;}
+    .dark-mode .page-common .header-notification-dropdown .header-notification-dropdown-inner .header-notification-view-all a,.page-common .header-notification-dropdown .header-notification-dropdown-inner .header-notification-view-all a,
+    .dark-mode .page-common #searchBar.searchBar #topSearchValue,.page-common #searchBar.searchBar #topSearchValue,.user-profile .user-button .btn-profile-submit,.dark-mode .page-common .btn-form-submit,
+    .page-common .btn-form-submit,.dark-mode .page-common #topSearchText, .page-common #topSearchText
+    {background-color: var(--color-foreground2) !important;}
+    .dark-mode .page-common .header-notification-item:hover,.page-common .header-notification-item:hover
+    ${defaultMal ? `,.dark-mode .page-common #searchBar.searchBar #topSearchButon,.page-common #searchBar.searchBar #topSearchButon` : ``}
+    {background-color: var(--color-foreground4) !important;}
+    html .page-common #contentWrapper, .dark-mode .page-common #contentWrapper
+    {padding: 10px 0 0 0!important;}
+    .dark-mode .page-common .header-notification-dropdown, .page-common .header-notification-dropdown,
+    #nav > li > a, #menu #menu_left #nav li ul,.page-common .header-profile.link-bg,.page-common .header-profile .header-profile-dropdown.color-pc-constant,
+    .page-common .header-profile .header-profile-dropdown,.dark-mode .page-common .header-list .header-list-dropdown.color-pc-constant,.page-common .header-list .header-list-dropdown.color-pc-constant
+    {background:0 0!important}
+    .dark-mode .page-common .header-notification-dropdown .header-notification-dropdown-inner .header-notification-view-all a:hover,.page-common .header-notification-dropdown .header-notification-dropdown-inner .header-notification-view-all a:hover,
+    .dark-mode .page-common .header-list .header-list-dropdown.color-pc-constant ul li a:hover,.page-common .header-list .header-list-dropdown.color-pc-constant ul li a:hover,
+    .dark-mode .page-common #nav.color-pc-constant ul a:hover,.page-common #nav.color-pc-constant ul a:hover,.dark-mode .page-common .header-profile .header-profile-dropdown ul li a:hover,
+    .dark-mode .page-common .header-profile ul li a:hover, .page-common .header-profile ul li a:hover
+    {color:#bbb!important;}`;
+    customColors = customColors.replace(/\n/g, '');
+    styleSheet.innerText = styles + customColors + defaultCSSFixes;
+    document.head.appendChild(styleSheet);
+  }
+}
+
 //Profile Foreground Color
 let fgColorSelector = create("input", { class: "badgeInput", id: "fgcolorselector",type:"color" });
 let updateFgButton = create("button", { class: "mainbtns", id: "privateProfile"}, "Update");
@@ -3770,6 +4021,7 @@ fgColorSelector.value = defaultFgColor;
 
 fgColorSelector.addEventListener('input', (event) => {
   fgColorValue = event.target.value;
+  changeForeground(fgColorValue);
 });
 
 updateFgButton.onclick = () => {
@@ -3990,7 +4242,7 @@ bgRemoveButton.onclick = () => {
 //Custom Avatar
 var pfButton = create("button", { class: "mainbtns", id: "custompf" }, "Update");
 var pfRemoveButton = create("button", { class: "mainbtns fa fa-trash", id: "custompfRemove" });
-let pfInput = create("input", { class: "bgInput", id: "pfInput" });
+let pfInput = create("input", { class: "pfInput", id: "pfInput" });
 pfInput.placeholder = "Paste your Avatar Image Url here";
 var pfInfo = create("p", { class: "textpb" }, "");
 pfButton.onclick = () => {
@@ -4087,12 +4339,16 @@ const customColorsDefault = [
   '#338543', '#2d4276', '#c9a31f', '#832f30', '#747474', defaultLinkColor
 ];
 
+let colorValues;
 const colorSelectors = Array.from({ length: customColorLabels.length }, (_, index) => {
   const colorInput = createColorInput();
   colorInput.value = customColorsDefault[index];
+  colorInput.addEventListener("input", (event) => {
+    colorValues = colorSelectors.map(selector => selector.value);
+    applyCustomColors(colorValues);
+  });
   return colorInput;
 });
-
 const colorAnimeStats = create("div", { class: "colorGroup" },'<b>Anime Stats</b>');
 customColorLabels.slice(0, 5).forEach((label, index) => {
   const colorDiv = create("div", { class: "colorOption" });
@@ -4140,7 +4396,6 @@ function getSettings() {
   });
 }
 
-
 //MalClean Settings - Create Custom Settings Div Function
 function createCustomSettingDiv(title, description) {
   return create(
@@ -4151,6 +4406,61 @@ function createCustomSettingDiv(title, description) {
        <h3>${description}</h3>
      </div>`
   );
+}
+
+//MalClean Settings - Create Svar Settings Dropdown
+function createSvarSetting(parentElement, settingKey, text) {
+  let settingDiv;
+  let hasSettings = document.querySelector(`${parentElement} .malCleanSettingPopup`);
+  if(!hasSettings) {
+    let settingButton = create("a", { active: "0", class: "fa fa-gear" });
+    settingDiv = create("div", { class: "malCleanSettingPopup svar", style: { display: "none" } });
+    settingButton.onclick = () => {
+      const active = $(settingButton).attr('active');
+      if (active === '0') {
+        $(settingDiv).slideDown();
+        $(settingButton).attr('active', '1');
+        getSettings();
+      } else {
+        $(settingDiv).slideUp();
+        $(settingButton).attr('active', '0');
+      }
+    };
+    $(parentElement).append(settingButton);
+    $(settingButton).parent().append(settingDiv);
+  }
+  const buttons = buttonsConfig.reduce((acc, { id, setting, text }) => {
+    acc[id] = createButton({ id, setting, text });
+    return acc;
+  }, {});
+  let targetDiv = hasSettings || settingDiv;
+  $(targetDiv).append(buttons[settingKey], `<h3>${text}</h3>`);
+}
+
+//MalClean Settings - Create TTL Settings Dropdown
+function createTTLSetting(parentElement, svar, settingKey, text) {
+  let settingButton = create("a", { active: "0", class: "fa fa-gear" });
+  let settingDiv = create("div", { class: "malCleanSettingPopup", style: { display: "none" } });
+  let settingInput = create("input", { class: `${settingKey}Input`, placeholder: "Days (Number)" });
+  if (svar[settingKey]) settingInput.value = daysToTTL(svar[settingKey], 1);
+  $(settingDiv).append(`<h3>How often should the ${text} data be updated? (Days)</h3>`, settingInput);
+  settingInput.addEventListener('input', (event) => {
+    const ttl = daysToTTL(event.target.value);
+    svar[settingKey] = ttl;
+    svar.save();
+  });
+  settingButton.onclick = () => {
+    const active = $(settingButton).attr('active');
+    if (active === '0') {
+      $(settingButton).parent().append(settingDiv);
+      $(settingDiv).slideDown();
+      $(settingButton).attr('active', '1');
+    } else {
+      $(settingDiv).slideUp();
+      $(settingButton).attr('active', '0');
+    }
+  };
+  $(parentElement).append(settingButton);
 }
 
 //MalClean Settings - Create Settings Div
@@ -4225,13 +4535,14 @@ function createDiv() {
         { b: buttons["animeBgBtn"], t: "Add dynamic background color based cover art's color palette" },
         { b: buttons["animeBannerBtn"], t: "Add banner image from Anilist" },
         { b: buttons["animeBannerMoveBtn"], t: "Move the cover image below the banner image." },
-        { b: buttons["animeTagBtn"], t: "Add tags from Anilist" },
-        { b: buttons["animeRelationBtn"], t: "Replace relations" },
+        { b: buttons["animeTagBtn"], t: "Add tags from Anilist"},
+        { b: buttons["animeRelationBtn"], t: "Replace relations"},
         { b: buttons["relationFilterBtn"], t: "Add filter to replaced relations" },
         { b: buttons["animeSongsBtn"], t: "Replace Anime OP/ED with animethemes.moe" },
         { b: buttons["editPopupBtn"], t: "Replace the edit details with the edit popup" },
         { b: buttons["animeInfoDesignBtn"], t: "Change the design of the Information on the left side." },
         { b: buttons["animeHeaderBtn"], t: "Change title position" },
+        { b: buttons["customCoverBtn"], t: "Custom Cover Image <br><i>(Go to the anime/manga pictures page to change it)</i>" },
       ]
     ),
     createListDiv(
@@ -4263,7 +4574,7 @@ function createDiv() {
     createListDiv(
       "Forum",
       [
-        { b: buttons["embedBtn"], t: "Modern Anime/Manga Links" },
+        { b: buttons["embedBtn"], t: "Modern Anime/Manga Links"},
         { b: buttons["forumDateBtn"], t: "Change date format" },
       ]
     ),
@@ -4282,7 +4593,6 @@ function createDiv() {
       ]
     )
   );
-
   listDiv.append(privateProfileDiv,hideProfileElDiv,customProfileElDiv,malBadgesDiv,custompfDiv,custombadgeDiv, custombgDiv, customfgDiv);
   custompfDiv.append(pfInput, pfButton,pfRemoveButton, pfInfo);
   //if Modern Profile Layout active, add custom settings.
@@ -4291,8 +4601,7 @@ function createDiv() {
     custombgDiv.append(bgInput, bgButton, bgRemoveButton, bgInfo);
     custombadgeDiv.append(badgeInput, badgeColorSelector, badgeColorLoop, badgeButton);
     malBadgesDiv.append(malBadgesInput, malBadgesButton, malBadgesRemoveButton, malBadgesSimpleButton, malBadgesSimpleButtonText);
-    buttons["profileHeaderBtn"].style.display = "none";
-    buttons["profileHeaderBtn"].nextSibling.style.display = "none";
+    buttons["profileHeaderBtn"].parentElement.style.display = "none";
   }
   customColorsDiv.append(customColors, customColorButton, customColorRemoveButton);
   privateProfileDiv.append(privateButton,removePrivateButton);
@@ -4302,8 +4611,14 @@ function createDiv() {
   customCSSDiv.append(cssInput, cssButton, cssRemoveButton, cssmodernLayout, cssmodernLayoutText, cssInfo);
   document.querySelector("#headerSmall").insertAdjacentElement("afterend", listDiv);
   listDiv.append(buttons["removeAllCustomBtn"]);
+
+  createSvarSetting("#replaceListBtnOption", "listAiringStatusBtn", "Show Airing Status Dot");
+  createTTLSetting($("#embedBtnOption"), svar, "embedTTL", "embed");
+  createTTLSetting($("#animeTagBtnOption"), svar, "tagTTL", "tag");
+  createTTLSetting($("#animeRelationBtnOption"), svar, "relationTTL", "relation");
   getSettings();
 }
+
 //MalClean Settings - Close Settings Div
 function closeDiv() {
   $('.malCleanMainContainer').remove();
@@ -4369,6 +4684,7 @@ function delay(ms) {
 
   //onload Function
   async function on_load() {
+    await delay(500);
     //Replace anime.php
     const phpUrl = window.location.href;
     if (phpUrl.includes('/anime.php?id=')) {
@@ -4387,6 +4703,9 @@ function delay(ms) {
       stLink.prepend(gearClone);
       stButton.append(stLink);
       pfHeader.insertAdjacentElement("afterend", stButton);
+    }
+    if (svar.customCover) {
+      loadCustomCover();
     }
   };
 
@@ -4418,25 +4737,23 @@ function delay(ms) {
       let user = headerUserName;
       if(user) {
       const currentlyWatchingDiv = create("article", { class: "widget-container left", id: "currently-watching" });
-      currentlyWatchingDiv.innerHTML =
-        '<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span><h2 class="index_h2_seo"><a href="https://myanimelist.net/animelist/' +
-        user +
-        '?status=1">Currently Watching</a>' +
-        '</h2><i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-size:12px;font-family:FontAwesome"></i></div>' +
-        '<div class="widget-content"><div class="mt4"><div class="widget-slide-block" id="widget-currently-watching">' +
-        '<div id="current-left" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div>' +
-        '<div id="current-right" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;">' +
-        '<span class="btn-inner" style="display: none;"></span></div><div class="widget-slide-outer">' +
-        '<ul class="widget-slide js-widget-slide" data-slide="4" style="width: 3984px; margin-left: 0px;-webkit-transition:margin-left 0.4s ease-in-out;transition:margin-left 0.4s ease-in-out"></ul></div></div></div></div></div>';
-      //Get watching anime data from user's list
+      currentlyWatchingDiv.innerHTML = `<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span>
+      <h2 class="index_h2_seo"><a href="https://myanimelist.net/animelist/${user}?status=1">Currently Watching</a></h2>
+      <i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative; margin-left:5px; font-size:12px; font-family:FontAwesome"></i></div>
+      <div class="widget-content"><div class="mt4"><div class="widget-slide-block" id="widget-currently-watching">
+      <div id="current-left" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div>
+      <div id="current-right" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;"><span class="btn-inner" style="display: none;"></span></div>
+      <div class="widget-slide-outer"><ul class="widget-slide js-widget-slide" data-slide="4" style="width: 3984px; margin-left: 0px; -webkit-transition: margin-left 0.4s ease-in-out; transition: margin-left 0.4s ease-in-out"></ul>
+      </div></div></div></div></div>`;
+     //Get watching anime data from user's list
       const html = await fetch("https://myanimelist.net/animelist/" + user + "?status=1")
         .then((response) => response.text())
-        .then((data) => {
+        .then(async (data) => {
           var newDocument = new DOMParser().parseFromString(data, "text/html");
           let list = JSON.parse(newDocument.querySelector("#list-container > div.list-block > div > table").getAttribute("data-items"));
           if (list) {
             document.querySelector("#content > div.left-column").prepend(currentlyWatchingDiv);
-            processList();
+            await processList();
             async function processList() {
               if (svar.airingDate) {
                 for (const item of list) {
@@ -4493,18 +4810,9 @@ function delay(ms) {
                 let increaseButton = create("i", {class: "fa fa-plus incButton",id: list[x].anime_id});
                 // create watching anime div
                 let wDiv = create("li", { class: "btn-anime" });
-                wDiv.innerHTML =
-                  '<a class="link" href=' +
-                  list[x].anime_url +
-                  ">" +
-                  '<img width="124" height="170" class="lazyloaded" src=' +
-                  list[x].anime_image_path +
-                  ">" +
-                  '<span class="title js-color-pc-constant color-pc-constant">' +
-                  list[x].anime_title +
-                  "</span>" +
-                  (nextep ? nextep : "") +
-                  "</a>";
+                wDiv.innerHTML = `<a class="link" href="${list[x].anime_url}">
+                <img width="124" height="170" class="lazyloaded" src="${list[x].anime_image_path}" alt="${list[x].anime_title}">
+                <span class="title js-color-pc-constant color-pc-constant">${list[x].anime_title}</span>${nextep ? nextep : ""}</a>`;
                 wDiv.appendChild(ib);
                 wDiv.appendChild(increaseButton);
                 document.querySelector("#widget-currently-watching ul").append(wDiv);
@@ -4519,7 +4827,7 @@ function delay(ms) {
                     return;
                   }
                   if (incActive === 0) {
-                  incActive = ib.id;
+                    incActive = ib.id;
                   }
                   lastClickTime = currentTime;
                   incCount++;
@@ -4579,6 +4887,9 @@ function delay(ms) {
                 document.querySelector("#current-right").classList.remove("active");
               }
             });
+            if (svar.customCover) {
+              loadCustomCover();
+            }
           }
         });
       }
@@ -4602,20 +4913,18 @@ function delay(ms) {
       let user = headerUserName;
       if(user) {
       const currentlyReadingDiv = create("article", { class: "widget-container left", id: "currently-reading" });
-      currentlyReadingDiv.innerHTML =
-        '<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span><h2 class="index_h2_seo"><a href="https://myanimelist.net/mangalist/' +
-        user +
-        '?status=1">Currently Reading</a>' +
-        '</h2><i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-size:12px;font-family:FontAwesome"></i></div>' +
-        '<div class="widget-content"><div class="mt4"><div class="widget-slide-block" id="widget-currently-reading">' +
-        '<div id="current-left-manga" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div>' +
-        '<div id="current-right-manga" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;">' +
-        '<span class="btn-inner" style="display: none;"></span></div><div class="widget-slide-outer">' +
-        '<ul class="widget-slide js-widget-slide manga" data-slide="4" style="width: 3984px; margin-left: 0px;-webkit-transition:margin-left 0.4s ease-in-out;transition:margin-left 0.4s ease-in-out"></ul></div></div></div></div></div>';
-      //Get reading anime data from user's list
+        currentlyReadingDiv.innerHTML = `<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span>
+        <h2 class="index_h2_seo"><a href="https://myanimelist.net/mangalist/${user}?status=1">Currently Reading</a></h2>
+        <i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative; margin-left:5px; font-size:12px; font-family:FontAwesome"></i></div>
+        <div class="widget-content"><div class="mt4"><div class="widget-slide-block" id="widget-currently-reading">
+        <div id="current-left-manga" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div>
+        <div id="current-right-manga" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;"><span class="btn-inner" style="display: none;"></span></div>
+        <div class="widget-slide-outer"><ul class="widget-slide js-widget-slide manga" data-slide="4" style="width: 3984px; margin-left: 0px; -webkit-transition: margin-left 0.4s ease-in-out; transition: margin-left 0.4s ease-in-out"></ul>
+        </div></div></div></div></div>`;
+        //Get reading anime data from user's list
       const html = await fetch("https://myanimelist.net/mangalist/" + user + "?status=1")
         .then((response) => response.text())
-        .then((data) => {
+        .then(async (data) => {
           var newDocument = new DOMParser().parseFromString(data, "text/html");
           let list = JSON.parse(newDocument.querySelector("#list-container > div.list-block > div > table").getAttribute("data-items"));
           if (list) {
@@ -4624,7 +4933,7 @@ function delay(ms) {
             } else {
               document.querySelector("#content > div.left-column").prepend(currentlyReadingDiv);
             }
-            processList();
+            await processList();
             async function processList() {
               for (let x = 0; x < list.length; x++) {
                 let nextchap = '<div id="700000" class="airingInfo" style="padding: 8px 0px"><div style="padding-top:3px">' + list[x].num_read_chapters +
@@ -4637,7 +4946,7 @@ function delay(ms) {
                     return;
                   }
                   if (incActive === 0) {
-                  incActive = ib.id;
+                    incActive = ib.id;
                   }
                   lastClickTime = currentTime;
                   incCount++;
@@ -4653,18 +4962,9 @@ function delay(ms) {
                 };
                 // Create Reading Manga Div
                 let rDiv = create("li", { class: "btn-anime" });
-                rDiv.innerHTML =
-                  '<a class="link" href=' +
-                  list[x].manga_url +
-                  ">" +
-                  '<img width="124" height="170" class="lazyloaded" src=' +
-                  list[x].manga_image_path +
-                  ">" +
-                  '<span class="title js-color-pc-constant color-pc-constant">' +
-                  list[x].manga_title +
-                  "</span>" +
-                  nextchap +
-                  "</a>";
+                rDiv.innerHTML = `<a class="link" href="${list[x].manga_url}">
+                <img width="124" height="170" class="lazyloaded" src="${list[x].manga_image_path}" alt="${list[x].manga_title}" alt="${list[x].manga_title}">
+                <span class="title js-color-pc-constant color-pc-constant">${list[x].manga_title}</span>${nextchap}</a>`;
                 rDiv.appendChild(ib);
                 rDiv.appendChild(increaseButton);
                 document.querySelector("#widget-currently-reading ul").append(rDiv);
@@ -4705,12 +5005,15 @@ function delay(ms) {
                 document.querySelector("#current-right-manga").classList.remove("active");
               }
             });
+            if (svar.customCover) {
+              loadCustomCover();
+            }
           }
         });
       }
     }
   }
-    //Currently Reading //--END--//
+  //Currently Reading //--END--//
 
   //Recently Added Anime //--START--//
   if (svar.recentlyAddedAnime && location.pathname === "/") {
@@ -5147,7 +5450,7 @@ function delay(ms) {
   //Forum Anime-Manga Embed //--START--//
   if (svar.embed && /\/(forum)\/.?topicid([\w-]+)?\/?/.test(location.href)) {
     const embedCache = localforage.createInstance({ name: "MalJS", storeName: "embed" });
-    const options = { cacheTTL: 262974383, class: "embed" };
+    const options = { cacheTTL: svar.embedTTL ? svar.embedTTL : 2592000000, class: "embed" };
     let acttextfix;
     let id, type, embed, imgdata, data, cached;
     //API Request
@@ -5179,12 +5482,12 @@ function delay(ms) {
         data = await cache;
         if (data && data.data && data.data.status) {
           if (data.data.status === "Finished Airing" || data.data.status === "Finished") {
-            options.cacheTTL = 15778476000;
+            options.cacheTTL = 15552000000;
           } else {
-            options.cacheTTL = 262974383;
+            options.cacheTTL = svar.embedTTL;
           }
         }
-        if (cache.time + options.cacheTTL < +new Date()) {
+        if (cache.time + options.cacheTTL < Date.now()) {
           data = await fetchData(apiUrl);
           if(data.status === 404) {
             return;
@@ -5203,7 +5506,7 @@ function delay(ms) {
               year: data.data.type !== "Anime" ? (publishedYear || airedYear || "") : (airedYear || ""),
               url: data.data.url,
             },
-            time: +new Date(),
+            time: Date.now(),
           });
           imgdata = data.data.images.jpg.image_url;
           cached = false;
@@ -5437,10 +5740,6 @@ function delay(ms) {
       window.scrollTo(0, 0);
       shadow.setAttribute('style', 'background: linear-gradient(180deg,rgba(6,13,34,0) 40%,rgba(6,13,34,.6));height: 100%;left: 0;position: absolute;top: 0;width: 100%;');
       banner.append(shadow);
-
-      if (!svar.customCSS) {
-        document.querySelector("#contentWrapper").style.top = "60px";
-      }
       startCustomProfile();
     }
     if($('title').text() === '404 Not Found - MyAnimeList.net\n'){
@@ -5727,63 +6026,6 @@ function delay(ms) {
       }
     }
 
-    //Add Custom Profile Colors
-    async function applyCustomColors (customcolors) {
-      var colorStyleSheet = document.createElement('style');
-      const colorStyles = `
-      .profile .statistics-updates .data .graph .graph-inner.watching, .profile .user-statistics .stats-status .circle.watching:after,
-      .profile .user-statistics .stats-graph .graph.watching {background:${customcolors[0]}!important}
-      .profile .statistics-updates .data .graph .graph-inner.completed, .profile .user-statistics .stats-status .circle.completed:after,
-      .profile .user-statistics .stats-graph .graph.completed {background:${customcolors[1]}!important}
-      .profile .statistics-updates .data .graph .graph-inner.on_hold, .profile .user-statistics .stats-status .circle.on_hold:after,
-      .profile .user-statistics .stats-graph .graph.on_hold {background:${customcolors[2]}!important}
-      .profile .statistics-updates .data .graph .graph-inner.dropped, .profile .user-statistics .stats-status .circle.dropped:after,
-      .profile .user-statistics .stats-graph .graph.dropped {background:${customcolors[3]}!important}
-      .profile .statistics-updates .data .graph .graph-inner.plan_to_watch, .profile .user-statistics .stats-status .circle.plan_to_watch:after,
-      .profile .user-statistics .stats-graph .graph.plan_to_watch {background:${customcolors[4]}!important}
-      .profile .statistics-updates .data .graph .graph-inner.manga.reading, .profile .user-statistics .stats-status .circle.reading:after,
-      .profile .user-statistics .stats-graph .graph.reading {background:${customcolors[5]}!important}
-      .profile .statistics-updates .data .graph .graph-inner.manga.completed, .profile .user-statistics .stats-status .circle.manga.completed:after,
-      .profile .user-statistics .stats-graph .graph.manga.completed {background:${customcolors[6]}!important}
-      .profile .statistics-updates .data .graph .graph-inner.manga.on_hold, .profile .user-statistics .stats-status .circle.manga.on_hold:after,
-      .profile .user-statistics .stats-graph .graph.manga.on_hold {background:${customcolors[7]}!important}
-      .profile .statistics-updates .data .graph .graph-inner.manga.dropped, .profile .user-statistics .stats-status .circle.manga.dropped:after,
-      .profile .user-statistics .stats-graph .graph.manga.dropped {background:${customcolors[8]}!important}
-      .profile .statistics-updates .data .graph .graph-inner.manga.plan_to_read, .profile .user-statistics .stats-status .circle.manga.plan_to_read:after,
-      .profile .user-statistics .stats-graph .graph.plan_to_read {background:${customcolors[9]}!important}
-      .profile #profile-stats-anime-genre-table table .list-item .data.ratio > div .mal-progress .mal-progress-bar.primary{background:${customcolors[10]}!important}
-      #profile-stats-anime-score-dist g.amcharts-Sprite-group.amcharts-Container-group[fill="#338543"]{fill:${customcolors[0]}!important;}
-      #profile-stats-anime-score-dist g.amcharts-Sprite-group.amcharts-Container-group[fill="#2d4276"]{fill:${customcolors[1]}!important;}
-      #profile-stats-anime-score-dist g.amcharts-Sprite-group.amcharts-Container-group[fill="#c9a31f"]{fill:${customcolors[2]}!important;}
-      #profile-stats-anime-score-dist g.amcharts-Sprite-group.amcharts-Container-group[fill="#832f30"]{fill:${customcolors[3]}!important;}
-      #profile-stats-manga-score-dist g.amcharts-Sprite-group.amcharts-Container-group[fill="#338543"]{fill:${customcolors[5]}!important;}
-      #profile-stats-manga-score-dist g.amcharts-Sprite-group.amcharts-Container-group[fill="#2d4276"]{fill:${customcolors[6]}!important;}
-      #profile-stats-manga-score-dist g.amcharts-Sprite-group.amcharts-Container-group[fill="#c9a31f"]{fill:${customcolors[7]}!important;}
-      #profile-stats-manga-score-dist g.amcharts-Sprite-group.amcharts-Container-group[fill="#832f30"]{fill:${customcolors[8]}!important;}
-      #profile-stats-anime-score-dist g.amcharts-Sprite-group.amcharts-Container-group span[style="color: #338543;"]{color:${customcolors[0]}!important}
-      #profile-stats-anime-score-dist g.amcharts-Sprite-group.amcharts-Container-group span[style="color: #2d4276;"]{color:${customcolors[1]}!important}
-      #profile-stats-anime-score-dist g.amcharts-Sprite-group.amcharts-Container-group span[style="color: #c9a31f;"]{color:${customcolors[2]}!important}
-      #profile-stats-anime-score-dist g.amcharts-Sprite-group.amcharts-Container-group span[style="color: #832f30;"]{color:${customcolors[3]}!important}
-      #profile-stats-manga-score-dist g.amcharts-Sprite-group.amcharts-Container-group span[style="color: #338543;"]{color:${customcolors[5]}!important}
-      #profile-stats-manga-score-dist g.amcharts-Sprite-group.amcharts-Container-group span[style="color: #2d4276;"]{color:${customcolors[6]}!important}
-      #profile-stats-manga-score-dist g.amcharts-Sprite-group.amcharts-Container-group span[style="color: #c9a31f;"]{color:${customcolors[7]}!important}
-      #profile-stats-manga-score-dist g.amcharts-Sprite-group.amcharts-Container-group span[style="color: #832f30;"]{color:${customcolors[8]}!important}
-      .profile #myanimelist li.btn-fav .title.fs10{color:${customcolors[10]}!important}
-      #myanimelist #horiznav_nav.profile-nav > ul > li > a.navactive,#myanimelist .user-function .icon-user-function:not(.disabled) i,
-      #myanimelist a:not(.user-function.mb8 a):not(.profile-nav > ul > li > a):not(.icon-team-title):not(.header-profile-link):not(.header-menu-dropdown.header-profile-dropdown a):not(#nav ul a):not(.header-list-dropdown ul li a),
-      #myanimelist a:visited:not(.profile-nav > ul > li > a):not(.icon-team-title):not(.header-menu-dropdown.header-profile-dropdown a):not(#nav ul a):not(.header-list-dropdown ul li a) {color:${customcolors[10]}!important;}
-      .loadmore:hover, .favThemes .fav-theme-container .sortFavSong:hover, .favThemes .fav-theme-container .removeFavSong:hover,
-      #myanimelist #header-menu > div.header-menu-unit.header-profile.js-header-menu-unit > a:hover,#myanimelist #menu > #menu_left > #nav > li > a:hover,#myanimelist .header-list-button .icon:hover,
-      #myanimelist .header-notification-dropdown .header-notification-dropdown-inner .header-notification-item > .inner.is-read .header-notification-item-header .category,
-      #myanimelist a:not(.user-function.mb8 a):not(.icon-team-title):not(.header-profile-link):hover,.header-list .header-list-dropdown ul li a:hover,.header-profile-dropdown.color-pc-constant ul li a:hover,
-      .page-common #nav.color-pc-constant li a:hover,.profile #myanimelist #header-menu ul > li > a:hover,#myanimelist > div.header-menu-unit.header-profile.js-header-menu-unit > a:hover,
-      #myanimelist #top-search-bar.color-pc-constant #topSearchButon:hover,#myanimelist .header-message-button:hover .icon,#myanimelist .header-notification-button:hover .icon,
-      #myanimelist #menu #topSearchText:hover:not(:focus-within) + #topSearchButon i:before,.dark-mode .profile #myanimelist #menu #nav ul a:hover,#myanimelist #horiznav_nav.profile-nav > ul > li > a:hover,
-      .profile #myanimelist #menu #nav ul a:hover {
-      color:${tinycolor(customcolors[10]).brighten(25)}!important;}`;
-      colorStyleSheet.innerText = colorStyles.replace(/\n/g, '');
-      document.head.appendChild(colorStyleSheet);
-    }
     //Get Custom Banner and Custom Profile Image Data from About Section
     async function findCustomAbout() {
       const aboutSection = document.querySelector('.user-profile-about.js-truncate-outer');
@@ -6039,7 +6281,9 @@ function delay(ms) {
         .l-listitem-5_5_items {margin-right: -25px;}
         .user-history-title{width: 80%;-webkit-align-self: center;-ms-flex-item-align: center;-ms-grid-row-align: center;align-self: center;}
         .user-history-date{width:25%;text-align: right;}
-        .user-history-cover{background-size:cover;margin-left: -10px;height: 69px;width:50px;margin-top: -9px;margin-right: 10px;padding-right: 5px;}
+        .user-history-cover-link{margin-left: -10px;height: 70px;width:50px;margin-top: -10px;margin-right: 10px;padding-right: 5px;}
+        .user-history-cover{background-size:cover;height: 70px;width:50px;object-fit: cover;
+        -webkit-border-top-right-radius: 0 !important;border-top-right-radius: 0 !important;-webkit-border-bottom-right-radius: 0 !important;border-bottom-right-radius: 0 !important;}
         .user-history {height: 50px;background-color: var(--color-foreground);margin: 10px 5px;padding: 10px;border:var(--border) solid var(--border-color);
         -webkit-border-radius: var(--br);border-radius: var(--br);display: -webkit-box;display: -webkit-flex;
         display: -ms-flexbox;display: flex;-webkit-box-pack: justify;-webkit-justify-content: space-between;-ms-flex-pack: justify;justify-content: space-between;overflow: hidden;}
@@ -6070,7 +6314,7 @@ function delay(ms) {
             document.querySelector("#statistics").insertAdjacentElement("beforeend", historyMain);
           }
           async function gethistory(l, item) {
-            let title, ep, date, datenew, id, url, type, historyimg, oldimg;
+            let title, titleText, ep, date, datenew, id, url, type, historylink, historyimg, oldimg;
             let wait = 666;
             let c = l ? l - 12 : 0;
             let length = l ? l : 12;
@@ -6101,6 +6345,7 @@ function delay(ms) {
               url = item[x].querySelector("a").href;
               id = item[x].querySelector("a").href.split("=")[1];
               title = item[x].querySelector("a").outerHTML;
+              titleText = item[x].querySelector("a").innerText.trim();
               ep = item[x].querySelector("strong").innerText;
               date = item[x].parentElement.children[1].innerText.split("Edit").join("");
               datenew = date.includes("Yesterday") || date.includes("Today") || date.includes("hour") || date.includes("minutes") || date.includes("seconds") ? true : false;
@@ -6131,29 +6376,20 @@ function delay(ms) {
               // Check if the title already exists in the map
               if (titleImageMap[title]) {
                 oldimg = titleImageMap[title];
-                historyimg = create("a", {
-                  class: "user-history-cover",
-                  href: url,
-                  style: {
-                    backgroundImage: "url(" + oldimg + ")",
-                  },
-                });
+                historylink = create("a", {class: "user-history-cover-link", href: url,});
+                historyimg = create("img", {class: "user-history-cover", alt: titleText, src: oldimg,});
                 wait = 99; // If already exists, reduce wait time
               } else {
                 wait = 999; // If new title, increase wait time
                 await getimg(url);
-                historyimg = create("a", {
-                  class: "user-history-cover",
-                  href: url,
-                  style: {
-                    backgroundImage: "url(" + oldimg + ")",
-                  },
-                });
+                historylink = create("a", {class: "user-history-cover-link", href: url,});
+                historyimg = create("img", {class: "user-history-cover", alt: titleText, src: oldimg,});
               }
-
-              dat.append(historyimg, name);
+              historylink.append(historyimg);
+              dat.append(historylink, name);
               dat.append(historydate);
               historyMain.appendChild(dat);
+              await loadCustomCover();
               await delay(wait);
             }
             loading.remove();
@@ -6255,8 +6491,8 @@ function delay(ms) {
           $(".maljsProfileBadge").css({bottom: "35px",});
         }
 
-        set(1, "a.btn-profile-submit.fl-l", { sa: { 0: "width:50%" } });
-        set(1, "a.btn-profile-submit.fl-r", { sa: { 0: "width:50%" } });
+        set(1, "a.btn-profile-submit.fl-l", { sa: { 0: "width:49.5%" } });
+        set(1, "a.btn-profile-submit.fl-r", { sa: { 0: "width:49.5%" } });
 
         if (set(1, ".user-profile-about.js-truncate-outer .btn-truncate.js-btn-truncate", { sa: { 0: "display:none" } })) {
           set(1, ".user-profile-about.js-truncate-outer .btn-truncate.js-btn-truncate", { sa: { 0: "display:none" } });
@@ -6430,32 +6666,6 @@ function delay(ms) {
       }
     }
     //Private Profile Check
-    async function changeForeground(color) {
-      if (svar.modernLayout) {
-        await delay(200);
-        $('style:contains(--fg:)').html('');
-        let customColors = `
-        :root,body {--fg: ${color}!important;--color-background: ${tinycolor(color).darken(3)}!important;--color-backgroundo: ${tinycolor(color).setAlpha(.8).toRgbString()}!important;
-        --color-foreground: ${color}!important;--color-foreground2: ${tinycolor(color).brighten(3)}!important;--color-foreground3: ${tinycolor(color).brighten(4)}!important;
-        --color-foregroundOP: ${color}!important;--color-foregroundOP2: ${tinycolor(color).brighten(3)}!important;--color-foreground4: ${tinycolor(color).brighten(6)}!important;
-        --border-color:${tinycolor(color).brighten(8)}!important;}
-        .dark-mode .page-common #headerSmall,.page-common #headerSmall,.dark-mode .page-common #contentWrapper,.dark-mode .page-common #content {background-color: var(--color-background)!important}
-        .dark-mode .profile.statistics .content-container .container-right .chart-wrapper>.filter,.dark-mode .mal-alert,.dark-mode .mal-alert.danger,.dark-mode .profile.statistics .chart-container-rf .right .filter,
-        .dark-mode .mal-alert.secondary,.dark-mode .sceditor-container,.dark-mode .head-config,.dark-mode .profile .navi .tabs .btn-tab,.dark-mode .profile .boxlist-container .boxlist,
-        .dark-mode .sceditor-container iframe,.dark-mode .sceditor-container textarea,.dark-mode .user-profile .user-status li,.dark-mode .user-profile .user-status li:nth-of-type(even),
-        .profile.statistics .content-container .container-right .chart-wrapper>.filter,.mal-alert,.mal-alert.danger,.profile.statistics .chart-container-rf .right .filter,.mal-alert.secondary,
-        .sceditor-container,.head-config,.profile .navi .tabs .btn-tab,.profile .boxlist-container .boxlist,.sceditor-container iframe, .sceditor-container textarea,.user-profile .user-status li,
-        .user-profile .user-status li:nth-of-type(even),.dark-mode .page-common #footer-block, .page-common #footer-block {background: var(--color-foreground)!important}
-        .dark-mode .mal-alert.primary,.dark-mode .profile .navi .tabs .btn-tab:hover, .dark-mode .profile .navi .tabs .btn-tab.on,.dark-mode .page-common .quotetext, .dark-mode .page-common .codetext,
-        .dark-mode .mal-tabs a.item.active,.dark-mode div.sceditor-toolbar,.mal-alert.primary,.profile .navi .tabs .btn-tab:hover, .profile .navi .tabs .btn-tab.on,.page-common .quotetext, .page-common .codetext,
-        .mal-tabs a.item.active,div.sceditor-toolbar,.dark-mode .page-common #menu,.page-common #menu {background: var(--color-foreground2)!important}
-        .page-common .content-container * {border-color:var(--border-color)!important}`;
-        customColors = customColors.replace(/\n/g, '');
-        styleSheet.innerText = styles + customColors + defaultCSSFixes;
-          document.head.appendChild(styleSheet);
-      }
-    }
-    //Private Profile Check
     async function applyPrivateProfile() {
       if (privateProfile && userNotHeaderUser) {
         await delay(200);
@@ -6539,12 +6749,15 @@ function delay(ms) {
       }
       const entryRow = create('div', {class: 'entry row'});
       const coverDiv = create('div', {class: 'cover'});
-      const imageDiv = create('div', {
+      const imageDiv = create('img', {
         class: 'image',
-        style: {
-          backgroundImage: 'url(' +  animeData.imageUrl + ')',
-        },
+        alt: animeData.title,
+        src: animeData.imageUrl,
       });
+      if(animeData.airingStatus == 1 && svar.listAiringStatus) {
+        const airingDot = create('span', {class: 'airing-dot'});
+        coverDiv.append(airingDot);
+      }
       const editDiv = create('div', {class: 'edit fa-pen',});
       editDiv.id = animeData.id;
       editDiv.onclick = async () => {
@@ -6640,7 +6853,7 @@ function delay(ms) {
       return allData;
     }
 
-    async function getAnimeList(type){
+    async function getAnimeList(type) {
       let animeDataList = [];
       isManga = type;
       const fetchUrl = isManga ? "https://myanimelist.net/mangalist/" + username + "?status=7" : "https://myanimelist.net/animelist/" + username + "?status=7";
@@ -6663,6 +6876,7 @@ function delay(ms) {
                   href: list[x].manga_url,
                   title: list[x].manga_title,
                   score: list[x].score,
+                  airingStatus: list[x].manga_publishing_status,
                   startDate: list[x].start_date_string,
                   finishDate: list[x].finish_date_string,
                   progress: list[x].num_read_chapters,
@@ -6683,6 +6897,7 @@ function delay(ms) {
                   href: list[x].anime_url,
                   title: list[x].anime_title,
                   score:  list[x].score,
+                  airingStatus: list[x].anime_airing_status,
                   startDate: list[x].start_date_string,
                   finishDate: list[x].finish_date_string,
                   progress: list[x].num_watched_episodes,
@@ -6695,6 +6910,7 @@ function delay(ms) {
                 });
               }
             }
+            loadCustomCover();
           }
         })
 
@@ -6710,7 +6926,7 @@ function delay(ms) {
       if (svar.modernLayout) {
         const contentDiv = document.querySelector("#content > div") ? document.querySelector("#content > div") : document.querySelector("#content > table > tbody > tr");
         if(contentDiv.className !==''){
-          contentDiv.style.marginTop = "40px";
+          contentDiv.style.marginTop = "50px";
         } else {
           contentDiv.style.marginTop = "25px";
         }
@@ -6955,271 +7171,270 @@ function delay(ms) {
       sortDesc.addEventListener("click", () => {
         sortAllSections(sortSelect.value, "desc");
       });
-
-        //Tags
+      //Tags
+      const entries = document.querySelectorAll('.entry');
+      const tagsContainer = create('div', { class: 'filterList_TagsContainer' });
+      const tagsContainerClear = create('i', { class: 'tags-container-clear fa fa-close' });
+      const tags = new Set(); // Using a Set to avoid duplicates
+      tagsContainer.style.marginBottom = "10px";
+      listFilter.appendChild(tagsContainer);
+      // Tags Clear Button Function
+      $(tagsContainerClear).on('click', function () {
+        $(".tag-link.clicked").attr('class', 'tag-link');
         const entries = document.querySelectorAll('.entry');
-        const tagsContainer = create('div', {class: 'filterList_TagsContainer'});
-        const tagsContainerClear = create('i', {class: 'tags-container-clear fa fa-close'});
-        const tags = new Set(); // Using a Set to avoid duplicates
-        tagsContainer.style.marginBottom = "10px";
-        listFilter.appendChild(tagsContainer);
-        // Tags Clear Button Function
-        $(tagsContainerClear).on('click', function() {
-          $(".tag-link.clicked").attr('class', 'tag-link');
-          const entries = document.querySelectorAll('.entry');
-          entries.forEach(entry => {
-            entry.classList.remove('hidden');
-            tagsContainerClear.style.display = "none";
-          });
-        });
-        // Collect all unique tags
         entries.forEach(entry => {
+          entry.classList.remove('hidden');
+          tagsContainerClear.style.display = "none";
+        });
+      });
+      // Collect all unique tags
+      entries.forEach(entry => {
         const tag = entry.getAttribute('tags').replace(/"/g, ''); // Remove quotes
         if (tag) {
           tags.add(tag);
         }
-        });
+      });
 
-        if(tags.size > 0) {
-          $(tagsContainer).prepend('<h3>Tags</h3>');
-          $(tagsContainer).prepend($(tagsContainerClear));
+      if (tags.size > 0) {
+        $(tagsContainer).prepend('<h3>Tags</h3>');
+        $(tagsContainer).prepend($(tagsContainerClear));
+      }
+
+      // Create tag links
+      tags.forEach(tag => {
+        const link = document.createElement('a');
+        link.className = 'tag-link';
+        link.textContent = tag;
+        link.onclick = () => {
+          $(".tag-link.clicked").attr('class', 'tag-link');
+          $(link).attr('class', 'tag-link clicked');
+          filterByTag(tag);
+        };
+        tagsContainer.appendChild(link);
+      });
+      // Filter function
+      function filterByTag(tag) {
+        if (tagsContainerClear.style.display !== "block") {
+          tagsContainerClear.style.display = "block"
         }
-
-        // Create tag links
-        tags.forEach(tag => {
-          const link = document.createElement('a');
-          link.className = 'tag-link';
-          link.textContent = tag;
-          link.onclick = () => {
-            $(".tag-link.clicked").attr('class', 'tag-link');
-            $(link).attr('class', 'tag-link clicked');
-            filterByTag(tag)
-          };
-          tagsContainer.appendChild(link);
-        });
-        // Filter function
-        function filterByTag(tag) {
-          if(tagsContainerClear.style.display !== "block"){
-            tagsContainerClear.style.display = "block"
+        entries.forEach(entry => {
+          const entryTag = entry.getAttribute('tags').replace(/"/g, '');
+          if (entryTag === tag) {
+            entry.classList.remove('hidden');
+          } else {
+            entry.classList.add('hidden');
           }
-          entries.forEach(entry => {
-            const entryTag = entry.getAttribute('tags').replace(/"/g, '');
-            if (entryTag === tag) {
-              entry.classList.remove('hidden');
-            } else {
-              entry.classList.add('hidden');
-            }
-          });
-        }
+        });
+      }
 
-        //Compare Button
-        if(userNotHeaderUser) {
-        let compareBtn = create('a', {class: 'compareBtn'},"Compare");
-        let compareUrl = isManga ? 'https://myanimelist.net/sharedmanga.php?u1='+username+'&u2='+headerUserName : 'https://myanimelist.net/sharedanime.php?u1='+username+'&u2='+headerUserName;
+      //Compare Button
+      if (userNotHeaderUser) {
+        let compareBtn = create('a', { class: 'compareBtn' }, "Compare");
+        let compareUrl = isManga ? 'https://myanimelist.net/sharedmanga.php?u1=' + username + '&u2=' + headerUserName : 'https://myanimelist.net/sharedanime.php?u1=' + username + '&u2=' + headerUserName;
         compareBtn.href = compareUrl;
-                listFilter.appendChild(compareBtn);
-        }
+        listFilter.appendChild(compareBtn);
+      }
 
-        // Make 3x3
-        let buttonDraw3x3 = AdvancedCreate("a", "#maljsDraw3x3", "Make 3x3");
-        listFilter.appendChild(buttonDraw3x3);
-        buttonDraw3x3.title = "Make 3x3";
-        buttonDraw3x3.onclick = function () {
-          if (!document.querySelector(".maljsDisplayBox")) {
-            let displayBox = createDisplayBox(false, "3x3 Maker");
-            let col_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
-            let col_label = AdvancedCreate("span", false, "columns", displayBox, "margin: 5px");
-            col_input.type = "number";
-            col_input.value = 3;
-            col_input.step = 1;
-            col_input.min = 0;
-            let row_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
-            let row_label = AdvancedCreate("span", false, "rows", displayBox, "margin: 5px");
-            AdvancedCreate("br", false, false, displayBox);
-            row_input.type = "number";
-            row_input.value = 3;
-            row_input.step = 1;
-            row_input.min = 0;
-            let margin_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
-            let margin_label = AdvancedCreate("span", false, "spacing (px)", displayBox, "margin: 5px");
-            AdvancedCreate("br", false, false, displayBox);
-            margin_input.type = "number";
-            margin_input.value = 0;
-            margin_input.min = 0;
-            let width_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
-            let width_label = AdvancedCreate("span", false, "image width (px)", displayBox, "margin: 5px");
-            width_input.type = "number";
-            width_input.value = 230;
-            width_input.min = 0;
-            let height_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
-            let height_label = AdvancedCreate("span", false, "image height (px)", displayBox, "margin: 5px");
-            AdvancedCreate("br", false, false, displayBox);
-            height_input.type = "number";
-            height_input.value = 345;
-            height_input.min = 0;
-            let fitMode = AdvancedCreate("select", "maljsNativeInput", false, displayBox);
-            let fitMode_label = AdvancedCreate("span", false, "image fitting", displayBox, "margin	: 5px");
-            let addOption = function (value, text) {
-              let newOption = AdvancedCreate("option", false, text, fitMode);
-              newOption.value = value;
-            };
-            addOption("scale", "scale");
-            addOption("crop", "crop");
-            addOption("hybrid", "scale/crop hybrid");
-            addOption("letterbox", "letterbox");
-            addOption("transparent", "transparent letterbox");
+      // Make 3x3
+      let buttonDraw3x3 = AdvancedCreate("a", "#maljsDraw3x3", "Make 3x3");
+      listFilter.appendChild(buttonDraw3x3);
+      buttonDraw3x3.title = "Make 3x3";
+      buttonDraw3x3.onclick = function () {
+        if (!document.querySelector(".maljsDisplayBox")) {
+          let displayBox = createDisplayBox(false, "3x3 Maker");
+          let col_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
+          let col_label = AdvancedCreate("span", false, "columns", displayBox, "margin: 5px");
+          col_input.type = "number";
+          col_input.value = 3;
+          col_input.step = 1;
+          col_input.min = 0;
+          let row_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
+          let row_label = AdvancedCreate("span", false, "rows", displayBox, "margin: 5px");
+          AdvancedCreate("br", false, false, displayBox);
+          row_input.type = "number";
+          row_input.value = 3;
+          row_input.step = 1;
+          row_input.min = 0;
+          let margin_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
+          let margin_label = AdvancedCreate("span", false, "spacing (px)", displayBox, "margin: 5px");
+          AdvancedCreate("br", false, false, displayBox);
+          margin_input.type = "number";
+          margin_input.value = 0;
+          margin_input.min = 0;
+          let width_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
+          let width_label = AdvancedCreate("span", false, "image width (px)", displayBox, "margin: 5px");
+          width_input.type = "number";
+          width_input.value = 230;
+          width_input.min = 0;
+          let height_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
+          let height_label = AdvancedCreate("span", false, "image height (px)", displayBox, "margin: 5px");
+          AdvancedCreate("br", false, false, displayBox);
+          height_input.type = "number";
+          height_input.value = 345;
+          height_input.min = 0;
+          let fitMode = AdvancedCreate("select", "maljsNativeInput", false, displayBox);
+          let fitMode_label = AdvancedCreate("span", false, "image fitting", displayBox, "margin	: 5px");
+          let addOption = function (value, text) {
+            let newOption = AdvancedCreate("option", false, text, fitMode);
+            newOption.value = value;
+          };
+          addOption("scale", "scale");
+          addOption("crop", "crop");
+          addOption("hybrid", "scale/crop hybrid");
+          addOption("letterbox", "letterbox");
+          addOption("transparent", "transparent letterbox");
 
-            let recipe = AdvancedCreate("p", false, "Click 9 media entries, then save the image below", displayBox);
-            let linkList = [];
-            let keepUpdating = true;
-            let image_width = 230;
-            let image_height = 345;
-            let margin = 0;
-            let columns = 3;
-            let rows = 3;
-            let mode = fitMode.value;
+          let recipe = AdvancedCreate("p", false, "Click 9 media entries, then save the image below", displayBox);
+          let linkList = [];
+          let keepUpdating = true;
+          let image_width = 230;
+          let image_height = 345;
+          let margin = 0;
+          let columns = 3;
+          let rows = 3;
+          let mode = fitMode.value;
 
-            displayBox.parentNode.querySelector(".maljsDisplayBoxClose").onclick = function () {
-              displayBox.parentNode.remove();
-              keepUpdating = false;
-              let cardList = document.querySelectorAll(".entry.row");
-              cardList.forEach(function (card) {
-                card.draw3x3selected = false;
-                card.style.borderStyle = "none";
-              });
-              linkList = [];
-            };
+          displayBox.parentNode.querySelector(".maljsDisplayBoxClose").onclick = function () {
+            displayBox.parentNode.remove();
+            keepUpdating = false;
+            let cardList = document.querySelectorAll(".entry.row");
+            cardList.forEach(function (card) {
+              card.draw3x3selected = false;
+              card.style.borderStyle = "none";
+            });
+            linkList = [];
+          };
 
-            let finalCanvas = AdvancedCreate("canvas", false, false, displayBox, "max-height: 60%;max-width: 90%");
-            let ctx = finalCanvas.getContext("2d");
-            let updateDrawing = function () {
-              finalCanvas.width = image_width * columns + (columns - 1) * margin;
-              finalCanvas.height = image_height * rows + (rows - 1) * margin;
-              ctx.clearRect(0, 0, finalCanvas.width, finalCanvas.height);
-              let drawStuff = function (image, x, y, width, height) {
-                let img = new Image();
-                img.onload = function () {
-                  let sx = 0;
-                  let sy = 0;
-                  let sWidth = img.width;
-                  let sHeight = img.height;
-                  let dx = x;
-                  let dy = y;
-                  let dWidth = width;
-                  let dHeight = height;
-                  if (mode === "crop") {
-                    if (img.width / img.height > width / height) {
-                      let factor = img.height / height;
-                      sWidth = width * factor;
-                      sx = (img.width - sWidth) / 2;
-                    } else {
-                      //crop top and bottom
-                      let factor = img.width / width;
-                      sHeight = height * factor;
-                      sy = (img.height - sHeight) / 2;
-                    }
-                  } else if (mode === "hybrid") {
-                    if (img.width / img.height > width / height) {
-                      let factor = img.height / height;
-                      sWidth = width * factor;
-                      sWidth += (img.width - sWidth) / 2;
-                      sx = (img.width - sWidth) / 2;
-                    } else {
-                      //crop top and bottom
-                      let factor = img.width / width;
-                      sHeight = height * factor;
-                      sHeight += (img.height - sHeight) / 2;
-                      sy = (img.height - sHeight) / 2;
-                    }
-                  } else if (mode === "letterbox" || mode === "transparent") {
-                    if (img.width / img.height > width / height) {
-                      let factor = img.width / width;
-                      dHeight = img.height / factor;
-                      dy = y + (height - dHeight) / 2;
-                    } else {
-                      //too tall
-                      let factor = img.height / height;
-                      dWidth = img.width / factor;
-                      dx = x + (width - dWidth) / 2;
-                    }
-                    if (mode === "letterbox") {
-                      ctx.fillStyle = "black";
-                      ctx.fillRect(x, y, width, height);
-                    }
+          let finalCanvas = AdvancedCreate("canvas", false, false, displayBox, "max-height: 60%;max-width: 90%");
+          let ctx = finalCanvas.getContext("2d");
+          let updateDrawing = function () {
+            finalCanvas.width = image_width * columns + (columns - 1) * margin;
+            finalCanvas.height = image_height * rows + (rows - 1) * margin;
+            ctx.clearRect(0, 0, finalCanvas.width, finalCanvas.height);
+            let drawStuff = function (image, x, y, width, height) {
+              let img = new Image();
+              img.onload = function () {
+                let sx = 0;
+                let sy = 0;
+                let sWidth = img.width;
+                let sHeight = img.height;
+                let dx = x;
+                let dy = y;
+                let dWidth = width;
+                let dHeight = height;
+                if (mode === "crop") {
+                  if (img.width / img.height > width / height) {
+                    let factor = img.height / height;
+                    sWidth = width * factor;
+                    sx = (img.width - sWidth) / 2;
                   } else {
+                    //crop top and bottom
+                    let factor = img.width / width;
+                    sHeight = height * factor;
+                    sy = (img.height - sHeight) / 2;
                   }
-                  ctx.drawImage(img, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
-                };
-                img.src = image;
+                } else if (mode === "hybrid") {
+                  if (img.width / img.height > width / height) {
+                    let factor = img.height / height;
+                    sWidth = width * factor;
+                    sWidth += (img.width - sWidth) / 2;
+                    sx = (img.width - sWidth) / 2;
+                  } else {
+                    //crop top and bottom
+                    let factor = img.width / width;
+                    sHeight = height * factor;
+                    sHeight += (img.height - sHeight) / 2;
+                    sy = (img.height - sHeight) / 2;
+                  }
+                } else if (mode === "letterbox" || mode === "transparent") {
+                  if (img.width / img.height > width / height) {
+                    let factor = img.width / width;
+                    dHeight = img.height / factor;
+                    dy = y + (height - dHeight) / 2;
+                  } else {
+                    //too tall
+                    let factor = img.height / height;
+                    dWidth = img.width / factor;
+                    dx = x + (width - dWidth) / 2;
+                  }
+                  if (mode === "letterbox") {
+                    ctx.fillStyle = "black";
+                    ctx.fillRect(x, y, width, height);
+                  }
+                } else {
+                }
+                ctx.drawImage(img, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
               };
-              for (var y = 0; y < rows; y++) {
-                for (var x = 0; x < columns; x++) {
-                  if (linkList[y * columns + x] !== "empty") {
-                    drawStuff(linkList[y * columns + x], x * image_width + x * margin, y * image_height + y * margin, image_width, image_height);
-                  }
+              img.src = image;
+            };
+            for (var y = 0; y < rows; y++) {
+              for (var x = 0; x < columns; x++) {
+                if (linkList[y * columns + x] !== "empty") {
+                  drawStuff(linkList[y * columns + x], x * image_width + x * margin, y * image_height + y * margin, image_width, image_height);
                 }
               }
-            };
+            }
+          };
 
-            let updateConfig = function () {
-              columns = parseInt(col_input.value) || 3;
-              rows = parseInt(row_input.value) || 3;
-              margin = parseInt(margin_input.value) || 0;
-              image_width = parseInt(width_input.value) || 230;
-              image_height = parseInt(height_input.value) || 345;
-              mode = fitMode.value;
-              displayBox.parentNode.querySelector(".maljsDisplayBoxTitle").textContent = columns + "x" + rows + " Maker";
-              recipe.innerText = "Click " + rows * columns + " media entries, then save the image below";
-              updateDrawing();
-            };
-            col_input.oninput = updateConfig;
-            row_input.oninput = updateConfig;
-            margin_input.oninput = updateConfig;
-            width_input.oninput = updateConfig;
-            height_input.oninput = updateConfig;
-            fitMode.oninput = updateConfig;
+          let updateConfig = function () {
+            columns = parseInt(col_input.value) || 3;
+            rows = parseInt(row_input.value) || 3;
+            margin = parseInt(margin_input.value) || 0;
+            image_width = parseInt(width_input.value) || 230;
+            image_height = parseInt(height_input.value) || 345;
+            mode = fitMode.value;
+            displayBox.parentNode.querySelector(".maljsDisplayBoxTitle").textContent = columns + "x" + rows + " Maker";
+            recipe.innerText = "Click " + rows * columns + " media entries, then save the image below";
+            updateDrawing();
+          };
+          col_input.oninput = updateConfig;
+          row_input.oninput = updateConfig;
+          margin_input.oninput = updateConfig;
+          width_input.oninput = updateConfig;
+          height_input.oninput = updateConfig;
+          fitMode.oninput = updateConfig;
 
-            let updateCards = function () {
-              let cardList = document.querySelectorAll(".entry.row");
-              cardList.forEach((card) => {
-                card.onclick = function () {
-                  if (this.draw3x3selected) {
-                    linkList[linkList.indexOf(this.draw3x3selected)] = "empty";
-                    this.draw3x3selected = false;
-                    this.style.borderStyle = "none";
-                  } else {
-                    let val = this.querySelector(".cover .image").style.backgroundImage.replace("url(", "").replace(")", "").replace('"', "").replace('"', "");
-                    if (
-                      !linkList.some((place, index) => {
-                        if (place === "empty") {
-                          linkList[index] = val;
-                          return true;
-                        }
-                        return false;
-                      })
-                    ) {
-                      linkList.push(val);
-                    }
-                    this.draw3x3selected = val;
-                    this.style.borderStyle = "solid";
+          let updateCards = function () {
+            let cardList = document.querySelectorAll(".entry.row");
+            cardList.forEach((card) => {
+              card.onclick = function () {
+                if (this.draw3x3selected) {
+                  linkList[linkList.indexOf(this.draw3x3selected)] = "empty";
+                  this.draw3x3selected = false;
+                  this.style.borderStyle = "none";
+                } else {
+                  let val = this.querySelector(".cover .image").src;
+                  if (
+                    !linkList.some((place, index) => {
+                      if (place === "empty") {
+                        linkList[index] = val;
+                        return true;
+                      }
+                      return false;
+                    })
+                  ) {
+                    linkList.push(val);
                   }
-                  updateDrawing();
-                };
-              });
-            };
-            let waiter = function () {
-              updateCards();
-              if (keepUpdating) {
-                setTimeout(waiter, 500);
-              }
-            };
-            waiter();
-          }
-        };
-      }
-  //Modern Profile Layout Anime and Manga List //-END-//
+                  this.draw3x3selected = val;
+                  this.style.borderStyle = "solid";
+                }
+                updateDrawing();
+              };
+            });
+          };
+          let waiter = function () {
+            updateCards();
+            if (keepUpdating) {
+              setTimeout(waiter, 500);
+            }
+          };
+          waiter();
+        }
+      };
+    }
+    //Modern Profile Layout Anime and Manga List //-END-//
 
-  //profile Mutual Friends //-START-//
+    //profile Mutual Friends //-START-//
     async function mutualFriends() {
       let myFriends = 0;
       let userFriends = 0;
@@ -7276,19 +7491,19 @@ function delay(ms) {
     if (/\/profile\/.*\/friends/gm.test(current) && userNotHeaderUser) {
       mutualFriends();
     }
-  //profile Mutual Friends //-END-//
+    //profile Mutual Friends //-END-//
 
-  // Hide Profile Divs //-START-//
-  $(".user-friends.pt4.pb12").prev().addBack().wrapAll("<div id='user-friends-div'></div>");
-  $(".user-badges").prev().addBack().wrapAll("<div id='user-badges-div'></div>");
-  $(".user-profile-sns").has('a:contains("Recent")').prev().addBack().wrapAll("<div id='user-rss-feed-div'></div>");
-  $('.user-profile-sns:not(:contains("Recent"))').prev().addBack().wrapAll("<div id='user-links-div'></div>");
-  $('.user-button').attr('id', 'user-button-div');
-  $('.user-status:contains(Joined)').last().attr('id', 'user-status-div');
-  $('.user-status:contains(History)').attr('id', 'user-status-history-div');
-  $('.user-status:contains(Forum Posts)').attr('id', 'user-status-counts-div');
-  $('.user-statistics-stats').first().attr('id', 'user-stats-div');
-  $('.user-statistics-stats').last().attr('id', 'user-updates-div');
+    // Hide Profile Divs //-START-//
+    $(".user-friends.pt4.pb12").prev().addBack().wrapAll("<div id='user-friends-div'></div>");
+    $(".user-badges").prev().addBack().wrapAll("<div id='user-badges-div'></div>");
+    $(".user-profile-sns").has('a:contains("Recent")').prev().addBack().wrapAll("<div id='user-rss-feed-div'></div>");
+    $('.user-profile-sns:not(:contains("Recent"))').prev().addBack().wrapAll("<div id='user-links-div'></div>");
+    $('.user-button').attr('id', 'user-button-div');
+    $('.user-status:contains(Joined)').last().attr('id', 'user-status-div');
+    $('.user-status:contains(History)').attr('id', 'user-status-history-div');
+    $('.user-status:contains(Forum Posts)').attr('id', 'user-status-counts-div');
+    $('.user-statistics-stats').first().attr('id', 'user-stats-div');
+    $('.user-statistics-stats').last().attr('id', 'user-updates-div');
   }
   //Profile Section //--END--//
 
@@ -7446,6 +7661,7 @@ function delay(ms) {
       &&!/\/(ownlist|season|adapted|recommendations)/.test(current) && !document.querySelector("#content > .error404")) {
     const entryId = current.split("/")[2];
     const entryType = current.split("/")[1].toUpperCase();
+    const entryTitle = $('.title-name').text() ? $('.title-name').text() : document.title.replace(/(.*)(\|.*)/,'$1').replace(/(.*)(\(.*\).*)/,'$1').trim();
     let text = create('div', {
       class: 'description',
       itemprop: 'description',
@@ -7688,14 +7904,14 @@ function delay(ms) {
         const tagDiv = create("div", { class: "aniTagDiv"});
         const tagTarget = document.querySelector("#content > table > tbody > tr > td:nth-child(1)");
         const tagLocalForage = localforage.createInstance({ name: "MalJS", storeName: "tags" });
-        const tagcacheTTL = 262974383;
+        const tagcacheTTL = svar.tagTTL;
         let tagCache = await tagLocalForage.getItem(entryId+"-"+entryType);
-        if (!tagCache || tagCache.time + tagcacheTTL < +new Date()) {
+        if (!tagCache || tagCache.time + tagcacheTTL < Date.now()) {
           tagData = await aniAPIRequest();
           if (tagData?.data.Media && tagData.data.Media.tags && tagData.data.Media.tags.length > 0) {
             await tagLocalForage.setItem(entryId+"-"+entryType, {
               tags: tagData.data.Media.tags,
-              time: +new Date(),
+              time: Date.now(),
             });
             tagCache = await tagLocalForage.getItem(entryId+"-"+entryType);
           }
@@ -7740,10 +7956,10 @@ function delay(ms) {
         const extraRelationsDiv = create('div', { class: 'relationsExpanded', style: { display: "none" } });
         const relationTarget = document.querySelector(".related-entries");
         const relationLocalForage = localforage.createInstance({ name: "MalJS", storeName: "relations" });
-        const relationcacheTTL = 262974383;
+        const relationcacheTTL = svar.relationTTL;
         let relationCache = await relationLocalForage.getItem(entryId+"-"+entryType);
         const priorityOrder = {"ADAPTATION": 0,"PREQUEL": 1,"SEQUEL": 2,"PARENT": 3,"ALTERNATIVE": 4,"SIDE_STORY": 5,"SUMMARY": 6,"SPIN_OFF": 7,"CHARACTER": 8,"OTHER": 9};
-        if (!relationCache || relationCache.time + relationcacheTTL < +new Date()) {
+        if (!relationCache || relationCache.time + relationcacheTTL < Date.now()) {
           relationData = await aniAPIRequest();
           relationData?.data.Media ? relationData = relationData.data.Media.relations.edges.filter(node => node.node.idMal !== null) : null;
           if (relationData && relationData.length > 0) {
@@ -7774,7 +7990,7 @@ function delay(ms) {
             // relationLocalForage Set Item
             await relationLocalForage.setItem(entryId+"-"+entryType, {
               relations: sortedRelations,
-              time: +new Date(),
+              time: Date.now(),
             });
             relationCache = await relationLocalForage.getItem(entryId+"-"+entryType);
           }
@@ -8001,6 +8217,73 @@ function delay(ms) {
         $('.SynopsisDiv').next('p').html($('.SynopsisDiv').next('p').html().replace(/(<br>\n<br>\n\[Written by MAL Rewrite\]+)/gm, ''));
       }
     }
+  //Custom Cover Add
+  if (svar.customCover) {
+    getCustomCover();
+  }
+    async function getCustomCover(){
+    if(location.pathname.endsWith('/pics')) {
+    const coverLocalForage = localforage.createInstance({ name: "MalJS", storeName: "cover" });
+    let coverCache = await coverLocalForage.getItem(entryId+"-"+entryType);
+      const picTable = document.querySelector("#content > table > tbody > tr > td:nth-child(2) > div.rightside.js-scrollfix-bottom-rel > table");
+      const mainButton = create('a', { active: '0' ,class: 'add-custom-pic-button',style:{cursor:'pointer'}},'Change Cover');
+      const defaultImg = document.querySelector('div:nth-child(1) > a > img');
+      $('.floatRightHeader').append(' - ', mainButton);
+      mainButton.addEventListener("click", async() => {
+      const active = $(mainButton).attr('active');
+        if(active == '0') {
+          if (!document.querySelector("#customCoverPreview")) {
+            coverCache = await coverLocalForage.getItem(entryId+"-"+entryType);
+            let customCoverInput = create("input", { id: 'customCoverInput', style: {margin: "5px"} ,placeholder: "Custom Cover URL" });
+            const coverPreview =  `<tr id="customCoverPreviewTable"><td width="225" align="center">
+            <div class="picSurround" id="customCoverPreview"><a class="js-picture-gallery" rel="gallery-anime"><img class="lazyloaded" src="${defaultImg.src}" style="max-width:225px;"></a></div></td>
+            <td width="225" align="center">
+            <div class="picSurround"><a class="js-picture-gallery" rel="gallery-anime"><img id="defaultCoverImage" class="lazyloaded" src="${coverCache?.defaultImageSrc ? coverCache?.defaultImageSrc : defaultImg.src}" style="max-width:225px;">
+            </a><div style="text-align: center;" class="spaceit"><a>Default Cover</a></div></div></td></tr>`;
+            picTable.innerHTML = coverPreview + picTable.innerHTML;
+            $('#customCoverPreview').append(customCoverInput);
+            customCoverInput.addEventListener('change', function (e) {
+              document.querySelector('#customCoverPreview img').src = customCoverInput.value;
+            });
+          }
+          const tdElements = picTable.querySelectorAll("td");
+          tdElements.forEach(td => {
+            if (td.querySelector(".custom-cover-select-btn")) return;
+            if(td.querySelector("img")){
+              const selectButton =  create('a', {class: 'custom-cover-select-btn mal-btn primary'},'Select');
+              selectButton.addEventListener("click", async () => {
+                const img = td.querySelector("img");
+                if (img && img.height > 20) {
+                  if(coverCache?.defaultImage && img.src.includes(coverCache.defaultImage)) {
+                    coverLocalForage.removeItem(entryId+"-"+entryType);
+                  } else {
+                    coverLocalForage.setItem(entryId+"-"+entryType, {
+                      title:entryTitle,
+                      type:entryType,
+                      defaultImage: coverCache?.defaultImage ? coverCache.defaultImage : defaultImg?.src?.replace(/\.\w+$/, '').replace('https://cdn.myanimelist.net/images/','') || "",
+                      defaultImageSrc: coverCache?.defaultImageSrc ? coverCache.defaultImageSrc : defaultImg?.src,
+                      coverImage: img.src
+                    });
+                  }
+                  await delay(500);
+                  loadCustomCover();
+                  $('.custom-cover-select-btn').remove();
+                  $('#customCoverPreviewTable').remove();
+                  $(mainButton).attr('active','0');
+                }
+              });
+              td.appendChild(selectButton);
+            }
+          });
+          $(mainButton).attr('active', '1');
+        } else {
+          $('.custom-cover-select-btn').remove();
+          $('#customCoverPreviewTable').remove();
+          $(mainButton).attr('active','0');
+        }
+      });
+    }
+  }
   }
   //Anime/Manga Section //--END--//
 
@@ -8531,11 +8814,7 @@ function delay(ms) {
     }
 
     function placeData(data) {
-      let nt = create(
-        'div',
-        {
-          class: 'theme-songs js-theme-songs',
-        });
+      let nt = create('div',{class: 'theme-songs js-theme-songs',});
       let nt2 = nt.cloneNode(true);
       cleaner(anisongs_temp.target);
       let op = createTargetDiv('Openings', anisongs_temp.target, 0);
@@ -8588,7 +8867,7 @@ function delay(ms) {
             if(!$(favorite).parent().find('video').length) {
               $(favorite).parent().find('.oped-preview-button').click();
             }
-            const animeTitle = $('.title-name').text() ? $('.title-name').text() : document.title.replace(' - MyAnimeList.net','');
+            const animeTitle = $('.title-name').text() ? $('.title-name').text() : document.title.replace(/(.*)(\|.*)/,'$1').replace(/(.*)(\(.*\).*)/,'$1').trim();
             const title = $(favorite).parent().text().substring(2);
             const type = $(favorite).parent().prev("h2").text();
             const src = $(favorite).parent().find('video').attr('src');
@@ -8646,7 +8925,7 @@ function delay(ms) {
       const cache = (await songCache.getItem(currentid)) || {
         time: 0,
       };
-      if (cache.time + options.cacheTTL < +new Date()) {
+      if (cache.time + options.cacheTTL < Date.now()) {
         let mal_id = currentid;
         let status;
         let _videos;
@@ -8672,7 +8951,7 @@ function delay(ms) {
               }
             }
           if (_videos) {
-            await songCache.setItem(currentid, { opening_themes, ending_themes, time: +new Date() });
+            await songCache.setItem(currentid, { opening_themes, ending_themes, time: Date.now() });
           }
           }
           // place the data onto site
