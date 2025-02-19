@@ -4,7 +4,7 @@
 // @match       https://myanimelist.net/*
 // @match       https://www.mal-badges.com/users/*malbadges
 // @grant       none
-// @version     1.29.7
+// @version     1.29.75
 // @author      KanashiiDev
 // @description Customizations and fixes for MyAnimeList
 // @license     GPL-3.0-or-later
@@ -71,7 +71,7 @@ function createDisplayBox(cssProperties,windowTitle){
   let isDown = false;
   let isDownResize = false;
   let displayBoxClose = AdvancedCreate("span","maljsDisplayBoxClose","x",displayBox);
-    displayBoxClose.onclick = function(){
+  displayBoxClose.onclick = function(){
     displayBox.remove();
   };
   let resizePearl = AdvancedCreate("span","maljsResizePearl",false,displayBox);
@@ -1653,9 +1653,14 @@ async function loadCustomCover() {
           const imgSrc = $img.attr("src") || "";
           const imgAlt = $img.attr("alt") || "";
           if ((imgSrc.includes(value.defaultImage) || dataSrc.includes(value.defaultImage)) && imgAlt.includes(value.title) ||
-              imgAlt.includes(value.title) && (value.type && imgSrc.toUpperCase().includes(`/${value.type}/`) || dataSrc.toUpperCase().includes(`/${value.type}/`))) {
-            $img.attr('src', value.coverImage).attr('data-src', value.coverImage).removeAttr('srcset').removeAttr('data-srcset');
-            $img.css('max-width','225px');
+              imgAlt.toUpperCase() == value.title.toUpperCase() && (value.type && imgSrc.toUpperCase().includes(`/${value.type}/`) || dataSrc.toUpperCase().includes(`/${value.type}/`))) {
+            $img.addClass('customCover').attr('customCover', '1').attr('src', value.coverImage).attr('data-src', value.coverImage).removeAttr('srcset').removeAttr('data-srcset');
+            if (value.fit && value.fit !=='initial') {
+              $img.css('object-fit',value.fit);
+            }
+            if (value.position && value.position !=='50% 50%') {
+              $img.css('object-position',value.position);
+            }
           }
         }
       });
@@ -1675,6 +1680,7 @@ async function createCustomDiv(appLoc, header, content, editData) {
       appendLoc.insertAdjacentElement("afterend", cont);
     }
     const newDiv = create("div", { id: "customAddContainerInside" });
+    const btnsDiv = create("div", { id: "customAddContainerInsideButtons", style:{display: "block", textAlignLast: "center"}});
     if (isRight) cont.classList.add("right");
     const closeButton = create("button", { class: "mainbtns btn-active-def", id: "closeButton", style: { width: "45px", float: "right", marginTop: "-5px" } }, "Close");
     closeButton.addEventListener("click", function () {
@@ -1715,7 +1721,7 @@ async function createCustomDiv(appLoc, header, content, editData) {
         }
       <div>${contentText}</div><br>`;
     });
-    newDiv.appendChild(previewButton);
+    btnsDiv.appendChild(previewButton);
 
     // Add Button
     const addButton = create("button", { class: "mainbtns btn-active-def", id: "addButton", style: { width: "48%" } }, appLoc && appLoc !== 'right' ? "Edit" : "Add");
@@ -1741,7 +1747,8 @@ async function createCustomDiv(appLoc, header, content, editData) {
         }
       }
     });
-    newDiv.appendChild(addButton);
+    btnsDiv.appendChild(addButton);
+    newDiv.appendChild(btnsDiv);
     document.getElementById("customAddContainer").appendChild(newDiv);
 
     //ScEditor - Required Commands and Formats
@@ -2182,6 +2189,20 @@ input#year-filter-slider {
     padding: 0 !important
 }
 
+.cover-position-slider-container {
+    display: -ms-grid;
+    display: grid;
+    -ms-grid-columns: 10px 1fr 10px 1fr;
+    grid-template-columns: 10px 1fr 10px 1fr;
+    width: 285px;
+    justify-items: center;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    -ms-flex-align: center;
+    align-items: center;
+    margin-bottom: 5px
+}
+
 .genreDropBtn {
     color:var(--color-main-text-normal);
     width: 100%;
@@ -2316,14 +2337,15 @@ input#year-filter-slider {
 
 .maljsDisplayBoxTitle {
     font-size: 15px;
-    border-bottom: 1px solid;
+    border-bottom: 1px solid var(--border-color);
     display: block;
     margin-bottom: 10px;
     padding: 3px
 }
 
 input.maljsNativeInput {
-    margin-bottom: 5px
+    margin-bottom: 5px;
+    border: 1px solid var(--border-color)
 }
 
 .maljsDisplayBox .scrollableContent p {
@@ -2467,10 +2489,10 @@ input.maljsNativeInput {
 
 .list-entries .entry .airing-dot {
     position: relative;
-    left: -7px;
-    width: 7px;
-    height: 7px;
-    border-radius: 50px;
+    left: -6.5px;
+    width: 6.5px;
+    height: 6.5px;
+    border-radius: 10px;
     background: #7bd555;
     box-shadow: 0 0 5px rgba(123, 213, 85, .8);
     -webkit-transition: .15s;
@@ -2953,6 +2975,26 @@ font-family: "Font Awesome 6 Pro";
    top: 26px
 }
 
+.customCover {
+   max-width: 225px!important;
+}
+
+#customCoverPreview > .js-picture-gallery {
+    display: -webkit-inline-box;
+    display: -webkit-inline-flex;
+    display: -ms-inline-flexbox;
+    display: inline-flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    -ms-flex-align: center;
+    align-items: center;
+    width: 300px;
+    -webkit-box-pack: justify;
+    -webkit-justify-content: space-between;
+    -ms-flex-pack: justify;
+    justify-content: space-between
+}
+
 #customAddContainer.right {
    z-index: 2;
    position: relative;
@@ -2960,14 +3002,16 @@ font-family: "Font Awesome 6 Pro";
 }
 
 #customAddContainer #custom-preview-div {
-   border-bottom: 1px solid;
+   border-bottom: 1px solid var(--border-color);
    margin-bottom: 10px
 }
 
+.malCleanSettingPopup .settingContainer.input input,
 #customAddContainerInside input#header-input,
 #customAddContainerInside textarea#content-input {
     width: 95%;
     max-width: 95%;
+    border: 1px solid var(--border-color);
     margin: 5px 0px
 }
 
@@ -3283,7 +3327,7 @@ div#custom-preview-div > div blockquote.spoiler {
     margin-top: 45px
 }
 
-.mainListBtnDiv,.malCleanSettingPopup.svar {
+.mainListBtnDiv,.malCleanSettingPopup .settingContainer.svar {
     display: -ms-grid;
     display: grid;
     -ms-grid-columns: 35px auto auto 1fr;
@@ -3295,7 +3339,7 @@ div#custom-preview-div > div blockquote.spoiler {
     gap:5px
 }
 
-.malCleanSettingPopup.svar {
+.malCleanSettingPopup .settingContainer.svar {
     -ms-grid-columns: 35px auto;
     grid-template-columns: 35px auto
 }
@@ -3366,7 +3410,7 @@ div#custom-preview-div > div blockquote.spoiler {
     color: rgb(159, 173, 189)
 }
 
-.malCleanSettingPopup.svar .btn-active {
+.malCleanSettingPopup .settingContainer.svar .btn-active {
     background-color: var(--color-foreground2) !important;
     color: rgb(159, 173, 189)
 }
@@ -3471,6 +3515,7 @@ button#custombadge{
     width: 15%
 }
 
+input#badgeInput,
 input#malBadgesInput,
 input#cssInput,
 input#bgInput,
@@ -3483,10 +3528,7 @@ input#pfInput {
 }
 
 input#badgeInput {
-    border: 1px solid var(--border-color);
-    width: 45%;
-    height: 15px;
-    margin-right: 5px
+    width: 45%
 }
 
 #badgecolorselector{
@@ -3832,7 +3874,7 @@ const buttonsConfig = Object.keys(svar).map(setting => ({
   text: null,
   enabled: svar[setting]
 }));
-buttonsConfig.push({ setting: "removeAllCustom", id: 'removeAllCustomBtn', text: "Remove All Custom Settings" });
+buttonsConfig.push({ setting: "removeAllCustom", id: 'removeAllCustomBtn', text: "Remove All Custom Profile Settings" });
 
 if (!defaultMal) {
   buttonsConfig.push(
@@ -3858,6 +3900,34 @@ function createButton({ id, setting, text }) {
     }
   };
   return button;
+}
+
+//  MalClean - Page Loading
+let loadingDiv = create("div", { class: "actloading", id:"loadingDiv", style: { position: "fixed", top: "50%", left: "0", right: "0", fontSize: "16px", zIndex: "12" } });
+const loadingDivMask = create("div", {
+  class: "fancybox-overlay",
+  style: { background: "var(--color-background)", opacity: "1", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "11" },
+});
+function addLoading(type = "add", text = "Loading", circle = 1, force = 0) {
+  if (force) {
+    $(loadingDiv).attr('force', force);
+  }
+  let spinCircle = '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
+  if (type === "add") {
+    loadingDiv.innerHTML = text + (circle ? spinCircle : '');
+    if (!document.querySelector('#loadingDiv')) {
+      document.body.append(loadingDivMask,loadingDiv);
+    }
+    document.querySelector('#contentWrapper').style.opacity = "0";
+    document.body.style.overflow = "hidden";
+    history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+  } else if (type === "remove" && !$(loadingDiv).attr('force')) {
+    loadingDivMask.remove();
+    loadingDiv.remove();
+    document.body.style.removeProperty("overflow");
+    document.querySelector('#contentWrapper').style.opacity = "1";
+  }
 }
 
 //Add Custom Profile Colors
@@ -4037,18 +4107,9 @@ removeFgButton.onclick = () => {
 //Private Profile
 var privateButton = create("button", { class: "mainbtns", id: "privateProfile", style: {width:'48%'}}, "Private");
 var removePrivateButton = create("button", { class: "mainbtns", id: "privateRemove", style: {width:'48%'}}, "Public");
-if(userNotHeaderUser) {
-  privateButton.textContent = "Back to My Profile";
-  privateButton.style.width = "98%";
-  removePrivateButton.style.display = "none";
-}
 
 privateButton.onclick = () => {
-  if(userNotHeaderUser) {
-    window.location.href = "https://myanimelist.net/profile/"+ headerUserName;
-  } else {
-    editAboutPopup(`privateProfile/IxA=`,'private');
-  }
+  editAboutPopup(`privateProfile/IxA=`,'private');
 };
 
 removePrivateButton.onclick = () => {
@@ -4082,12 +4143,7 @@ const divIds = [
   "#fav-4-div",
   "#favThemes"
 ];
-if(userNotHeaderUser) {
-  hideProfileElButton.textContent = "Back to My Profile";
-  hideProfileElButton.style.width = "98%";
-  hideProfileElUpdateButton.style.display = "none";
-  removehideProfileElButton.style.display ="none";
-}
+
 async function clearHiddenDivs() {
   divIds.forEach(item => {
     const div = document.querySelector(item);
@@ -4171,25 +4227,13 @@ removehideProfileElButton.onclick = () => {
 //Custom Profile Elements
 var customProfileElUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton", style: {width:'48%'}}, "Add to Left Side");
 var customProfileElRightUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton", style: {width:'48%'}}, "Add to Right Side");
-if(userNotHeaderUser) {
-  customProfileElUpdateButton.style.width = "98%";
-  customProfileElUpdateButton.textContent = "Back to My Profile";
-  customProfileElRightUpdateButton.style.display = "none";
-}
+
 customProfileElUpdateButton.onclick = () => {
-  if(userNotHeaderUser) {
-    window.location.href = "https://myanimelist.net/profile/"+ headerUserName;
-  } else {
-    createCustomDiv();
-  }
+  createCustomDiv();
 }
 
 customProfileElRightUpdateButton.onclick = () => {
-  if(userNotHeaderUser) {
-    window.location.href = "https://myanimelist.net/profile/"+ headerUserName;
-  } else {
-    createCustomDiv('right');
-  }
+  createCustomDiv('right');
 }
 
 //Mal Badges
@@ -4397,70 +4441,81 @@ function getSettings() {
 }
 
 //MalClean Settings - Create Custom Settings Div Function
-function createCustomSettingDiv(title, description) {
-  return create(
-    "div",
-    { class: "malCleanSettingContainer" },
+function createCustomSettingDiv(title, description, elementsToAppend, svar = "0", forProfile) {
+  const div = create("div", { class: "malCleanSettingContainer" },
     `<div class="malCleanSettingHeader">
        <h2>${title}</h2>
        <h3>${description}</h3>
+       <div class="malCleanSettingInner"></div>
      </div>`
   );
+  const innerDiv = div.querySelector('.malCleanSettingInner');
+  let profileCheck = forProfile ? userNotHeaderUser : false;
+  if (!profileCheck) {
+    if(svar === "0" || svar) {
+      if (elementsToAppend && Array.isArray(elementsToAppend)) {
+        elementsToAppend.forEach(element => {
+          innerDiv.append(element);
+        });
+      }
+    }
+  } else {
+    const profileBtn = create("button", { class: "mainbtns", id: "backToProfile", style: {width:'98%'}}, "Back to My Profile");
+    profileBtn.onclick = () => {
+      window.location.href = "https://myanimelist.net/profile/"+ headerUserName;
+    };
+    innerDiv.append(profileBtn);
+  }
+  return div;
 }
 
-//MalClean Settings - Create Svar Settings Dropdown
-function createSvarSetting(parentElement, settingKey, text) {
+//MalClean Settings - Create Settings Dropdown
+function createSettingDropdown(parentElement, type, svar, settingKey, text) {
   let settingDiv;
+  let settingContainer = create("div",{class:"settingContainer"});
   let hasSettings = document.querySelector(`${parentElement} .malCleanSettingPopup`);
-  if(!hasSettings) {
+  if (!hasSettings) {
     let settingButton = create("a", { active: "0", class: "fa fa-gear" });
-    settingDiv = create("div", { class: "malCleanSettingPopup svar", style: { display: "none" } });
+    settingDiv = create("div", { class: "malCleanSettingPopup", style: { display: "none" } });
     settingButton.onclick = () => {
       const active = $(settingButton).attr('active');
       if (active === '0') {
         $(settingDiv).slideDown();
         $(settingButton).attr('active', '1');
-        getSettings();
+        if (type === "svar") getSettings();
       } else {
         $(settingDiv).slideUp();
         $(settingButton).attr('active', '0');
       }
     };
+
     $(parentElement).append(settingButton);
     $(settingButton).parent().append(settingDiv);
   }
-  const buttons = buttonsConfig.reduce((acc, { id, setting, text }) => {
-    acc[id] = createButton({ id, setting, text });
-    return acc;
-  }, {});
   let targetDiv = hasSettings || settingDiv;
-  $(targetDiv).append(buttons[settingKey], `<h3>${text}</h3>`);
-}
+  if (type === "svar") {
+    // Svar Settings
+    const buttons = buttonsConfig.reduce((acc, { id, setting, text }) => {
+      acc[id] = createButton({ id, setting, text });
+      return acc;
+    }, {});
+    settingContainer.classList.add('svar');
+    $(settingContainer).append(buttons[settingKey], `<h3>${text}</h3>`);
+    $(targetDiv).append(settingContainer);
+  } else if (type === "ttl") {
+    // TTL Settings
+    let settingInput = create("input", { class: `${settingKey}Input`, placeholder: "Days (Number)" });
+    if (svar[settingKey]) settingInput.value = daysToTTL(svar[settingKey], 1);
+    settingContainer.classList.add('input');
+    $(settingContainer).append(`<h3>How often should the ${text} data be updated? (Days)</h3>`,settingInput);
+    $(targetDiv).append(settingContainer);
 
-//MalClean Settings - Create TTL Settings Dropdown
-function createTTLSetting(parentElement, svar, settingKey, text) {
-  let settingButton = create("a", { active: "0", class: "fa fa-gear" });
-  let settingDiv = create("div", { class: "malCleanSettingPopup", style: { display: "none" } });
-  let settingInput = create("input", { class: `${settingKey}Input`, placeholder: "Days (Number)" });
-  if (svar[settingKey]) settingInput.value = daysToTTL(svar[settingKey], 1);
-  $(settingDiv).append(`<h3>How often should the ${text} data be updated? (Days)</h3>`, settingInput);
-  settingInput.addEventListener('input', (event) => {
-    const ttl = daysToTTL(event.target.value);
-    svar[settingKey] = ttl;
-    svar.save();
-  });
-  settingButton.onclick = () => {
-    const active = $(settingButton).attr('active');
-    if (active === '0') {
-      $(settingButton).parent().append(settingDiv);
-      $(settingDiv).slideDown();
-      $(settingButton).attr('active', '1');
-    } else {
-      $(settingDiv).slideUp();
-      $(settingButton).attr('active', '0');
-    }
-  };
-  $(parentElement).append(settingButton);
+    settingInput.addEventListener('input', (event) => {
+      const ttl = daysToTTL(event.target.value);
+      svar[settingKey] = ttl;
+      svar.save();
+    });
+  }
 }
 
 //MalClean Settings - Create Settings Div
@@ -4468,46 +4523,57 @@ function createDiv() {
   const modernBtn = '<a style="cursor: pointer;" onclick="document.getElementById(\'modernLayoutBtn\').scrollIntoView({ behavior: \'smooth\', block: \'center\' });">Modern Profile Layout</a>';
   let listDiv = create("div", { class: "malCleanMainContainer" }, '<div class="malCleanMainHeader"><b>' + stLink.innerText + "</b></div>");
   let customfgDiv = createCustomSettingDiv(
-    "Custom Foreground Color (Required "+modernBtn+")",
-    "Change profile foreground color. This will be visible to users with the script."
+    "Custom Foreground Color (Required " + modernBtn + ")",
+    "Change profile foreground color. This will be visible to users with the script.",
+    [fgColorSelector, updateFgButton, removeFgButton],svar.modernLayout,"profile"
   );
+
   let custombgDiv = createCustomSettingDiv(
     "Custom Banner (Required "+modernBtn+")",
-    "Add custom banner to your profile. This will be visible to users with the script."
+    "Add custom banner to your profile. This will be visible to users with the script.",
+    [bgInput, bgButton, bgRemoveButton, bgInfo],svar.modernLayout,"profile"
   );
   let custompfDiv = createCustomSettingDiv(
     "Custom Avatar",
-    "Add custom avatar to your profile. This will be visible to users with the script."
+    "Add custom avatar to your profile. This will be visible to users with the script.",
+    [pfInput, pfButton,pfRemoveButton, pfInfo],1,"profile"
   );
   let custombadgeDiv = createCustomSettingDiv(
     "Custom Badge (Required "+modernBtn+")",
     "Add custom badge to your profile. This will be visible to users with the script." +
-    "<p>You can use HTML elements. Maximum size 300x150. Update empty to delete.</p>"
+    "<p>You can use HTML elements. Maximum size 300x150. Update empty to delete.</p>",
+    [badgeInput, badgeColorSelector, badgeColorLoop, badgeButton],svar.modernLayout,"profile"
   );
   let malBadgesDiv = createCustomSettingDiv(
     "Mal-Badges (Required "+modernBtn+")",
     "You can add Mal-Badges to your profile. This will be visible to users with the script." +
-    "<p>If the badge does not appear, it means that the Mal-Badges is blocking access. There is nothing you can do about it.</p>"
+    "<p>If the badge does not appear, it means that the Mal-Badges is blocking access. There is nothing you can do about it.</p>",
+    [malBadgesInput, malBadgesButton, malBadgesRemoveButton, malBadgesSimpleButton, malBadgesSimpleButtonText],svar.modernLayout,"profile"
   );
   let customCSSDiv = createCustomSettingDiv(
     "Custom CSS",
-    "Add custom css to your profile. This will be visible to users with the script."
+    "Add custom css to your profile. This will be visible to users with the script.",
+    [cssInput, cssButton, cssRemoveButton, cssmodernLayout, cssmodernLayoutText, cssInfo],1,"profile"
   );
   let customColorsDiv = createCustomSettingDiv(
     "Custom Profile Colors",
-    "Change profile colors. This will be visible to users with the script."
+    "Change profile colors. This will be visible to users with the script.",
+    [customColors, customColorButton, customColorRemoveButton],1,"profile"
   );
   let privateProfileDiv = createCustomSettingDiv(
     "Profile Privacy",
-    "You can make your profile private or public for users with the script."
+    "You can make your profile private or public for users with the script.",
+    [privateButton,removePrivateButton],1,"profile"
   );
   let hideProfileElDiv = createCustomSettingDiv(
     "Hide Profile Elements",
-    "You can hide your profile elements. This will also apply to users with the script."
+    "You can hide your profile elements. This will also apply to users with the script.",
+    [hideProfileElButton,hideProfileElUpdateButton,removehideProfileElButton],1,"profile"
   );
   let customProfileElDiv = createCustomSettingDiv(
     "Custom Profile Elements",
-    "You can add custom profile elements your profile. This will be visible to users with the script. You can use HTML elements."
+    "You can add custom profile elements your profile. This will be visible to users with the script. You can use HTML elements.",
+    [customProfileElUpdateButton,customProfileElRightUpdateButton],1,"profile"
   );
   const buttons = buttonsConfig.reduce((acc, { id, setting, text }) => {
     acc[id] = createButton({ id, setting, text });
@@ -4594,28 +4660,17 @@ function createDiv() {
     )
   );
   listDiv.append(privateProfileDiv,hideProfileElDiv,customProfileElDiv,malBadgesDiv,custompfDiv,custombadgeDiv, custombgDiv, customfgDiv);
-  custompfDiv.append(pfInput, pfButton,pfRemoveButton, pfInfo);
-  //if Modern Profile Layout active, add custom settings.
   if (svar.modernLayout) {
-    customfgDiv.append(fgColorSelector,updateFgButton,removeFgButton);
-    custombgDiv.append(bgInput, bgButton, bgRemoveButton, bgInfo);
-    custombadgeDiv.append(badgeInput, badgeColorSelector, badgeColorLoop, badgeButton);
-    malBadgesDiv.append(malBadgesInput, malBadgesButton, malBadgesRemoveButton, malBadgesSimpleButton, malBadgesSimpleButtonText);
     buttons["profileHeaderBtn"].parentElement.style.display = "none";
   }
-  customColorsDiv.append(customColors, customColorButton, customColorRemoveButton);
-  privateProfileDiv.append(privateButton,removePrivateButton);
-  hideProfileElDiv.append(hideProfileElButton,hideProfileElUpdateButton,removehideProfileElButton);
-  customProfileElDiv.append(customProfileElUpdateButton,customProfileElRightUpdateButton);
   listDiv.append(customColorsDiv,customCSSDiv);
-  customCSSDiv.append(cssInput, cssButton, cssRemoveButton, cssmodernLayout, cssmodernLayoutText, cssInfo);
   document.querySelector("#headerSmall").insertAdjacentElement("afterend", listDiv);
   listDiv.append(buttons["removeAllCustomBtn"]);
 
-  createSvarSetting("#replaceListBtnOption", "listAiringStatusBtn", "Show Airing Status Dot");
-  createTTLSetting($("#embedBtnOption"), svar, "embedTTL", "embed");
-  createTTLSetting($("#animeTagBtnOption"), svar, "tagTTL", "tag");
-  createTTLSetting($("#animeRelationBtnOption"), svar, "relationTTL", "relation");
+  createSettingDropdown("#replaceListBtnOption", "svar", svar, "listAiringStatusBtn", "Show Airing Status Dot");
+  createSettingDropdown("#embedBtnOption", "ttl", svar, "embedTTL", "embed");
+  createSettingDropdown("#animeTagBtnOption", "ttl", svar, "tagTTL", "tag");
+  createSettingDropdown("#animeRelationBtnOption", "ttl", svar, "relationTTL", "relation");
   getSettings();
 }
 
@@ -4684,7 +4739,6 @@ function delay(ms) {
 
   //onload Function
   async function on_load() {
-    await delay(500);
     //Replace anime.php
     const phpUrl = window.location.href;
     if (phpUrl.includes('/anime.php?id=')) {
@@ -4696,7 +4750,6 @@ function delay(ms) {
     if (!pfHeader) {
       pfHeader = document.querySelector(".header-profile-dropdown > ul > li:nth-last-child(3)");
     }
-
     if (pfHeader) {
       var gear = pfHeader.querySelector("a > i");
       var gearClone = gear.cloneNode(!0);
@@ -4704,16 +4757,19 @@ function delay(ms) {
       stButton.append(stLink);
       pfHeader.insertAdjacentElement("afterend", stButton);
     }
+
     if (svar.customCover) {
       loadCustomCover();
     }
+    if ($('#loadingDiv').length) {
+      addLoading("remove");
+    }
   };
 
-  if(document.readyState === 'loading') {
-    document.addEventListener( 'DOMContentLoaded', on_load );
-  }
-  else if( document.readyState === 'interactive' || document.readyState === 'complete' ) {
+  if (document.readyState === "complete") {
     on_load();
+  } else {
+    window.addEventListener("load", on_load);
   }
 
   //Currently Watching //--START--//
@@ -5627,11 +5683,10 @@ function delay(ms) {
 
   //Profile Section //--START--//
   if (/\/(profile)\/.?([\w]+)?\/?/.test(current)) {
+    addLoading();
     let banner = create('div', {class: 'banner',id: 'banner',});
     let shadow = create('div', {class: 'banner',id: 'shadow',});
     let container = create("div", { class: "container", id: "container" });
-    const pfloading = create("div", { class: "actloading",style:{position:"fixed",top:"50%",left:"0",right:"0",fontSize:"16px"}},
-                           "Loading"+'<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>');
     let customfg,custombg,custompf,customCSS,custombadge,customcolors,userimg,customModernLayoutFounded,privateProfile,malBadgesUrl;
     let profileRegex = {
       malClean: /(malcleansettings)\/([^"\/])/gm,
@@ -5693,11 +5748,6 @@ function delay(ms) {
         svar.modernLayout = true;
         await applyAl();
       }
-      else {
-        pfloading.remove();
-        document.body.style.removeProperty("overflow");
-        document.querySelector('#contentWrapper').style.opacity = "1";
-      }
       if (svar.profileHeader && !svar.modernLayout) {
         let title = document.querySelector('#contentWrapper h1');
         title.setAttribute('style', 'padding-left: 2px;margin-bottom:5px');
@@ -5731,21 +5781,12 @@ function delay(ms) {
     if(isMainProfilePage && userNotHeaderUser && headerUserName !== '' && headerUserName !== 'MALnewbie') {
       $("a.header-right").after(blockU);
     }
-
-    if (document.readyState === 'interactive' || document.readyState === 'complete') {
-      document.querySelector('#contentWrapper').style.opacity = "0";
-      document.body.append(pfloading);
-      document.body.style.overflow = "hidden";
-      history.scrollRestoration = "manual";
-      window.scrollTo(0, 0);
       shadow.setAttribute('style', 'background: linear-gradient(180deg,rgba(6,13,34,0) 40%,rgba(6,13,34,.6));height: 100%;left: 0;position: absolute;top: 0;width: 100%;');
       banner.append(shadow);
       startCustomProfile();
-    }
-    if($('title').text() === '404 Not Found - MyAnimeList.net\n'){
-      pfloading.remove();
-      document.body.style.removeProperty("overflow");
-      document.querySelector('#contentWrapper').style.opacity = "1";
+
+    if($('title').text() === '404 Not Found - MyAnimeList.net\n') {
+      addLoading("remove");
     }
 
     async function buildCustomElements(data) {
@@ -6524,8 +6565,6 @@ function delay(ms) {
         set(1, ".container-right #horiznav_nav", { r: { 0: 0 } });
         document.querySelector("#contentWrapper")
           .setAttribute("style", "width: 1375px;max-width: 1375px!important;min-width:500px; margin: auto;top: -40px;transition:.6s;opacity:1;top: -40px!important;border:0!important;box-shadow:none!important");
-        pfloading.remove();
-        document.body.style.removeProperty("overflow");
         let more = document.querySelector(".btn-truncate.js-btn-truncate");
         if (more) {
           more.setAttribute("data-height", '{"outer":1000,"inner":90000}');
@@ -6659,10 +6698,6 @@ function delay(ms) {
           $('.navbar a:contains(' + n + ')').addClass('navactive');
         }
         set(0, navel, { sal: { 0: "margin: 0 30px;font-size: .9rem;box-shadow: none!important;" } });
-      } else {
-        pfloading.remove();
-        document.body.style.removeProperty("overflow");
-        document.querySelector('#contentWrapper').style.opacity = "1";
       }
     }
     //Private Profile Check
@@ -6672,9 +6707,7 @@ function delay(ms) {
         $('#banner').hide();
         $('#content').hide();
         $('#navbar').hide();
-        $('#contentWrapper').css('opacity','1');
-        $('#contentWrapper').append(pfloading);
-        pfloading.innerHTML = "Private Profile";
+        addLoading("add","Private Profile", 0, 1);
       }
     }
     //Modern Profile Layout Anime and Manga List //-START-//
@@ -7241,6 +7274,7 @@ function delay(ms) {
       buttonDraw3x3.title = "Make 3x3";
       buttonDraw3x3.onclick = function () {
         if (!document.querySelector(".maljsDisplayBox")) {
+          $(".entry.row .title").css('pointer-events','none');
           let displayBox = createDisplayBox(false, "3x3 Maker");
           let col_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
           let col_label = AdvancedCreate("span", false, "columns", displayBox, "margin: 5px");
@@ -7301,6 +7335,7 @@ function delay(ms) {
             cardList.forEach(function (card) {
               card.draw3x3selected = false;
               card.style.borderStyle = "none";
+              card.querySelector('.title').style.pointerEvents = "";
             });
             linkList = [];
           };
@@ -7398,27 +7433,27 @@ function delay(ms) {
             let cardList = document.querySelectorAll(".entry.row");
             cardList.forEach((card) => {
               card.onclick = function () {
-                if (this.draw3x3selected) {
-                  linkList[linkList.indexOf(this.draw3x3selected)] = "empty";
-                  this.draw3x3selected = false;
-                  this.style.borderStyle = "none";
-                } else {
-                  let val = this.querySelector(".cover .image").src;
-                  if (
-                    !linkList.some((place, index) => {
+                if (keepUpdating) {
+                  if (this.draw3x3selected) {
+                    linkList[linkList.indexOf(this.draw3x3selected)] = "empty";
+                    this.draw3x3selected = false;
+                    this.style.borderStyle = "none";
+                  } else {
+                    let val = this.querySelector(".cover .image").src;
+                    if (!linkList.some((place, index) => {
                       if (place === "empty") {
                         linkList[index] = val;
                         return true;
                       }
                       return false;
-                    })
-                  ) {
-                    linkList.push(val);
+                    })) {
+                      linkList.push(val);
+                    }
+                    this.draw3x3selected = val;
+                    this.style.borderStyle = "solid";
                   }
-                  this.draw3x3selected = val;
-                  this.style.borderStyle = "solid";
-                }
-                updateDrawing();
+                  updateDrawing();
+                };
               };
             });
           };
@@ -8021,7 +8056,7 @@ function delay(ms) {
             const status = node.node.status ? node.node.status.split("_").join(" ") : "";
             return `
             <div class='relationEntry'><a class='link' href='/${typePath}/${node.node.idMal}/'>
-            <img class='relationImg' src='${coverImage}' />
+            <img class='relationImg' src='${coverImage}' alt='${title}' />
             <span class='relationTitle' style='border-color: ${borderColor}!important;'>${relationType}</span>
             <div class='relationDetails' style='color: ${borderColor}!important;'>
             ${relationType}
@@ -8234,39 +8269,84 @@ function delay(ms) {
         if(active == '0') {
           if (!document.querySelector("#customCoverPreview")) {
             coverCache = await coverLocalForage.getItem(entryId+"-"+entryType);
+            let customCoverDiv = create("div",{class:"customCoverDiv"});
             let customCoverInput = create("input", { id: 'customCoverInput', style: {margin: "5px"} ,placeholder: "Custom Cover URL" });
-            const coverPreview =  `<tr id="customCoverPreviewTable"><td width="225" align="center">
-            <div class="picSurround" id="customCoverPreview"><a class="js-picture-gallery" rel="gallery-anime"><img class="lazyloaded" src="${defaultImg.src}" style="max-width:225px;"></a></div></td>
+            let customCoverFit = AdvancedCreate("select", "maljsNativeInput", false, customCoverDiv);
+            let addOption = function (value, text) {
+              let newOption = AdvancedCreate("option", false, text, customCoverFit);
+              newOption.value = value;
+            };
+            addOption("initial", "default");
+            addOption("cover", "cover");
+            addOption("contain", "contain");
+            addOption("scale-down", "scale-down");
+            addOption("none", "none");
+
+            const coverPreview = `<tr id="customCoverPreviewTable"><td width="225" align="center" style="max-width:225px;">
+            <div class="picSurround" id="customCoverPreview"><a class="js-picture-gallery" rel="gallery-anime">
+            <div>
+            <img class="lazyloaded" src="${defaultImg.src}" style="max-width:225px;"><p>Custom Cover</p></div>
+            <div>
+            <img class="lazyloaded" src="${defaultImg.src}" style="width: 70px;height: 110px;object-fit: initial;"><p>70x110</p><br>
+            <img class="lazyloaded" src="${defaultImg.src}" style="width: 50px;height: 70px;object-fit: initial;"><p>50x70</p></div></a></div></td>
             <td width="225" align="center">
             <div class="picSurround"><a class="js-picture-gallery" rel="gallery-anime"><img id="defaultCoverImage" class="lazyloaded" src="${coverCache?.defaultImageSrc ? coverCache?.defaultImageSrc : defaultImg.src}" style="max-width:225px;">
             </a><div style="text-align: center;" class="spaceit"><a>Default Cover</a></div></div></td></tr>`;
             picTable.innerHTML = coverPreview + picTable.innerHTML;
-            $('#customCoverPreview').append(customCoverInput);
+
+            const imgPosSlider = `<div class="cover-position-slider-container" style="display:none">
+            <label for="xSlider">X:</label><input type="range" class ="coverSlider" id="coverXSlider" min="0" max="100" value="50"style="width: 115px;padding:6px!important;margin-right: 5px;">
+            <label for="ySlider">Y:</label><input type="range" class ="coverSlider" id="coverYSlider" min="0" max="100" value="50"style="width: 115px;padding:6px!important;"></div>`;
+
+            customCoverDiv.append(customCoverInput,customCoverFit);
+            $('#customCoverPreview').append(customCoverDiv,imgPosSlider);
+            picTable.style.width = '100%';
+
+            //Update Cover Positions
+            const xSlider = document.getElementById("coverXSlider");
+            const ySlider = document.getElementById("coverYSlider");
+            function updateCoverPositions() {
+              const x = xSlider.value + "%";
+              const y = ySlider.value + "%";
+              $('#customCoverPreview img').css('object-position', `${x} ${y}`);
+            }
+            xSlider.addEventListener("input", updateCoverPositions);
+            ySlider.addEventListener("input", updateCoverPositions);
+            customCoverFit.addEventListener('change', function (e) {
+              $('#customCoverPreview img').css('object-fit', customCoverFit.value);
+              if(customCoverFit.value !== 'initial'){
+                $('#customCoverPreview .cover-position-slider-container').css('display','grid');
+                $('#customCoverPreview .coverSlider').val('50');
+              } else {
+                $('#customCoverPreview .cover-position-slider-container').css('display','none');
+              }
+            });
             customCoverInput.addEventListener('change', function (e) {
-              document.querySelector('#customCoverPreview img').src = customCoverInput.value;
+              $('#customCoverPreview img').attr('src',customCoverInput.value);
             });
           }
           const tdElements = picTable.querySelectorAll("td");
           tdElements.forEach(td => {
             if (td.querySelector(".custom-cover-select-btn")) return;
-            if(td.querySelector("img")){
+            if (td.querySelector("img")) {
               const selectButton =  create('a', {class: 'custom-cover-select-btn mal-btn primary'},'Select');
               selectButton.addEventListener("click", async () => {
                 const img = td.querySelector("img");
-                if (img && img.height > 20) {
+                if (img && img.height > 10) {
                   if(coverCache?.defaultImage && img.src.includes(coverCache.defaultImage)) {
-                    coverLocalForage.removeItem(entryId+"-"+entryType);
+                    await coverLocalForage.removeItem(entryId+"-"+entryType);
                   } else {
-                    coverLocalForage.setItem(entryId+"-"+entryType, {
+                    await coverLocalForage.setItem(entryId+"-"+entryType, {
                       title:entryTitle,
                       type:entryType,
+                      fit:img.style.objectFit ? img.style.objectFit : "initial",
+                      position: img.style.objectPosition ? img.style.objectPosition : '50% 50%',
                       defaultImage: coverCache?.defaultImage ? coverCache.defaultImage : defaultImg?.src?.replace(/\.\w+$/, '').replace('https://cdn.myanimelist.net/images/','') || "",
                       defaultImageSrc: coverCache?.defaultImageSrc ? coverCache.defaultImageSrc : defaultImg?.src,
                       coverImage: img.src
                     });
                   }
-                  await delay(500);
-                  loadCustomCover();
+                  await loadCustomCover();
                   $('.custom-cover-select-btn').remove();
                   $('#customCoverPreviewTable').remove();
                   $(mainButton).attr('active','0');
@@ -8482,55 +8562,78 @@ function delay(ms) {
         styleSheet2.innerText = styles2;
         document.head.appendChild(styleSheet2);
       }
+      const entryId = current.split("/")[2];
+      const entryType = current.split("/")[1].toUpperCase();
+      const coverLocalForage = localforage.createInstance({ name: "MalJS", storeName: "cover" });
       const colorThief = new ColorThief();
-      let img,dominantColor,Palette,t;
+      let img, dominantColor, palette, paletteFetched,listenerAdded,coverCache;
       let colors = [];
-      async function r() {
-        if (!t) {
-          if (!Palette) {
-            try {
-              img.setAttribute('crossorigin', 'anonymous');
-              Palette = colorThief.getPalette(img, 10, 5);
-              img.removeAttribute('crossorigin');
-            } catch {
-              await delay(100);
-              return r();
-            }
-            await delay(100);
-            return r();
-          } else {
-            t = 1;
-            for (let i = 0; i < Palette.length; i++) {
-              let color = tinycolor('rgba(' + Palette[i][0] + ',' + Palette[i][1] + ',' + Palette[i][2] + ', .8)');
+      let img2 = new Image();
 
-              while(color.getLuminance() > 0.08) {
-                color = color.darken(1)
-              }
-              while(color.getLuminance() < 0.04) {
-                color = color.brighten(1);
-              }
-              colors.push(color);
+      async function applyPalette() {
+        if (!paletteFetched) {
+          if (!palette) {
+            try {
+              img2.crossOrigin = 'anonymous';
+              palette = colorThief.getPalette(img2, 10, 5);
+              paletteFetched = true;
+            } catch (error) {
+              img2.crossOrigin = '';
+              await delay(150);
+              return;
             }
-            document.querySelector('body').style
-              .setProperty('background', 'linear-gradient(180deg, ' + colors[2].toString() + ' 0%,' + colors[1].toString() + ' 50%, ' + colors[0].toString() + ' 100%)', 'important');
           }
+        }
+        if (paletteFetched) {
+          processPalette(palette);
         }
       }
-      $(document).ready( async function () {
-       await imgLoad();
-        async function imgLoad() {
-          img = document.querySelector('div:nth-child(1) > a > img');
-          set(0, img, { sa: { 0: "position: fixed;opacity:0!important;" }});
-          if (img && img.src) {
-            set(0, img, { sa: { 0: "position: relative;opacity:1!important;" }});
-            await r();
+
+      function processPalette(palette) {
+        colors = [];
+        for (let i = 0; i < palette.length; i++) {
+          let color = tinycolor(`rgba(${palette[i][0]}, ${palette[i][1]}, ${palette[i][2]}, 1)`);
+          while (color.getLuminance() > 0.08) {
+            color = color.darken(1);
           }
-          else {
-            await delay(250);
-            await imgLoad();
+          while (color.getLuminance() < 0.04) {
+            color = color.brighten(1);
           }
+        colors.push(color);
         }
-      });
+        document.body.style.setProperty('background', `linear-gradient(180deg, ${colors[2]} 0%, ${colors[1]} 50%, ${colors[0]} 100%)`, 'important');
+      }
+
+      addLoading();
+      waitForCoverImage();
+
+      async function waitForCoverImage() {
+        if (!coverCache) {
+          coverCache = await coverLocalForage.getItem(entryId + "-" + entryType);
+        }
+        if (svar.customCover && coverCache) {
+          img = document.querySelector('img[customCover]');
+        } else {
+          img = document.querySelector('div:nth-child(1) > a > img');
+        }
+        if (img && $(img).attr('style') !== "position: fixed;opacity:0!important;") {
+          set(0, img, { sa: { 0: "position: fixed;opacity:0!important;" }});
+        }
+        if (img && img.src && img.width && img.complete) {
+          set(0, img, { sa: { 0: "position: relative;opacity:1!important;" }});
+          img2.src = img.src;
+          if (!listenerAdded) {
+            img2.addEventListener("load", function () {
+              paletteFetched = false;
+              applyPalette();
+            });
+            listenerAdded = 1;
+          }
+        } else {
+          await delay(150);
+          await waitForCoverImage();
+        }
+      }
     }
   }
   //Anime-Manga Background Color from Cover Image //--END--//
