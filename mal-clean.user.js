@@ -4,7 +4,7 @@
 // @match       https://myanimelist.net/*
 // @match       https://www.mal-badges.com/users/*malbadges
 // @grant       none
-// @version     1.29.75
+// @version     1.29.76
 // @author      KanashiiDev
 // @description Customizations and fixes for MyAnimeList
 // @license     GPL-3.0-or-later
@@ -318,7 +318,7 @@ function aniMangaAddClass(main, name) {
 function createListDiv(title,buttons) {
   let btns = create("div",{class:'mainListBtnsDiv'});
   for(let x = 0; x<buttons.length;x++) {
-    let mainDiv =  create("div",{class:'mainListBtnDiv', id:buttons[x].b.id+'Option'});
+    let mainDiv = create("div",{class:'mainListBtnDiv', id:buttons[x].b.id+'Option'});
     $(mainDiv).append(buttons[x].b,"<h3>"+buttons[x].t+"</h3>",buttons[x]?.s);
     btns.append(mainDiv);
   }
@@ -1142,9 +1142,12 @@ async function getUserGenres(type, createDiv) {
           genreDiv.append(genreName, genreCount);
           genresDivInner.append(genreDiv);
         });
+        $(genresDiv).css('width','max-content');
+        $('#user-status-history-div').css('margin-top','10px');
         while (genresDivInner.offsetWidth > 425) {
           genresDivInner.lastChild.remove();
         }
+        $(genresDiv).css('width','auto');
       } else if (items && items.length > 0) {
         return items;
       }
@@ -1641,31 +1644,43 @@ async function blockUser(id) {
 }
 
 //Custom Anime/Manga Cover
-async function loadCustomCover() {
-  const coverLocalForage = localforage.createInstance({ name: "MalJS", storeName: "cover" });
-  coverLocalForage.iterate((value, key) => {
-    if (value.defaultImage && value.coverImage) {
-      const excludedParentSelector = '.js-picture-gallery, .gallery-anime';
-      $("img").each(function () {
-        const $img = $(this);
-        if ($img.closest(excludedParentSelector).length === 0) {
-          const dataSrc = $img.attr("data-src") || "";
-          const imgSrc = $img.attr("src") || "";
-          const imgAlt = $img.attr("alt") || "";
-          if ((imgSrc.includes(value.defaultImage) || dataSrc.includes(value.defaultImage)) && imgAlt.includes(value.title) ||
-              imgAlt.toUpperCase() == value.title.toUpperCase() && (value.type && imgSrc.toUpperCase().includes(`/${value.type}/`) || dataSrc.toUpperCase().includes(`/${value.type}/`))) {
-            $img.addClass('customCover').attr('customCover', '1').attr('src', value.coverImage).attr('data-src', value.coverImage).removeAttr('srcset').removeAttr('data-srcset');
-            if (value.fit && value.fit !=='initial') {
-              $img.css('object-fit',value.fit);
-            }
-            if (value.position && value.position !=='50% 50%') {
-              $img.css('object-position',value.position);
+let loadingCustomCover = 0;
+async function loadCustomCover(force = "0") {
+  if (!loadingCustomCover || force !== "0") {
+    const coverLocalForage = await localforage.createInstance({ name: "MalJS", storeName: "cover" });
+    coverLocalForage.iterate((value, key) => {
+      if (value.defaultImage && value.coverImage) {
+        $("img").each(function () {
+          const $img = $(this);
+          if ($img.parent().attr('class') !== 'js-picture-gallery') {
+            const dataSrc = $img.attr("data-src") || "";
+            const imgSrc = $img.attr("src") || "";
+            const imgAlt = $img.attr("alt")?.toUpperCase() || "";
+            const dbTitle = value.title.toUpperCase();
+            const dbDefaultImage = value.defaultImage;
+
+            if ((imgSrc && imgSrc.includes(dbDefaultImage)) || (dataSrc && dataSrc.includes(dbDefaultImage))) {
+              if (imgAlt && (imgAlt.includes(dbTitle) || (imgAlt === dbTitle))) {
+                if (value.type && (imgSrc.toUpperCase().includes(`/${value.type}/`) || dataSrc.toUpperCase().includes(`/${value.type}/`))) {
+                  $img.addClass('customCover')
+                    .attr('customCover', '1').attr('src', value.coverImage).attr('data-src', value.coverImage)
+                    .removeAttr('srcset').removeAttr('data-srcset');
+
+                  if (value.fit && value.fit !== 'initial') {
+                    $img.css('object-fit', value.fit);
+                  }
+                  if (value.position && value.position !== '50% 50%') {
+                    $img.css('object-position', value.position);
+                  }
+                }
+              }
             }
           }
-        }
-      });
-    }
-  });
+        });
+      }
+    });
+    loadingCustomCover = 1;
+  };
 }
 
 async function createCustomDiv(appLoc, header, content, editData) {
@@ -1896,10 +1911,12 @@ let styles = `
 .user-genres .user-genres-container {
     padding: 10px;
     background: var(--color-foreground);
+    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
     border: var(--border) solid var(--border-color);
     -webkit-border-radius: var(--border-radius);
     border-radius: var(--border-radius);
-    text-align: center
+    text-align: center;
 }
 
 .user-genres .user-genres-inner {
@@ -2121,9 +2138,10 @@ let styles = `
 
 .filterList_GenresFilter input[type="checkbox"] {
     cursor: pointer;
+    padding: 10px;
+    border-radius: 5px;
     vertical-align: middle;
-    bottom: 2px;
-    left: -15px;
+    left: -2px;
     -webkit-appearance: none;
     position: relative;
     -webkit-box-sizing: border-box;
@@ -2227,7 +2245,6 @@ input#year-filter-slider {
     display: none;
     -ms-grid-columns: 1fr 1fr;
     grid-template-columns: 1fr 1fr;
-    width: 410px;
     background: var(--color-foreground);
     -webkit-border-radius: var(--border-radius);
     border-radius: var(--border-radius);
@@ -2241,8 +2258,9 @@ input#year-filter-slider {
 
 .maljs-dropdown-content label {
     margin: 2px;
-    padding: 12px 16px;
+    padding: 7px 0px;
     display: block;
+    align-content: center
 }
 
 .maljs-dropdown-content label:hover {
@@ -3909,24 +3927,27 @@ const loadingDivMask = create("div", {
   style: { background: "var(--color-background)", opacity: "1", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "11" },
 });
 function addLoading(type = "add", text = "Loading", circle = 1, force = 0) {
-  if (force) {
-    $(loadingDiv).attr('force', force);
-  }
-  let spinCircle = '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
-  if (type === "add") {
-    loadingDiv.innerHTML = text + (circle ? spinCircle : '');
-    if (!document.querySelector('#loadingDiv')) {
-      document.body.append(loadingDivMask,loadingDiv);
+  const contWrap =  document.querySelector('#contentWrapper');
+  if(contWrap) {
+    if (force) {
+      $(loadingDiv).attr('force', force);
     }
-    document.querySelector('#contentWrapper').style.opacity = "0";
-    document.body.style.overflow = "hidden";
-    history.scrollRestoration = "manual";
-    window.scrollTo(0, 0);
-  } else if (type === "remove" && !$(loadingDiv).attr('force')) {
-    loadingDivMask.remove();
-    loadingDiv.remove();
-    document.body.style.removeProperty("overflow");
-    document.querySelector('#contentWrapper').style.opacity = "1";
+    let spinCircle = '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
+    if (type === "add") {
+      loadingDiv.innerHTML = text + (circle ? spinCircle : '');
+      if (!document.querySelector('#loadingDiv')) {
+        document.body.append(loadingDivMask,loadingDiv);
+      }
+      document.querySelector('#contentWrapper').style.opacity = "0";
+      document.body.style.overflow = "hidden";
+      history.scrollRestoration = "manual";
+      window.scrollTo(0, 0);
+      } else if (type === "remove" && !$(loadingDiv).attr('force')) {
+        loadingDivMask.remove();
+        loadingDiv.remove();
+        document.body.style.removeProperty("overflow");
+        document.querySelector('#contentWrapper').style.opacity = "1";
+      }
   }
 }
 
@@ -4944,7 +4965,7 @@ function delay(ms) {
               }
             });
             if (svar.customCover) {
-              loadCustomCover();
+              loadCustomCover(1);
             }
           }
         });
@@ -5062,7 +5083,7 @@ function delay(ms) {
               }
             });
             if (svar.customCover) {
-              loadCustomCover();
+              loadCustomCover(1);
             }
           }
         });
@@ -6430,7 +6451,7 @@ function delay(ms) {
               dat.append(historylink, name);
               dat.append(historydate);
               historyMain.appendChild(dat);
-              await loadCustomCover();
+              await loadCustomCover(1);
               await delay(wait);
             }
             loading.remove();
@@ -6798,7 +6819,7 @@ function delay(ms) {
       };
       coverDiv.append(imageDiv,editDiv);
       // Create the title div
-      const titleDiv =  create('div', {class: 'title'});
+      const titleDiv = create('div', {class: 'title'});
       const titleLink = create('a', {class: 'title-link'},animeData.title);
       titleLink.style.maxWidth = '450px';
       titleLink.href = animeData.href;
@@ -6892,7 +6913,7 @@ function delay(ms) {
       const fetchUrl = isManga ? "https://myanimelist.net/mangalist/" + username + "?status=7" : "https://myanimelist.net/animelist/" + username + "?status=7";
       const listLoading = create("div",{
       class: "listLoading",
-      style: { position: "fixed", top: "50%", left: "0", right: "0", fontSize: "16px" },},
+      style: { position: "absolute", top: "100%", left: "0", right: "0", fontSize: "16px" },},
       "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>');
       const listEntries = create('div', {class: 'list-entries'});
       contRight.append(listLoading,listEntries);
@@ -6943,7 +6964,7 @@ function delay(ms) {
                 });
               }
             }
-            loadCustomCover();
+            loadCustomCover(1);
           }
         })
 
@@ -6957,8 +6978,10 @@ function delay(ms) {
       listLoading.remove();
 
       if (svar.modernLayout) {
+      $('.content-container').css('grid-template-columns','26% auto');
+      contRight.css('min-width','900px');
         const contentDiv = document.querySelector("#content > div") ? document.querySelector("#content > div") : document.querySelector("#content > table > tbody > tr");
-        if(contentDiv.className !==''){
+        if(contentDiv.className !=='') {
           contentDiv.style.marginTop = "50px";
         } else {
           contentDiv.style.marginTop = "25px";
@@ -6974,6 +6997,10 @@ function delay(ms) {
       listFilter.innerHTML = '<label for="filter-input"></label><input type="text" id="filter-input" placeholder="Filter"><h3>Lists</h3>';
       const goBack = create('a', {class: 'filterLists-back fa fa-arrow-left'});
         goBack.onclick = () => {
+          if (svar.modernLayout) {
+            $('.content-container').css('grid-template-columns','33% auto');
+            contRight.css('min-width','800px');
+          }
           contLeft.children().show();
           contRight.children().show();
           $('.loadmore').show();
@@ -7067,7 +7094,9 @@ function delay(ms) {
           '<label><input type="checkbox" class="genre-filter" value="37" title="Supernatural"> Supernatural</label><label><input type="checkbox" class="genre-filter" value="41" title="Suspense"> Suspense</label></div>';
           listFilter.appendChild(genresFilter);
         // Genres Dropdown Function
-        $(".genreDropBtn").click(function(){
+        $(".genreDropBtn").click(function() {
+          const genreFilterDiv  =  document.querySelector('.filterList_GenresFilter');
+          genreFilterDiv.style.minWidth = genreFilterDiv.style.minWidth === '255px' ? '' : '255px';
           const dropdownContent = document.getElementById('maljs-dropdown-content');
           dropdownContent.style.display = dropdownContent.style.display === 'grid' ? 'none' : 'grid';
         });
@@ -8252,118 +8281,121 @@ function delay(ms) {
         $('.SynopsisDiv').next('p').html($('.SynopsisDiv').next('p').html().replace(/(<br>\n<br>\n\[Written by MAL Rewrite\]+)/gm, ''));
       }
     }
-  //Custom Cover Add
-  if (svar.customCover) {
-    getCustomCover();
-  }
-    async function getCustomCover(){
-    if(location.pathname.endsWith('/pics')) {
-    const coverLocalForage = localforage.createInstance({ name: "MalJS", storeName: "cover" });
-    let coverCache = await coverLocalForage.getItem(entryId+"-"+entryType);
-      const picTable = document.querySelector("#content > table > tbody > tr > td:nth-child(2) > div.rightside.js-scrollfix-bottom-rel > table");
-      const mainButton = create('a', { active: '0' ,class: 'add-custom-pic-button',style:{cursor:'pointer'}},'Change Cover');
-      const defaultImg = document.querySelector('div:nth-child(1) > a > img');
-      $('.floatRightHeader').append(' - ', mainButton);
-      mainButton.addEventListener("click", async() => {
-      const active = $(mainButton).attr('active');
-        if(active == '0') {
-          if (!document.querySelector("#customCoverPreview")) {
-            coverCache = await coverLocalForage.getItem(entryId+"-"+entryType);
-            let customCoverDiv = create("div",{class:"customCoverDiv"});
-            let customCoverInput = create("input", { id: 'customCoverInput', style: {margin: "5px"} ,placeholder: "Custom Cover URL" });
-            let customCoverFit = AdvancedCreate("select", "maljsNativeInput", false, customCoverDiv);
-            let addOption = function (value, text) {
-              let newOption = AdvancedCreate("option", false, text, customCoverFit);
-              newOption.value = value;
-            };
-            addOption("initial", "default");
-            addOption("cover", "cover");
-            addOption("contain", "contain");
-            addOption("scale-down", "scale-down");
-            addOption("none", "none");
+    //Custom Cover Add
+    if (svar.customCover) {
+      getCustomCover();
+    }
+    async function getCustomCover() {
+      if (location.pathname.endsWith('/pics')) {
+        const coverLocalForage = localforage.createInstance({ name: "MalJS", storeName: "cover" });
+        let coverCache = await coverLocalForage.getItem(entryId + "-" + entryType);
+        const picTable = document.querySelector("#content > table > tbody > tr > td:nth-child(2) > div.rightside.js-scrollfix-bottom-rel > table");
+        const mainButton = create('a', { active: '0', class: 'add-custom-pic-button', style: { cursor: 'pointer' } }, 'Change Cover');
+        const defaultImg = document.querySelector('div:nth-child(1) > a > img');
+        $('.floatRightHeader').append(' - ', mainButton);
+        mainButton.addEventListener("click", async () => {
+          const active = $(mainButton).attr('active');
+          if (active == '0') {
+            if (!document.querySelector("#customCoverPreview")) {
+              mainButton.innerText = "Change Cover [X]";
+              coverCache = await coverLocalForage.getItem(entryId + "-" + entryType);
+              let customCoverDiv = create("div", { class: "customCoverDiv" });
+              let customCoverInput = create("input", { id: 'customCoverInput', style: { margin: "5px" }, placeholder: "Custom Cover URL" });
+              let customCoverFit = AdvancedCreate("select", "maljsNativeInput", false, customCoverDiv);
+              let addOption = function (value, text) {
+                let newOption = AdvancedCreate("option", false, text, customCoverFit);
+                newOption.value = value;
+              };
+              addOption("initial", "default");
+              addOption("cover", "cover");
+              addOption("contain", "contain");
+              addOption("scale-down", "scale-down");
+              addOption("none", "none");
 
-            const coverPreview = `<tr id="customCoverPreviewTable"><td width="225" align="center" style="max-width:225px;">
-            <div class="picSurround" id="customCoverPreview"><a class="js-picture-gallery" rel="gallery-anime">
-            <div>
-            <img class="lazyloaded" src="${defaultImg.src}" style="max-width:225px;"><p>Custom Cover</p></div>
-            <div>
-            <img class="lazyloaded" src="${defaultImg.src}" style="width: 70px;height: 110px;object-fit: initial;"><p>70x110</p><br>
-            <img class="lazyloaded" src="${defaultImg.src}" style="width: 50px;height: 70px;object-fit: initial;"><p>50x70</p></div></a></div></td>
-            <td width="225" align="center">
-            <div class="picSurround"><a class="js-picture-gallery" rel="gallery-anime"><img id="defaultCoverImage" class="lazyloaded" src="${coverCache?.defaultImageSrc ? coverCache?.defaultImageSrc : defaultImg.src}" style="max-width:225px;">
-            </a><div style="text-align: center;" class="spaceit"><a>Default Cover</a></div></div></td></tr>`;
-            picTable.innerHTML = coverPreview + picTable.innerHTML;
+              const coverPreview = `<tr id="customCoverPreviewTable"><td width="225" align="center" style="max-width:225px;">
+              <div class="picSurround" id="customCoverPreview"><a class="js-picture-gallery" rel="gallery-anime"><div>
+              <img class="lazyloaded" src="${defaultImg.src}" style="max-width:225px;"><p>Custom Cover</p></div><div>
+              <img class="lazyloaded" src="${defaultImg.src}" style="width: 70px;height: 110px;object-fit: initial;"><p>70x110</p><br>
+              <img class="lazyloaded" src="${defaultImg.src}" style="width: 50px;height: 70px;object-fit: initial;"><p>50x70</p></div></a></div></td>
+              <td width="225" align="center">
+              <div class="picSurround"><a class="js-picture-gallery" rel="gallery-anime">
+              <img id="defaultCoverImage" class="lazyloaded" src="${coverCache?.defaultImageSrc ? coverCache?.defaultImageSrc : defaultImg.src}" style="max-width:225px;">
+              </a><div style="text-align: center;" class="spaceit"><a>Default Cover</a></div></div></td></tr>`;
+              picTable.innerHTML = coverPreview + picTable.innerHTML;
 
-            const imgPosSlider = `<div class="cover-position-slider-container" style="display:none">
-            <label for="xSlider">X:</label><input type="range" class ="coverSlider" id="coverXSlider" min="0" max="100" value="50"style="width: 115px;padding:6px!important;margin-right: 5px;">
-            <label for="ySlider">Y:</label><input type="range" class ="coverSlider" id="coverYSlider" min="0" max="100" value="50"style="width: 115px;padding:6px!important;"></div>`;
+              const imgPosSlider = `<div class="cover-position-slider-container" style="display:none">
+              <label for="xSlider">X:</label><input type="range" class ="coverSlider" id="coverXSlider" min="0" max="100" value="50"style="width: 115px;padding:6px!important;margin-right: 5px;">
+              <label for="ySlider">Y:</label><input type="range" class ="coverSlider" id="coverYSlider" min="0" max="100" value="50"style="width: 115px;padding:6px!important;"></div>`;
 
-            customCoverDiv.append(customCoverInput,customCoverFit);
-            $('#customCoverPreview').append(customCoverDiv,imgPosSlider);
-            picTable.style.width = '100%';
+              customCoverDiv.append(customCoverInput, customCoverFit);
+              $('#customCoverPreview').append(customCoverDiv, imgPosSlider);
+              picTable.style.width = '100%';
 
-            //Update Cover Positions
-            const xSlider = document.getElementById("coverXSlider");
-            const ySlider = document.getElementById("coverYSlider");
-            function updateCoverPositions() {
-              const x = xSlider.value + "%";
-              const y = ySlider.value + "%";
-              $('#customCoverPreview img').css('object-position', `${x} ${y}`);
-            }
-            xSlider.addEventListener("input", updateCoverPositions);
-            ySlider.addEventListener("input", updateCoverPositions);
-            customCoverFit.addEventListener('change', function (e) {
-              $('#customCoverPreview img').css('object-fit', customCoverFit.value);
-              if(customCoverFit.value !== 'initial'){
-                $('#customCoverPreview .cover-position-slider-container').css('display','grid');
-                $('#customCoverPreview .coverSlider').val('50');
-              } else {
-                $('#customCoverPreview .cover-position-slider-container').css('display','none');
+              //Update Cover Positions
+              const xSlider = document.getElementById("coverXSlider");
+              const ySlider = document.getElementById("coverYSlider");
+              function updateCoverPositions() {
+                const x = xSlider.value + "%";
+                const y = ySlider.value + "%";
+                $('#customCoverPreview img').css('object-position', `${x} ${y}`);
               }
-            });
-            customCoverInput.addEventListener('change', function (e) {
-              $('#customCoverPreview img').attr('src',customCoverInput.value);
-            });
-          }
-          const tdElements = picTable.querySelectorAll("td");
-          tdElements.forEach(td => {
-            if (td.querySelector(".custom-cover-select-btn")) return;
-            if (td.querySelector("img")) {
-              const selectButton =  create('a', {class: 'custom-cover-select-btn mal-btn primary'},'Select');
-              selectButton.addEventListener("click", async () => {
-                const img = td.querySelector("img");
-                if (img && img.height > 10) {
-                  if(coverCache?.defaultImage && img.src.includes(coverCache.defaultImage)) {
-                    await coverLocalForage.removeItem(entryId+"-"+entryType);
-                  } else {
-                    await coverLocalForage.setItem(entryId+"-"+entryType, {
-                      title:entryTitle,
-                      type:entryType,
-                      fit:img.style.objectFit ? img.style.objectFit : "initial",
-                      position: img.style.objectPosition ? img.style.objectPosition : '50% 50%',
-                      defaultImage: coverCache?.defaultImage ? coverCache.defaultImage : defaultImg?.src?.replace(/\.\w+$/, '').replace('https://cdn.myanimelist.net/images/','') || "",
-                      defaultImageSrc: coverCache?.defaultImageSrc ? coverCache.defaultImageSrc : defaultImg?.src,
-                      coverImage: img.src
-                    });
-                  }
-                  await loadCustomCover();
-                  $('.custom-cover-select-btn').remove();
-                  $('#customCoverPreviewTable').remove();
-                  $(mainButton).attr('active','0');
+              xSlider.addEventListener("input", updateCoverPositions);
+              ySlider.addEventListener("input", updateCoverPositions);
+              customCoverFit.addEventListener('change', function (e) {
+                $('#customCoverPreview img').css('object-fit', customCoverFit.value);
+                if (customCoverFit.value !== 'initial') {
+                  $('#customCoverPreview .cover-position-slider-container').css('display', 'grid');
+                  $('#customCoverPreview .coverSlider').val('50');
+                } else {
+                  $('#customCoverPreview .cover-position-slider-container').css('display', 'none');
                 }
               });
-              td.appendChild(selectButton);
+              customCoverInput.addEventListener('change', function (e) {
+                $('#customCoverPreview img').attr('src', customCoverInput.value);
+              });
             }
-          });
-          $(mainButton).attr('active', '1');
-        } else {
-          $('.custom-cover-select-btn').remove();
-          $('#customCoverPreviewTable').remove();
-          $(mainButton).attr('active','0');
-        }
-      });
+            const tdElements = picTable.querySelectorAll("td");
+            tdElements.forEach(td => {
+              if (td.querySelector(".custom-cover-select-btn")) return;
+              if (td.querySelector("img")) {
+                const selectButton = create('a', { class: 'custom-cover-select-btn mal-btn primary' }, 'Select');
+                selectButton.addEventListener("click", async () => {
+                  const img = td.querySelector("img");
+                  if (img && img.height > 10) {
+                    if (coverCache?.defaultImage && img.src.includes(coverCache.defaultImage)) {
+                      await coverLocalForage.removeItem(entryId + "-" + entryType);
+                      $('div:nth-child(1) > a > img').first().attr('src', img.src);
+                      $('#defaultCoverImage').attr('src', img.src);
+                    } else {
+                      await coverLocalForage.setItem(entryId + "-" + entryType, {
+                        title: entryTitle,
+                        type: entryType,
+                        fit: img.style.objectFit ? img.style.objectFit : "initial",
+                        position: img.style.objectPosition ? img.style.objectPosition : '50% 50%',
+                        defaultImage: coverCache?.defaultImage ? coverCache.defaultImage : (defaultImg?.src?.replace(/\.\w+$/, '').replace('https://cdn.myanimelist.net/images/', '') || ""),
+                        defaultImageSrc: coverCache?.defaultImageSrc ? coverCache.defaultImageSrc : defaultImg?.src,
+                        coverImage: img.src
+                      });
+                    }
+                    await loadCustomCover(1);
+                    $('.custom-cover-select-btn').remove();
+                    $('#customCoverPreviewTable').remove();
+                    $(mainButton).attr('active', '0');
+                  }
+                });
+                td.appendChild(selectButton);
+              }
+            });
+            $(mainButton).attr('active', '1');
+          } else {
+            mainButton.innerText = "Change Cover";
+            $('.custom-cover-select-btn').remove();
+            $('#customCoverPreviewTable').remove();
+            $(mainButton).attr('active', '0');
+          }
+        });
+      }
     }
-  }
   }
   //Anime/Manga Section //--END--//
 
@@ -8570,38 +8602,34 @@ function delay(ms) {
       let colors = [];
       let img2 = new Image();
 
-      async function applyPalette() {
+      async function bgColorFromImage(img) {
         if (!paletteFetched) {
           if (!palette) {
             try {
-              img2.crossOrigin = 'anonymous';
-              palette = colorThief.getPalette(img2, 10, 5);
+              img.crossOrigin = 'anonymous';
+              palette = colorThief.getPalette(img, 10, 5);
               paletteFetched = true;
             } catch (error) {
-              img2.crossOrigin = '';
+              img.crossOrigin = '';
               await delay(150);
               return;
             }
           }
         }
         if (paletteFetched) {
-          processPalette(palette);
-        }
-      }
-
-      function processPalette(palette) {
-        colors = [];
-        for (let i = 0; i < palette.length; i++) {
-          let color = tinycolor(`rgba(${palette[i][0]}, ${palette[i][1]}, ${palette[i][2]}, 1)`);
-          while (color.getLuminance() > 0.08) {
-            color = color.darken(1);
+          colors = [];
+          for (let i = 0; i < palette.length; i++) {
+            let color = tinycolor(`rgba(${palette[i][0]}, ${palette[i][1]}, ${palette[i][2]}, 1)`);
+            while (color.getLuminance() > 0.08) {
+              color = color.darken(1);
+            }
+            while (color.getLuminance() < 0.04) {
+              color = color.brighten(1);
+            }
+            colors.push(color);
           }
-          while (color.getLuminance() < 0.04) {
-            color = color.brighten(1);
-          }
-        colors.push(color);
+          document.body.style.setProperty('background', `linear-gradient(180deg, ${colors[2]} 0%, ${colors[1]} 50%, ${colors[0]} 100%)`, 'important');
         }
-        document.body.style.setProperty('background', `linear-gradient(180deg, ${colors[2]} 0%, ${colors[1]} 50%, ${colors[0]} 100%)`, 'important');
       }
 
       addLoading();
@@ -8623,9 +8651,13 @@ function delay(ms) {
           set(0, img, { sa: { 0: "position: relative;opacity:1!important;" }});
           img2.src = img.src;
           if (!listenerAdded) {
+            img.addEventListener("load", function () {
+              img2.src = img.src;
+            });
             img2.addEventListener("load", function () {
               paletteFetched = false;
-              applyPalette();
+              palette = 0;
+              bgColorFromImage(img2);
             });
             listenerAdded = 1;
           }
