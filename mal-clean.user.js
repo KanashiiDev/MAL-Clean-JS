@@ -4,7 +4,7 @@
 // @match       https://myanimelist.net/*
 // @match       https://www.mal-badges.com/users/*malbadges
 // @grant       none
-// @version     1.29.76
+// @version     1.29.8
 // @author      KanashiiDev
 // @description Customizations and fixes for MyAnimeList
 // @license     GPL-3.0-or-later
@@ -123,6 +123,33 @@ function createDisplayBox(cssProperties,windowTitle){
   },true);
   let innerSpace = AdvancedCreate("div","scrollableContent",false,displayBox);
   return innerSpace;
+}
+
+async function compressLocalForageDB(dbName, dbName2 = null) {
+  try {
+    async function fetchDB(name) {
+      const db = await localforage.createInstance({ name: "MalJS", storeName: name });
+      const keys = await db.keys();
+      let data = {};
+      for (const key of keys) {
+        const value = await db.getItem(key);
+        data[key] = value;
+      }
+      return data;
+    }
+    const dbData = {};
+    if (dbName) dbData[dbName] = await fetchDB(dbName);
+    if (dbName2) dbData[dbName2] = await fetchDB(dbName2);
+
+    // JSON -> LZString
+    const jsonString = JSON.stringify(dbData);
+    const compressedData = LZString.compressToBase64(jsonString).replace(/\//g, "_");
+
+    return compressedData;
+  } catch (error) {
+    console.error("Error:", error);
+    return null;
+  }
 }
 
 //Time Calculate
@@ -273,6 +300,14 @@ async function AnilistAPI(fullQuery) {
     }
   } catch (error) {
     return null;
+  }
+}
+
+async function replaceLocalForageDB(instance, newData) {
+  const db = await localforage.createInstance({name: "MalJS",storeName: instance});
+  await db.clear();
+  for (let i = 0; i < newData.length; i++) {
+    await db.setItem(newData[i].key, newData[i]);
   }
 }
 
@@ -1115,6 +1150,35 @@ async function infoExit(mainDiv, clickedFrom) {
   timeoutId = setTimeout(handleTooltipHide, 400);
 }
 
+async function getBlogContent() {
+  const tdElements = document.querySelectorAll('td[width="50%"][valign="top"]');
+  for (const td of tdElements) {
+    const linkElement = td.querySelector('a[href^="/blog.php?eid="]');
+    if (linkElement) {
+      const blogUrl = linkElement.getAttribute("href");
+      try {
+        const response = await fetch(blogUrl);
+        const text = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, "text/html");
+        const blogContent = doc.querySelector(".blog_detail_content_wrapper");
+        if (blogContent) {
+        td.setAttribute('class','blogMainWide');
+          const targetDiv = td.querySelector('div:nth-child(2)');
+          if (targetDiv) {
+            const newDiv = create('div', {class:"blog_detail_content_wrapper", style:{width:'auto', maxHeight: "500px", overflow: "auto", margin:"10px 0px"}})
+            newDiv.innerHTML = blogContent.innerHTML;
+            targetDiv.parentNode.insertBefore(newDiv, targetDiv.nextSibling);
+          }
+        }
+        await delay(333);
+      } catch (error) {
+        console.error("An error occurred while retrieving blog content:", error);
+      }
+    }
+  }
+}
+
 async function getUserGenres(type, createDiv) {
   const genreTitle = type ? 'Manga' : 'Anime';
   const genreType = type ? 'manga' : 'anime';
@@ -1156,6 +1220,7 @@ async function getUserGenres(type, createDiv) {
       console.error('An error occurred:', error);
     });
 }
+
 async function getMalBadges(url) {
   let badgesDivMain = create("div", { class: "user-mal-badges", id: "user-mal-badges" },`<h5 style="font-size: 11px;margin-bottom: 8px;margin-left: 2px;">Mal Badges</h5>`);
   let badgesDivInner = create("div", { class: "badges-inner", id: "badges-inner" });
@@ -1176,6 +1241,199 @@ async function getMalBadges(url) {
   $(badgesDivIframeInner).wrap(`<a href="${url.replace('?simple','').replace(/(\?|\&)malbadges/,'')}"></a>`);
   $('#user-badges-div').after(badgesDivMain);
 
+}
+
+// Add More Favorites
+async function addMoreFavs(storeType, valid = 0) {
+  const moreFavsLocalForage = localforage.createInstance({name: "MalJS",storeName: "moreFavs_" + storeType});
+  let moreFavsCache = await moreFavsLocalForage.getItem(entryId + "-" + entryType);
+  const favButton = document.querySelector('#favOutput');
+  const isFavorite = moreFavsCache !== null;
+  if (isFavorite) {
+    $("#favOutput").text('Remove from Favorites');
+  }
+
+  const defaultImg = document.querySelector('div:nth-child(1) > a > img');
+  const characterTitle = $('.title-name').text().replace(/\(.*\)/, '').replace(/\".*\"/, '').trim().replace(/"[^"]*"\s*/, '').split(/\s+/);
+  const formattedCharacterTitle = [characterTitle.reverse().join(', '), characterTitle.reverse().join(' ')];
+
+  favButton.addEventListener("click", async () => {
+    await waitForFavoriteDiv();
+    const isCurrentlyFavorite = $("#favOutput").text().trim() === 'Add to Favorites';
+    const maxFavCheck = $("#v-favorite > div").text().trim().startsWith('Only');
+    if (maxFavCheck) {
+      if (isCurrentlyFavorite) {
+      // add
+      await moreFavsLocalForage.setItem(entryId + "-" + entryType, {
+        key: entryId + "-" + entryType,
+        title: storeType === "character" ? formattedCharacterTitle : entryTitle,
+        type: storeType === "character" ? 'CHARACTERS' : entryType,
+        source: storeType === "character" ? $("#content > table > tbody > tr > td.borderClass > table").find('a').eq(1).text() : entryTitle,
+        url: location.pathname,
+        defaultImage: moreFavsCache?.defaultImage || (defaultImg?.src?.replace(/\.\w+$/, '').replace('https://cdn.myanimelist.net/images/', '') || ""),
+        defaultImageSrc: moreFavsCache?.defaultImageSrc || defaultImg?.src
+      });
+        updateFavUI(true);
+      } else {
+        // remove
+        await moreFavsLocalForage.removeItem(entryId + "-" + entryType);
+        updateFavUI(false);
+      }
+      if(svar.moreFavsMode) {
+        const moreFavsDB = await compressLocalForageDB("moreFavs_anime_manga","moreFavs_character");
+        await editAboutPopup(`moreFavs/${moreFavsDB}`,'moreFavs', 1);
+      }
+    }
+  });
+
+  // Update Fav Text
+  async function updateFavUI(isFavorite) {
+    await delay(500);
+    $("#favOutput").text(isFavorite ? 'Remove from Favorites' : 'Add to Favorites');
+    const intervalId = setInterval(() => {
+      const favDiv = $("#v-favorite > div");
+      if (favDiv.text().trim().startsWith('Only') || !favDiv.length || !favDiv.text().trim().includes('Mal-Clean:')) {
+        if (favDiv.length) {
+          favDiv.text(isFavorite ? 'Mal-Clean: Added Successfully' : 'Mal-Clean: Removed Successfully');
+        }
+      } else {
+        clearInterval(intervalId);
+      }
+    }, 250);
+  }
+
+  //Wait for the Fav Status
+  async function waitForFavoriteDiv(interval = 250) {
+    return new Promise((resolve) => {
+      const checkInterval = setInterval(() => {
+        if ($("#v-favorite > div").length) {
+          clearInterval(checkInterval);
+          resolve(true);
+        }
+      }, interval);
+    });
+  }
+}
+
+// Add Custom Cover
+async function getCustomCover(storeType) {
+  if (location.pathname.endsWith('/pics')) {
+    const coverLocalForage = localforage.createInstance({ name: "MalJS", storeName: storeType });
+    let coverCache = await coverLocalForage.getItem(entryId + "-" + entryType);
+    const picTable = document.querySelector("#content > table > tbody > tr > td:nth-child(2) table[cellspacing='10']");
+    const mainButton = create('a', { active: '0', class: 'add-custom-pic-button', style: { cursor: 'pointer' } }, 'Change Cover');
+    const defaultImg = document.querySelector('div:nth-child(1) > a > img');
+    const characterTitle = $('.title-name').text().replace(/\(.*\)/, '').replace(/\".*\"/, '').trim().replace(/"[^"]*"\s*/, '').split(/\s+/);
+    const formattedCharacterTitle = [characterTitle.reverse().join(', '), characterTitle.reverse().join(' ')];
+    $('.floatRightHeader').append(' - ', mainButton);
+    mainButton.addEventListener("click", async () => {
+      const active = $(mainButton).attr('active');
+      if (active == '0') {
+        if (!document.querySelector("#customCoverPreview")) {
+          mainButton.innerText = "Change Cover [X]";
+          coverCache = await coverLocalForage.getItem(entryId + "-" + entryType);
+          let customCoverDiv = create("div", { class: "customCoverDiv" });
+          let customCoverInput = create("input", { id: 'customCoverInput', style: { margin: "5px" }, placeholder: "Custom Cover URL" });
+          let customCoverFit = AdvancedCreate("select", "maljsNativeInput", false, customCoverDiv);
+          let addOption = function (value, text) {
+            let newOption = AdvancedCreate("option", false, text, customCoverFit);
+            newOption.value = value;
+          };
+          addOption("initial", "default");
+          addOption("cover", "cover");
+          addOption("contain", "contain");
+          addOption("scale-down", "scale-down");
+          addOption("none", "none");
+
+          const coverPreview = `<tr id="customCoverPreviewTable"><td width="225" align="center" style="min-width:320px;">
+          <div class="picSurround" id="customCoverPreview"><a class="js-picture-gallery" rel="gallery-anime"><div>
+          <img class="lazyloaded" src="${defaultImg.src}" style="max-width:225px;"><p>Custom Cover</p></div><div>
+          <img class="lazyloaded" src="${defaultImg.src}" style="width: 70px;height: 110px;object-fit: initial;"><p>70x110</p><br>
+          <img class="lazyloaded" src="${defaultImg.src}" style="width: 50px;height: 70px;object-fit: initial;"><p>50x70</p></div></a></div></td>
+          <td width="225" align="center">
+          <div class="picSurround"><a class="js-picture-gallery" rel="gallery-anime">
+          <img id="defaultCoverImage" class="lazyloaded" src="${coverCache?.defaultImageSrc ? coverCache?.defaultImageSrc : defaultImg.src}" style="max-width:225px;">
+          </a><div style="text-align: center;" class="spaceit"><a>Default Cover</a></div></div></td></tr>`;
+          picTable.innerHTML = coverPreview + picTable.innerHTML;
+
+          const imgPosSlider = `<div class="cover-position-slider-container" style="display:none">
+          <label for="xSlider">X:</label><input type="range" class ="coverSlider" id="coverXSlider" min="0" max="100" value="50"style="width: 115px;padding:6px!important;margin-right: 5px;">
+          <label for="ySlider">Y:</label><input type="range" class ="coverSlider" id="coverYSlider" min="0" max="100" value="50"style="width: 115px;padding:6px!important;"></div>`;
+
+          customCoverDiv.append(customCoverInput, customCoverFit);
+          $('#customCoverPreview').append(customCoverDiv, imgPosSlider);
+          picTable.style.width = '100%';
+          $(picTable).find('td').css('min-width','310px');
+
+          //Update Cover Positions
+          const xSlider = document.getElementById("coverXSlider");
+          const ySlider = document.getElementById("coverYSlider");
+          function updateCoverPositions() {
+            const x = xSlider.value + "%";
+            const y = ySlider.value + "%";
+            $('#customCoverPreview img').css('object-position', `${x} ${y}`);
+          }
+          xSlider.addEventListener("input", updateCoverPositions);
+          ySlider.addEventListener("input", updateCoverPositions);
+          customCoverFit.addEventListener('change', function (e) {
+            $('#customCoverPreview img').css('object-fit', customCoverFit.value);
+            if (customCoverFit.value !== 'initial') {
+              $('#customCoverPreview .cover-position-slider-container').css('display', 'grid');
+              $('#customCoverPreview .coverSlider').val('50');
+            } else {
+              $('#customCoverPreview .cover-position-slider-container').css('display', 'none');
+            }
+          });
+          customCoverInput.addEventListener('change', function (e) {
+            $('#customCoverPreview img').attr('src', customCoverInput.value);
+          });
+        }
+        const tdElements = picTable.querySelectorAll("td");
+        tdElements.forEach(td => {
+          if (td.querySelector(".custom-cover-select-btn")) return;
+          if (td.querySelector("img")) {
+            const selectButton = create('a', { class: 'custom-cover-select-btn mal-btn primary' }, 'Select');
+            selectButton.addEventListener("click", async () => {
+              const img = td.querySelector("img");
+              if (img && img.height > 10) {
+                if (coverCache?.defaultImage && img.src.includes(coverCache.defaultImage)) {
+                  await coverLocalForage.removeItem(entryId + "-" + entryType);
+                  $('div:nth-child(1) > a > img').first().attr('src', img.src);
+                  $('#defaultCoverImage').attr('src', img.src);
+                } else {
+                  await coverLocalForage.setItem(entryId + "-" + entryType, {
+                    key: entryId + "-" + entryType,
+                    title: storeType == "cover" ? entryTitle : formattedCharacterTitle,
+                    type: storeType == "character" ? 'CHARACTERS' : entryType,
+                    fit: img.style.objectFit ? img.style.objectFit : "initial",
+                    position: img.style.objectPosition ? img.style.objectPosition : '50% 50%',
+                    defaultImage: coverCache?.defaultImage ? coverCache.defaultImage : (defaultImg?.src?.replace(/\.\w+$/, '').replace('https://cdn.myanimelist.net/images/', '') || ""),
+                    defaultImageSrc: coverCache?.defaultImageSrc ? coverCache.defaultImageSrc : defaultImg?.src,
+                    coverImage: img.src
+                  });
+                }
+                if(storeType === "cover") {
+                  await loadCustomCover(1);
+                } else if (storeType === "character") {
+                  await loadCustomCover(1, "character");
+                }
+                $('.custom-cover-select-btn').remove();
+                $('#customCoverPreviewTable').remove();
+                $(mainButton).attr('active', '0');
+              }
+            });
+            td.appendChild(selectButton);
+          }
+        });
+        $(mainButton).attr('active', '1');
+      } else {
+        mainButton.innerText = "Change Cover";
+        $('.custom-cover-select-btn').remove();
+        $('#customCoverPreviewTable').remove();
+        $(mainButton).attr('active', '0');
+      }
+    });
+  }
 }
 
 //Get Friends Info from JikanAPI
@@ -1264,7 +1522,8 @@ async function editAboutPopup(data, type) {
         customColor: /(customcolors)\/([^\/]+.)/gm,
         malBadges: /(malBadges)\/([^\/]+.)/gm,
         favSongEntry: /(favSongEntry)\/([^\/]+.)/gm,
-        customProfileEl: /(customProfileEl)\/([^\/]+.)/gm
+        customProfileEl: /(customProfileEl)\/([^\/]+.)/gm,
+        moreFavs: /(moreFavs)\/([^\/]+.)/gm,
       };
       let userBlogPage = 'https://myanimelist.net/blog/'+ headerUserName;
       popupLoading.innerHTML = "Updating" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
@@ -1323,6 +1582,8 @@ async function editAboutPopup(data, type) {
           aboutText = replaceTextIfMatches(regexes.customBg, aboutText, `${data}/`);
         } else if (type === 'css') {
           aboutText = replaceTextIfMatches(regexes.customCSS, aboutText, `${data}/`);
+        } else if (type === 'moreFavs') {
+          aboutText = replaceTextIfMatches(regexes.moreFavs, aboutText, `${data}/`);
         } else if (type === 'hideProfileEl') {
           aboutText = replaceTextIfMatches(regexes.hideProfileEl, aboutText, `${data}/`);
         } else if (type === 'customProfileEl') {
@@ -1645,9 +1906,9 @@ async function blockUser(id) {
 
 //Custom Anime/Manga Cover
 let loadingCustomCover = 0;
-async function loadCustomCover(force = "0") {
+async function loadCustomCover(force = "0",storeType = "cover") {
   if (!loadingCustomCover || force !== "0") {
-    const coverLocalForage = await localforage.createInstance({ name: "MalJS", storeName: "cover" });
+    const coverLocalForage = await localforage.createInstance({ name: "MalJS", storeName: storeType });
     coverLocalForage.iterate((value, key) => {
       if (value.defaultImage && value.coverImage) {
         $("img").each(function () {
@@ -1656,11 +1917,12 @@ async function loadCustomCover(force = "0") {
             const dataSrc = $img.attr("data-src") || "";
             const imgSrc = $img.attr("src") || "";
             const imgAlt = $img.attr("alt")?.toUpperCase() || "";
-            const dbTitle = value.title.toUpperCase();
+            const imgSrcSet = $img.attr("srcset")?.toUpperCase() || "";
+            const dbTitle =   value.title;
             const dbDefaultImage = value.defaultImage;
-
+            const dbTitleMatch = storeType === "character" ? dbTitle.some(el => imgAlt.includes(el.toUpperCase())) : imgAlt.includes(dbTitle.toUpperCase());
             if ((imgSrc && imgSrc.includes(dbDefaultImage)) || (dataSrc && dataSrc.includes(dbDefaultImage))) {
-              if (imgAlt && (imgAlt.includes(dbTitle) || (imgAlt === dbTitle))) {
+              if (imgAlt && dbTitleMatch) {
                 if (value.type && (imgSrc.toUpperCase().includes(`/${value.type}/`) || dataSrc.toUpperCase().includes(`/${value.type}/`))) {
                   $img.addClass('customCover')
                     .attr('customCover', '1').attr('src', value.coverImage).attr('data-src', value.coverImage)
@@ -1681,6 +1943,41 @@ async function loadCustomCover(force = "0") {
     });
     loadingCustomCover = 1;
   };
+}
+
+// Load More Favorites
+let loadingMoreFavorites = 0;
+async function loadMoreFavs(force = "0", storeType = "character", aboutData = null) {
+  if (!loadingMoreFavorites || force !== "0") {
+    let moreFavsLocalForage = await localforage.createInstance({ name: "MalJS", storeName: "moreFavs_" + storeType });
+    if (Array.isArray(aboutData)) {
+      processFavs(aboutData, storeType);
+    } else {
+      moreFavsLocalForage.iterate((value, key) => {
+        processFavItem(value, storeType);
+      });
+    }
+    loadingMoreFavorites = 1;
+  }
+  function processFavs(dataArray, storeType) {
+    dataArray.forEach(value => processFavItem(value, storeType));
+  }
+  function processFavItem(value, storeType) {
+    const titleText = storeType === "character" ? value.title[0] : value.title;
+    const container = create("li", { class: "btn-fav", title: titleText });
+    const link = create("a", { class: "link bg-center", href: value.url });
+    const title = create("span", { class: "title fs10" }, value.title[0]);
+    let type = create("span", { class: "users" }, value.source);
+    let typeText = value.type?.toLowerCase();
+    typeText = typeText === "characters" ? "character" : typeText;
+    const img = create("img", { class: "image lazyloaded", src: value.defaultImageSrc, width: "70", height: "110", border: "0", alt: value.title[0], });
+    link.append(title, type, img);
+    container.append(link);
+    let parent = $(`#${typeText}_favorites .fav-slide`).length
+      ? $(`#${typeText}_favorites .fav-slide`)
+      : $(`.favs.${typeText}`);
+    if (parent) parent.append(container);
+  }
 }
 
 async function createCustomDiv(appLoc, header, content, editData) {
@@ -1786,6 +2083,9 @@ let svar = {
   animeBg: true,
   charBg: true,
   customCover: true,
+  customCharacterCover: true,
+  moreFavs: false,
+  moreFavsMode: true,
   peopleHeader: true,
   animeHeader: true,
   animeBanner: true,
@@ -1818,11 +2118,13 @@ let svar = {
   headerOpacity: true,
   replaceList: false,
   blogRedesign: false,
+  blogContent: true,
   actHistory: true,
   profileAnimeGenre: true,
   profileMangaGenre: false,
   moveBadges: false,
   clubComments: false,
+  scrollbarStyle: false,
 };
 
 svar.save = function () {
@@ -1875,6 +2177,7 @@ let styles = `
     -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color);
     box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)
 }
+
 .maljsBlogDivRelations {
     background: var(--color-foreground3);
     border-radius: var(--border-radius);
@@ -1886,8 +2189,15 @@ let styles = `
 }
 
 .maljsBlogDivRelations div {
+    color: var(--color-text) !important;
     margin-bottom:0!important;
-    padding-right: 5px
+    padding-right: 5px;
+    display: inline-block;
+    margin-left: 10px !important;
+    margin-right: -10px !important;
+    width: 98%;
+    max-height: 110px;
+    overflow: scroll;
 }
 
 .maljsBlogDivRelations div::before {
@@ -1895,7 +2205,11 @@ let styles = `
 }
 
 .maljsBlogDivRelations a {
-    background: var(--color-foreground2)!important
+    background: var(--color-foreground2)!important;
+    border-radius: var(--br) !important;
+    padding: 6px !important;
+    display: inline-table;
+    margin: 2px
 }
 
 .page-common .maljsBlogDiv .maljsBlogDivHeader .lightLink {
@@ -1906,6 +2220,19 @@ let styles = `
 
 .maljsBlogDivContent {
     background: var(--color-foreground)!important
+}
+
+.blogMainWide {
+    display:block;
+    height:100%!important;
+    max-height:600px!important;
+    width:100%!important;
+    min-width:1020px;
+    background: var(--color-foreground) !important;
+    border: 1px solid var(--border-color) !important;
+    padding: 10px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
 }
 
 .user-genres .user-genres-container {
@@ -2914,7 +3241,7 @@ input.maljsNativeInput {
 
 #currently-popup .dataTextDiv {
     max-height: 145px;
-    overflow: scroll;
+    overflow: auto;
     word-break: break-all;
     background: var(--color-foreground4);
     -webkit-border-radius: var(--border-radius);
@@ -3302,7 +3629,7 @@ div#custom-preview-div > div blockquote.spoiler {
     top: 55px;
     z-index: 11;
     background: var(--color-foregroundOP);
-    overflow-y: scroll;
+    overflow-y: auto;
     display: -ms-grid;
     display: grid;
     color: var(--color-text);
@@ -3662,15 +3989,18 @@ let styles2 = `
 .lazyloading {
   opacity: 1 !important;
 }
+
 footer {
   z-index: 0;
   margin-top: 65px !important;
   position: relative;
 }
+
 .dark-mode .profile .user-statistics,
 .profile .user-statistics {
   width: 99%
 }
+
 .dark-mode .profile .user-comments .comment,
 .profile .user-comments .comment,
 .dark-mode .page-common .content-container .container-right h2,
@@ -3679,10 +4009,12 @@ footer {
 .fav-slide-block {
   width: 96%
 }
+
 .dark-mode body:not(.ownlist),
 body:not(.ownlist) {
   background-color: var(--color-background) !important
 }
+
 .page-common #myanimelist #contentWrapper {
   background-color: var(--color-backgroundo) !important;
   top: 55px !important;
@@ -3742,15 +4074,37 @@ body {
   --color-text-hover: #cfcfcf!important;
   --color-link-hover: #cee7ff!important
 }
+${svar.scrollbarStyle ?
+`::-webkit-scrollbar {
+  background: 0 0
+}
+
+::-webkit-scrollbar-track {
+  background: #fff0
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-foreground2);
+  -webkit-border-radius: 3px;
+  border-radius: 3px
+}
+
+::-webkit-scrollbar-corner {
+  background: #0000
+}` : `` }
+
 a.feed-main-button {
   top: 0!important
 }
+
 .feed-main {
   padding: 10px
 }
+
 .feed-main a:hover {
   text-decoration: none!important
 }
+
 #currently-popup iframe {
   border: 0!important
 }
@@ -3779,15 +4133,38 @@ body {
   --color-text-hover: #cfcfcf!important;
   --color-link-hover: #cee7ff!important
 }
+
+${svar.scrollbarStyle ?
+`::-webkit-scrollbar {
+  background: 0 0
+}
+
+::-webkit-scrollbar-track {
+  background: #fff0
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-foreground2);
+  -webkit-border-radius: 3px;
+  border-radius: 3px
+}
+
+::-webkit-scrollbar-corner {
+  background: #0000
+}` : `` }
+
 a.feed-main-button {
   top: 0!important
 }
+
 .feed-main {
   padding: 10px
 }
+
 .feed-main a:hover {
   text-decoration: none!important
 }
+
 #currently-popup iframe {
   border: 0!important
 }`;
@@ -3797,18 +4174,23 @@ let defaultCSSFixes = `
 .page-common div#horiznav_nav {
   border-color: var(--border-color)!important
 }
+
 .profile .user-statistics .user-statistics-stats .updates {
   padding-right:10px
 }
+
 .bannerHover {
   height:90px!important
 }
+
 #fgcolorselector {
   width: 64%
 }
+
 button#customColorUpdate {
   width: 460px
 }
+
 .profileRightActions {
   position: relative;
   top: -50px
@@ -3817,9 +4199,11 @@ button#customColorUpdate {
 .widget-slide-block .widget-slide .btn-anime .link .title.color-pc-constant {
   color: var(--color-main-text-normal)
 }
+
 .tooltipBody {
   padding:10px
 }
+
 .bannerDiv {
     margin: -5px -10px 0 -10px
 }
@@ -3829,6 +4213,9 @@ button#customColorUpdate {
 // settingsFounded = Custom Profile Settings Founded
 let defaultMal,settingsFounded = 0;
 const current = location.pathname;
+const entryTitle = $('.title-name').text() ? $('.title-name').text().replace(/\".*\" /,'') : document.title.replace(/(.*)(\|.*)/,'$1').replace(/(.*)(\(.*\).*)/,'$1').trim();
+const entryType = current.split("/")[1].toUpperCase();
+const entryId = current.split('/')[2];
 const username = current.split('/')[2];
 const headerUserName = $(".header-profile-link").text();
 const userNotHeaderUser = username !== headerUserName;
@@ -4614,6 +5001,7 @@ function createDiv() {
         { b: buttons["recentlyAddedAnimeBtn"], t: "Show recently added anime" },
         { b: buttons["recentlyAddedMangaBtn"], t: "Show recently added manga" },
         ...!defaultMal ? [{ b: buttons["headerSlideBtn"], t: "Auto Hide/Show header" }] : [],
+        ...defaultMal ? [{ b: buttons["scrollbarStyleBtn"], t: "Change Scrollbar Appearance" }] : [],
       ]
     ),
     createListDiv(
@@ -4638,6 +5026,7 @@ function createDiv() {
         { b: buttons["charBgBtn"], t: "Add dynamic background color based cover art's color palette" },
         { b: buttons["characterHeaderBtn"], t: "Change name position" },
         { b: buttons["characterNameAltBtn"], t: "Show alternative name" },
+        { b: buttons["customCharacterCoverBtn"], t: "Custom Cover Image <br><i>(Go to the character pictures page to change it)</i>" },
       ]
     ),
     createListDiv(
@@ -4650,6 +5039,7 @@ function createDiv() {
       "Blog",
       [
         { b: buttons["blogRedesignBtn"], t: "Redesign blog page" },
+        { b: buttons["blogContentBtn"], t: "Auto fetch blog content" },
       ]
     ),
     createListDiv(
@@ -4677,6 +5067,7 @@ function createDiv() {
         ...svar.modernLayout ? [{ b: buttons["profileMangaGenreBtn"], t: "Show Manga Genre Overview" }] : [],
         { b: buttons["customCSSBtn"], t: "Show custom CSS" },
         { b: buttons["profileHeaderBtn"], t: "Change username position" },
+        { b: buttons["moreFavsBtn"], t: "Add more than 10 favorites" },
       ]
     )
   );
@@ -4689,9 +5080,20 @@ function createDiv() {
   listDiv.append(buttons["removeAllCustomBtn"]);
 
   createSettingDropdown("#replaceListBtnOption", "svar", svar, "listAiringStatusBtn", "Show Airing Status Dot");
+  createSettingDropdown("#moreFavsBtnOption", "svar", svar, "moreFavsModeBtn", "Update also for other users");
   createSettingDropdown("#embedBtnOption", "ttl", svar, "embedTTL", "embed");
   createSettingDropdown("#animeTagBtnOption", "ttl", svar, "tagTTL", "tag");
   createSettingDropdown("#animeRelationBtnOption", "ttl", svar, "relationTTL", "relation");
+
+  $("#moreFavsModeBtn").on('click', async function () {
+    await delay(200);
+    if ($("#moreFavsModeBtn").hasClass('btn-active')) {
+      if(svar.moreFavsMode) {
+        const moreFavsDB = await compressLocalForageDB("moreFavs_anime_manga","moreFavs_character");
+        await editAboutPopup(`moreFavs/${moreFavsDB}`,'moreFavs', 1);
+      }
+    }
+  });
   getSettings();
 }
 
@@ -4718,9 +5120,8 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-
 //Main
-(function () {
+(async function () {
   "use strict";
 
  // Modern Profile - Mal Badges Fixes
@@ -4758,6 +5159,12 @@ function delay(ms) {
     });
   }
 
+  // Add More Favs
+  if (svar.moreFavs && /\/(profile)\/.?([\w]+)?\/?/.test(current) && !userNotHeaderUser) {
+   await loadMoreFavs(1, "character");
+   await loadMoreFavs(1, "anime_manga");
+  }
+
   //onload Function
   async function on_load() {
     //Replace anime.php
@@ -4780,7 +5187,10 @@ function delay(ms) {
     }
 
     if (svar.customCover) {
-      loadCustomCover();
+      await loadCustomCover();
+    }
+    if (svar.customCharacterCover && (/\/(profile)\/.?([\w]+)?\/?/.test(current) || $('.detail-characters-list').length) || current.endsWith('/characters') || current.endsWith('/character.php')) {
+      await loadCustomCover(1, "character");
     }
     if ($('#loadingDiv').length) {
       addLoading("remove");
@@ -5721,7 +6131,8 @@ function delay(ms) {
       favSongEntry: /(favSongEntry)\/([^\/]+.)/gm,
       privateProfile: /(privateProfile)\/([^"\/]+)/gm,
       hideProfileEl: /(hideProfileEl)\/([^"\/]+)/gm,
-      customProfileEl: /(customProfileEl)\/([^"\/]+)/gm
+      customProfileEl: /(customProfileEl)\/([^"\/]+)/gm,
+      moreFavs: /(moreFavs)\/([^\/]+.)/gm,
     };
 
     //block user icon
@@ -5845,9 +6256,9 @@ function delay(ms) {
           const customElContainer = create("div", { class: "custom-el-container"});
           if (isRight) customElContainer.classList.add('right');
           customElContainer.innerHTML = `
-          <div class="fa fa-pen editCustomEl" order="${index}"></div>
-          <div class="fa fa-sort sortCustomEl" order="${index}"></div>
-          <div class="fa fa-x removeCustomEl" order="${index}"></div>
+          <div class="fa fa-pen editCustomEl" order="${index}" title="Edit"></div>
+          <div class="fa fa-sort sortCustomEl" order="${index}" title="Sort"></div>
+          <div class="fa fa-x removeCustomEl" order="${index}" title="Remove"></div>
           ${isRight && svar.modernLayout ?
           `<h4 class="custom-el-header" style="border: 0;margin: 15px 0 4px 4px;">${item.header}</h4>`
           :
@@ -5967,8 +6378,8 @@ function delay(ms) {
         arr.forEach((item) => {
           const favSongContainer = create("div", { class: "fav-theme-container", type: item.themeType });
           favSongContainer.innerHTML = `
-            <div class="fa fa-sort sortFavSong"order=${index}></div>
-            <div class="fa fa-x removeFavSong" order=${index}></div>
+            <div class="fa fa-sort sortFavSong"order=${index} title="Sort"></div>
+            <div class="fa fa-x removeFavSong" order=${index} title="Remove"></div>
             <div class="fav-theme-inner">
             <a href='https://myanimelist.net/anime/${item.animeUrl}/'>
             ${`<img src="${item.animeImage ? item.animeImage : "https://cdn.myanimelist.net/r/42x62/images/questionmark_23.gif?s=f7dcbc4a4603d18356d3dfef8abd655c"}" class="anime-image" alt="${item.animeTitle}">`}</a>
@@ -6091,26 +6502,19 @@ function delay(ms) {
     //Get Custom Banner and Custom Profile Image Data from About Section
     async function findCustomAbout() {
       const aboutSection = document.querySelector('.user-profile-about.js-truncate-outer');
-      const processAboutSection = (aboutContent) => {
-      const fgMatch = aboutContent.match(profileRegex.fg);
-      const bgMatch = aboutContent.match(profileRegex.bg);
-      const pfMatch = aboutContent.match(profileRegex.pf);
-      const cssMatch = aboutContent.match(profileRegex.css);
-      const badgeMatch = aboutContent.match(profileRegex.badge);
-      const malBadgesMatch = aboutContent.match(profileRegex.malBadges);
-      const colorMatch = aboutContent.match(profileRegex.colors);
-      const favSongMatch = aboutContent.match(profileRegex.favSongEntry);
-      const privateProfileMatch = aboutContent.match(profileRegex.privateProfile);
-      const hideProfileElMatch = aboutContent.match(profileRegex.hideProfileEl);
-      const customElMatch = aboutContent.match(profileRegex.customProfileEl);
-        if (fgMatch) {
-          const fgData = fgMatch[0].replace(profileRegex.fg, '$2');
-          if (fgData !== '...') {
-            let fgBase64Url = fgData.replace(/_/g, "/");
-            customfg = JSON.parse(LZString.decompressFromBase64(fgBase64Url));
-            changeForeground(customfg);
-          }
-        }
+      const processAboutSection = async (aboutContent) => {
+        const fgMatch = aboutContent.match(profileRegex.fg);
+        const bgMatch = aboutContent.match(profileRegex.bg);
+        const pfMatch = aboutContent.match(profileRegex.pf);
+        const cssMatch = aboutContent.match(profileRegex.css);
+        const badgeMatch = aboutContent.match(profileRegex.badge);
+        const malBadgesMatch = aboutContent.match(profileRegex.malBadges);
+        const colorMatch = aboutContent.match(profileRegex.colors);
+        const favSongMatch = aboutContent.match(profileRegex.favSongEntry);
+        const privateProfileMatch = aboutContent.match(profileRegex.privateProfile);
+        const hideProfileElMatch = aboutContent.match(profileRegex.hideProfileEl);
+        const customElMatch = aboutContent.match(profileRegex.customProfileEl);
+        const moreFavsMatch = aboutContent.match(profileRegex.moreFavs);
         if (pfMatch) {
           const pfData = pfMatch[0].replace(profileRegex.pf, '$2');
           if(pfData !== '...'){
@@ -6143,7 +6547,7 @@ function delay(ms) {
           if (colorData !== '...') {
             let colorBase64Url = colorData.replace(/_/g, "/");
             customcolors = JSON.parse(LZString.decompressFromBase64(colorBase64Url));
-            applyCustomColors(customcolors);
+            await applyCustomColors(customcolors);
           }
         }
         if (privateProfileMatch) {
@@ -6181,11 +6585,37 @@ function delay(ms) {
             customModernLayoutFounded = 1;
           }
         }
+        if (moreFavsMatch) {
+          const moreFavsData = moreFavsMatch[0].replace(profileRegex.moreFavs, '$2');
+          if (moreFavsData !== '...') {
+          let moreFavsDecompressed = moreFavsData.replace(/_/g, "/");
+            moreFavsDecompressed = JSON.parse(LZString.decompressFromBase64(moreFavsDecompressed));
+            const animanga = Object.values(moreFavsDecompressed.moreFavs_anime_manga);
+            const character = Object.values(moreFavsDecompressed.moreFavs_character);
+            if (!userNotHeaderUser) {
+              if(svar.moreFavsMode) {
+                await replaceLocalForageDB("moreFavs_anime_manga", animanga);
+                await replaceLocalForageDB("moreFavs_character", character);
+              }
+            } else {
+              await loadMoreFavs(1, "anime_manga", animanga);
+              await loadMoreFavs(1, "character", character);
+            }
+          }
+        }
         if (customModernLayoutFounded) {
           svar.modernLayout = true;
         }
         if (customCSS && customCSS.constructor === Array && !customCSS[1] || customCSS && customCSS.constructor !== Array) {
           svar.modernLayout = false;
+        }
+        if (fgMatch) {
+          const fgData = fgMatch[0].replace(profileRegex.fg, '$2');
+          if (fgData !== '...') {
+            let fgBase64Url = fgData.replace(/_/g, "/");
+            customfg = JSON.parse(LZString.decompressFromBase64(fgBase64Url));
+            await changeForeground(customfg);
+          }
         }
         if (malBadgesMatch) {
           const malBadgesData = malBadgesMatch[0].replace(profileRegex.malBadges, '$2');
@@ -6193,24 +6623,24 @@ function delay(ms) {
             let malBadgesBase64Url = malBadgesData.replace(/_/g, "/");
             malBadgesUrl = JSON.parse(LZString.decompressFromBase64(malBadgesBase64Url));
             if(malBadgesUrl) malBadgesUrl += malBadgesUrl.endsWith('?simple') ? '&malbadges' : '?malbadges';
-             if(svar.modernLayout) getMalBadges(malBadgesUrl);
+             if(svar.modernLayout) await getMalBadges(malBadgesUrl);
           }
         }
         if (favSongMatch) {
           if (isMainProfilePage) {
-            buildFavSongs(aboutContent)
+           await buildFavSongs(aboutContent)
           }
         }
         if (customElMatch) {
           if (isMainProfilePage) {
-            buildCustomElements(aboutContent)
+           await buildCustomElements(aboutContent)
           }
         }
       };
 
       // Find profile about and processAboutSection
       if (aboutSection && aboutSection.innerHTML.match(profileRegex.malClean)) {
-        processAboutSection(aboutSection.innerHTML);
+        await processAboutSection(aboutSection.innerHTML);
         settingsFounded = 1;
       } else if (!isMainProfilePage) {
         try {
@@ -6532,6 +6962,7 @@ function delay(ms) {
         set(1, ".user-image .btn-detail-add-picture", { sa: { 0: "display: flex;flex-direction: column;justify-content: center;" } });
         document.querySelector(".user-image").setAttribute("style", "top: 99px;left: 99px;position: relative;");
         set(1, ".user-statistics-stats.mt16", { sa: { 0: "margin-top:8px!important" } });
+        $('.user-statistics-stats .stats.manga h5').addClass('mb12');
         set(1, ".user-image .btn-detail-add-picture", { sa: { 0: "display: flex;flex-direction: column;justify-content: center;" } });
         document.querySelector(".user-image").setAttribute("style", "top: 99px;left: 99px;position: relative;");
         avatar.setAttribute("style", "display: flex;height: inherit;align-items: flex-end;position: relative;width:500px;");
@@ -6812,17 +7243,14 @@ function delay(ms) {
         const airingDot = create('span', {class: 'airing-dot'});
         coverDiv.append(airingDot);
       }
-      const editDiv = create('div', {class: 'edit fa-pen',});
-      editDiv.id = animeData.id;
+      const editDiv = create('div', {class: 'edit fa-pen', id:animeData.id});
       editDiv.onclick = async () => {
         isManga ? await editPopup(editDiv.id,'manga') : await editPopup(editDiv.id)
       };
       coverDiv.append(imageDiv,editDiv);
       // Create the title div
       const titleDiv = create('div', {class: 'title'});
-      const titleLink = create('a', {class: 'title-link'},animeData.title);
-      titleLink.style.maxWidth = '450px';
-      titleLink.href = animeData.href;
+      const titleLink = create('a', {class: 'title-link', href:animeData.href, style:{maxWidth:'450px'}},animeData.title);
       titleDiv.appendChild(titleLink);
       if(animeData.notes){
         const titleNote = create('div', {class: 'user-note'});
@@ -7624,6 +8052,11 @@ function delay(ms) {
   }
   //Character Section //-START-//
   if (/\/(character)\/.?([\w-]+)?\/?/.test(current)) {
+    if (svar.customCharacterCover) {
+      addMoreFavs("character");
+      getCustomCover("character");
+      loadCustomCover(1, "character");
+    }
     let regex = /(Member Favorites).*/g;
     let match = document.createElement("p");
     let fav = document.querySelector("#content > table > tbody > tr > td.borderClass");
@@ -7723,9 +8156,9 @@ function delay(ms) {
   //Anime/Manga Section//--START--//
   if (/\/(anime|manga)\/.?([\w-]+)?\/?/.test(current) && !/\/(anime|manga)\/producer|genre|magazine|adapted\/.?([\w-]+)?\/?/.test(current)
       &&!/\/(ownlist|season|adapted|recommendations)/.test(current) && !document.querySelector("#content > .error404")) {
-    const entryId = current.split("/")[2];
-    const entryType = current.split("/")[1].toUpperCase();
-    const entryTitle = $('.title-name').text() ? $('.title-name').text() : document.title.replace(/(.*)(\|.*)/,'$1').replace(/(.*)(\(.*\).*)/,'$1').trim();
+    if (svar.customCharacterCover) {
+      addMoreFavs("anime_manga");
+    }
     let text = create('div', {
       class: 'description',
       itemprop: 'description',
@@ -8283,118 +8716,7 @@ function delay(ms) {
     }
     //Custom Cover Add
     if (svar.customCover) {
-      getCustomCover();
-    }
-    async function getCustomCover() {
-      if (location.pathname.endsWith('/pics')) {
-        const coverLocalForage = localforage.createInstance({ name: "MalJS", storeName: "cover" });
-        let coverCache = await coverLocalForage.getItem(entryId + "-" + entryType);
-        const picTable = document.querySelector("#content > table > tbody > tr > td:nth-child(2) > div.rightside.js-scrollfix-bottom-rel > table");
-        const mainButton = create('a', { active: '0', class: 'add-custom-pic-button', style: { cursor: 'pointer' } }, 'Change Cover');
-        const defaultImg = document.querySelector('div:nth-child(1) > a > img');
-        $('.floatRightHeader').append(' - ', mainButton);
-        mainButton.addEventListener("click", async () => {
-          const active = $(mainButton).attr('active');
-          if (active == '0') {
-            if (!document.querySelector("#customCoverPreview")) {
-              mainButton.innerText = "Change Cover [X]";
-              coverCache = await coverLocalForage.getItem(entryId + "-" + entryType);
-              let customCoverDiv = create("div", { class: "customCoverDiv" });
-              let customCoverInput = create("input", { id: 'customCoverInput', style: { margin: "5px" }, placeholder: "Custom Cover URL" });
-              let customCoverFit = AdvancedCreate("select", "maljsNativeInput", false, customCoverDiv);
-              let addOption = function (value, text) {
-                let newOption = AdvancedCreate("option", false, text, customCoverFit);
-                newOption.value = value;
-              };
-              addOption("initial", "default");
-              addOption("cover", "cover");
-              addOption("contain", "contain");
-              addOption("scale-down", "scale-down");
-              addOption("none", "none");
-
-              const coverPreview = `<tr id="customCoverPreviewTable"><td width="225" align="center" style="max-width:225px;">
-              <div class="picSurround" id="customCoverPreview"><a class="js-picture-gallery" rel="gallery-anime"><div>
-              <img class="lazyloaded" src="${defaultImg.src}" style="max-width:225px;"><p>Custom Cover</p></div><div>
-              <img class="lazyloaded" src="${defaultImg.src}" style="width: 70px;height: 110px;object-fit: initial;"><p>70x110</p><br>
-              <img class="lazyloaded" src="${defaultImg.src}" style="width: 50px;height: 70px;object-fit: initial;"><p>50x70</p></div></a></div></td>
-              <td width="225" align="center">
-              <div class="picSurround"><a class="js-picture-gallery" rel="gallery-anime">
-              <img id="defaultCoverImage" class="lazyloaded" src="${coverCache?.defaultImageSrc ? coverCache?.defaultImageSrc : defaultImg.src}" style="max-width:225px;">
-              </a><div style="text-align: center;" class="spaceit"><a>Default Cover</a></div></div></td></tr>`;
-              picTable.innerHTML = coverPreview + picTable.innerHTML;
-
-              const imgPosSlider = `<div class="cover-position-slider-container" style="display:none">
-              <label for="xSlider">X:</label><input type="range" class ="coverSlider" id="coverXSlider" min="0" max="100" value="50"style="width: 115px;padding:6px!important;margin-right: 5px;">
-              <label for="ySlider">Y:</label><input type="range" class ="coverSlider" id="coverYSlider" min="0" max="100" value="50"style="width: 115px;padding:6px!important;"></div>`;
-
-              customCoverDiv.append(customCoverInput, customCoverFit);
-              $('#customCoverPreview').append(customCoverDiv, imgPosSlider);
-              picTable.style.width = '100%';
-
-              //Update Cover Positions
-              const xSlider = document.getElementById("coverXSlider");
-              const ySlider = document.getElementById("coverYSlider");
-              function updateCoverPositions() {
-                const x = xSlider.value + "%";
-                const y = ySlider.value + "%";
-                $('#customCoverPreview img').css('object-position', `${x} ${y}`);
-              }
-              xSlider.addEventListener("input", updateCoverPositions);
-              ySlider.addEventListener("input", updateCoverPositions);
-              customCoverFit.addEventListener('change', function (e) {
-                $('#customCoverPreview img').css('object-fit', customCoverFit.value);
-                if (customCoverFit.value !== 'initial') {
-                  $('#customCoverPreview .cover-position-slider-container').css('display', 'grid');
-                  $('#customCoverPreview .coverSlider').val('50');
-                } else {
-                  $('#customCoverPreview .cover-position-slider-container').css('display', 'none');
-                }
-              });
-              customCoverInput.addEventListener('change', function (e) {
-                $('#customCoverPreview img').attr('src', customCoverInput.value);
-              });
-            }
-            const tdElements = picTable.querySelectorAll("td");
-            tdElements.forEach(td => {
-              if (td.querySelector(".custom-cover-select-btn")) return;
-              if (td.querySelector("img")) {
-                const selectButton = create('a', { class: 'custom-cover-select-btn mal-btn primary' }, 'Select');
-                selectButton.addEventListener("click", async () => {
-                  const img = td.querySelector("img");
-                  if (img && img.height > 10) {
-                    if (coverCache?.defaultImage && img.src.includes(coverCache.defaultImage)) {
-                      await coverLocalForage.removeItem(entryId + "-" + entryType);
-                      $('div:nth-child(1) > a > img').first().attr('src', img.src);
-                      $('#defaultCoverImage').attr('src', img.src);
-                    } else {
-                      await coverLocalForage.setItem(entryId + "-" + entryType, {
-                        title: entryTitle,
-                        type: entryType,
-                        fit: img.style.objectFit ? img.style.objectFit : "initial",
-                        position: img.style.objectPosition ? img.style.objectPosition : '50% 50%',
-                        defaultImage: coverCache?.defaultImage ? coverCache.defaultImage : (defaultImg?.src?.replace(/\.\w+$/, '').replace('https://cdn.myanimelist.net/images/', '') || ""),
-                        defaultImageSrc: coverCache?.defaultImageSrc ? coverCache.defaultImageSrc : defaultImg?.src,
-                        coverImage: img.src
-                      });
-                    }
-                    await loadCustomCover(1);
-                    $('.custom-cover-select-btn').remove();
-                    $('#customCoverPreviewTable').remove();
-                    $(mainButton).attr('active', '0');
-                  }
-                });
-                td.appendChild(selectButton);
-              }
-            });
-            $(mainButton).attr('active', '1');
-          } else {
-            mainButton.innerText = "Change Cover";
-            $('.custom-cover-select-btn').remove();
-            $('#customCoverPreviewTable').remove();
-            $(mainButton).attr('active', '0');
-          }
-        });
-      }
+      getCustomCover("cover");
     }
   }
   //Anime/Manga Section //--END--//
@@ -8523,8 +8845,10 @@ function delay(ms) {
   }
 
   //Blog Page Fixes
+  if (current === "/blog.php" && !location.search && svar.blogContent) {
+    getBlogContent();
+  }
   if (svar.blogRedesign && (/\/(blog)\//.test(current) || /\?eid=/.test(location.search))) {
-
     //wrap header with a class and add href
     $('.lightLink:not(.lightLink.to-left)').each(function(){
       let headerHref;
@@ -8550,6 +8874,7 @@ function delay(ms) {
 
     //wrap relations div
     $('.maljsBlogDiv div:contains("Relations:")').wrap('<div class="maljsBlogDivRelations"></div>');
+    $('span.lightLink.to-left').css({position:"absolute", margin:"-30px 0 0 10px"});
     $('.borderClass').css({border:"0"});
   }
 
@@ -8594,8 +8919,6 @@ function delay(ms) {
         styleSheet2.innerText = styles2;
         document.head.appendChild(styleSheet2);
       }
-      const entryId = current.split("/")[2];
-      const entryType = current.split("/")[1].toUpperCase();
       const coverLocalForage = localforage.createInstance({ name: "MalJS", storeName: "cover" });
       const colorThief = new ColorThief();
       let img, dominantColor, palette, paletteFetched,listenerAdded,coverCache;
@@ -8996,7 +9319,6 @@ function delay(ms) {
           });
         }
         for(let x=0; x< themeSongs.length; x++){
-          const entryId = current.split("/")[2];
           const favorite = create('div',{class: 'fav fa-star'},'',);
           favorite.onclick = async () => {
             if(!$(favorite).parent().find('video').length) {
