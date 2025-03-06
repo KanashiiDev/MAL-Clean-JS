@@ -4,7 +4,7 @@
 // @match       https://myanimelist.net/*
 // @match       https://www.mal-badges.com/users/*malbadges
 // @grant       none
-// @version     1.29.8
+// @version     1.29.85
 // @author      KanashiiDev
 // @description Customizations and fixes for MyAnimeList
 // @license     GPL-3.0-or-later
@@ -16,6 +16,7 @@
 // @require     https://cdn.jsdelivr.net/npm/tinycolor2@1.6.0/cjs/tinycolor.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js
 // @require     https://cdn.jsdelivr.net/npm/dompurify@3.1.4/dist/purify.min.js
+// @require     https://code.jquery.com/jquery-3.0.0.min.js
 // ==/UserScript==
 
 //Simple Create Element Shorthand Function
@@ -1240,7 +1241,6 @@ async function getMalBadges(url) {
   badgesDivIframeInner.append(badgesIframeLoading,badgesIframe);
   $(badgesDivIframeInner).wrap(`<a href="${url.replace('?simple','').replace(/(\?|\&)malbadges/,'')}"></a>`);
   $('#user-badges-div').after(badgesDivMain);
-
 }
 
 // Add More Favorites
@@ -1467,9 +1467,56 @@ async function getFriends(username) {
   }
 }
 
+//Fetch Custom Profile About Data
+//(The 'username' variable must be replaced with 'headerUserName' when retrieving data from somewhere other than the profile.)
+async function fetchCustomAbout(processFunction, regex =/(malcleansettings)\/([^"\/])/gm, url= `https://myanimelist.net/profile/${username}`) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Network response was not ok');
+    const data = await response.text();
+    return await processFunction(data, regex);
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    return null;
+  }
+}
+
+async function processRssFeed(xml, regex) {
+  const parser = new DOMParser();
+  const data = parser.parseFromString(xml, "text/xml");
+  const items = data.querySelectorAll('item');
+
+  for (let i = 0; i < items.length; i++) {
+    const description = items[i].querySelector('description').textContent;
+    if (description.match(regex)) {
+      settingsFounded = 2;
+      return description;
+    }
+  }
+  return null;
+}
+
+async function processProfilePage(html, regex) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const userProfileAbout = doc.querySelector('.user-profile-about');
+
+  if (userProfileAbout && userProfileAbout.innerHTML.match(regex)) {
+    return userProfileAbout.innerHTML;
+  } else {
+    await delay(250);
+    const rssData = await fetchCustomAbout(processRssFeed, regex, `https://myanimelist.net/rss.php?type=blog&u=${username}`);
+    if (rssData) {
+      settingsFounded = 1;
+      return rssData;
+    }
+  }
+  return null;
+}
+
 // MalClen Settings - Edit About Popup
 async function editAboutPopup(data, type) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     if ($('#currently-popup').length) {
       return;
     }
@@ -1616,11 +1663,10 @@ async function editAboutPopup(data, type) {
       } else if ($(iframe).attr('src').indexOf("blog") === -1) {
         iframe.src = userBlogPage;
       }
-
       if ($(iframe).contents()[0].URL.indexOf("editprofile.php") === -1) {
-        if (settingsFounded && $(iframe).contents()[0].URL.indexOf("myblog.php") === -1) {
+        if (!settingsFounded && $(iframe).contents()[0].URL.indexOf("myblog.php") === -1) {
           let $blogFound = null;
-          let $maljsBlogDivs = $iframeContents.find('.maljsBlogDiv');
+          let $maljsBlogDivs = $iframeContents.find('#content > div div:has(a:contains("Edit Entry"))').prev();
           if ($maljsBlogDivs.length) {
             $maljsBlogDivs.each(function() {
               let $this = $(this);
@@ -2084,6 +2130,8 @@ let svar = {
   charBg: true,
   customCover: true,
   customCharacterCover: true,
+  newComments: false,
+  profileNewComments: false,
   moreFavs: false,
   moreFavsMode: true,
   peopleHeader: true,
@@ -2144,6 +2192,13 @@ fgColor = tinycolor(fgColor.getPropertyValue('--fg'));
 const fgOpacity = fgColor.setAlpha(.8).toRgbString();
 //Settings CSS
 let styles = `
+.malCleanLoader {
+    top:2px;
+    position:relative;
+    margin-left:5px;
+    font-size:12px;
+    font-family:FontAwesome
+}
 .loadmore,
 .actloading,
 .listLoading {
@@ -2230,8 +2285,8 @@ let styles = `
     min-width:1020px;
     background: var(--color-foreground) !important;
     border: 1px solid var(--border-color) !important;
-    padding: 10px;
-    margin-bottom: 20px;
+    padding: 10px!important;
+    margin-bottom: 20px!important;
     box-sizing: border-box;
 }
 
@@ -3984,6 +4039,73 @@ div#badges-iframe-inner {
 .sceditor-container.sourceMode.ltr {
   min-height: 100px
 }
+
+.newCommentsContainerMain {
+  background: var(--color-foreground);
+  display: block;
+  margin-bottom: 15px;
+  -webkit-border-radius: var(--border-radius);
+  border-radius: var(--border-radius);
+  border: var(--border) solid var(--border-color)
+}
+
+.newCommentsContainerMain:hover .newCommentsLinkButton {
+ opacity: 1 !important
+}
+
+.newCommentsContainer tr {
+  background: var(--color-foreground2);
+  padding: 5px 0px;
+  display: block;
+  margin: 10px;
+  -webkit-border-radius: var(--border-radius);
+  border-radius: var(--border-radius);
+  border: var(--border) solid var(--border-color)
+}
+
+.comment-profile .newCommentsContainer tr {
+  padding: 5px
+}
+
+.newCommentsLinkButton,
+.newCommentsCommentButton {
+  width: 100%;
+  height: 0px;
+  top: -20px;
+  text-align: right;
+  display: block;
+  position: relative;
+  font-family: FontAwesome;
+  right: 10px;
+}
+
+.newCommentsLinkButton {
+  opacity: 0;
+  top:10px
+}
+
+.comment-profile .newCommentsLinkButton,
+.comment-profile .newCommentsCommentButton {
+  top:2px;
+  right: 2px;
+}
+
+.comment-profile .newCommentsCommentButton {
+  top:-10px;
+}
+
+.newCommentsLoadMoreButton {
+   padding: 10px;
+   display: block;
+   background: var(--color-foreground4);
+   margin: 10px;
+   margin-bottom: 20px;
+   border: var(--border) solid var(--border-color);
+   -webkit-border-radius: var(--border-radius);
+   border-radius: var(--border-radius);
+   cursor: pointer;
+   text-align: center
+}
 `;
 let styles2 = `
 .lazyloading {
@@ -4307,12 +4429,13 @@ function createButton({ id, setting, text }) {
   return button;
 }
 
-//  MalClean - Page Loading
+//  MalClean - Add Loader
 let loadingDiv = create("div", { class: "actloading", id:"loadingDiv", style: { position: "fixed", top: "50%", left: "0", right: "0", fontSize: "16px", zIndex: "12" } });
 const loadingDivMask = create("div", {
   class: "fancybox-overlay",
   style: { background: "var(--color-background)", opacity: "1", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "11" },
 });
+
 function addLoading(type = "add", text = "Loading", circle = 1, force = 0) {
   const contWrap =  document.querySelector('#contentWrapper');
   if(contWrap) {
@@ -4335,6 +4458,12 @@ function addLoading(type = "add", text = "Loading", circle = 1, force = 0) {
         document.body.style.removeProperty("overflow");
         document.querySelector('#contentWrapper').style.opacity = "1";
       }
+    if (type === "forceRemove") {
+      loadingDivMask.remove();
+      loadingDiv.remove();
+      document.body.style.removeProperty("overflow");
+      document.querySelector('#contentWrapper').style.opacity = "1";
+    }
   }
 }
 
@@ -5068,6 +5197,8 @@ function createDiv() {
         { b: buttons["customCSSBtn"], t: "Show custom CSS" },
         { b: buttons["profileHeaderBtn"], t: "Change username position" },
         { b: buttons["moreFavsBtn"], t: "Add more than 10 favorites" },
+        { b: buttons["newCommentsBtn"], t: "Comments Redesign" },
+        { b: buttons["profileNewCommentsBtn"], t: "Profile Comments Redesign" },
       ]
     )
   );
@@ -5513,7 +5644,7 @@ function delay(ms) {
         recentlyAddedDiv.innerHTML =
           '<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span><h2 class="index_h2_seo">' +
           '<a href="https://myanimelist.net/anime.php?o=9&c%5B0%5D=a&c%5B1%5D=d&cv=2&w=1">Recently Added Anime</a>' +
-          '</h2><i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-size:12px;font-family:FontAwesome"></i>' +
+          '</h2><i class="fa fa-circle-o-notch fa-spin malCleanLoader"></i>' +
           '<select style="float: right;padding: 2px !important;margin-top: -5px;" id="typeFilter">' + '<option value="All">All</option><option value="TV,Movie" selected >TV	&amp; Movie</option><option value="TV">TV</option><option value="TV Special">TV Special</option>' +
           '<option value="Movie">Movie</option><option value="ONA">ONA</option><option value="OVA">OVA</option>' +
           '<option value="Special">Special</option><option value="Music">Music</option><option value="CM">CM</option><option value="PV">PV</option></select></div>' +
@@ -5573,7 +5704,7 @@ function delay(ms) {
 
           loadMoreButton.addEventListener("click", async function () {
             if (loadMoreButton.innerHTML === 'Load More') {
-              loadMoreButton.innerHTML = '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-size:12px;font-family:FontAwesome"></i>';
+              loadMoreButton.innerHTML = '<i class="fa fa-circle-o-notch fa-spin malCleanLoader"></i>';
               const slider = document.querySelector(".widget-slide.js-widget-slide.recent-anime");
               const selectedType = document.getElementById('typeFilter').value.split(',');
               let pageCount = document.getElementById('recently-added-anime').getAttribute('page');
@@ -5656,7 +5787,7 @@ function delay(ms) {
         recentlyAddedDiv.innerHTML =
           '<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span><h2 class="index_h2_seo">' +
           '<a href="https://myanimelist.net/manga.php?o=9&c%5B0%5D=a&c%5B1%5D=d&cv=2&w=1">Recently Added Manga</a>' +
-          '</h2><i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-size:12px;font-family:FontAwesome"></i>' +
+          '</h2><i class="fa fa-circle-o-notch fa-spin malCleanLoader"></i>' +
           '<select style="float: right;padding: 2px !important;margin-top: -5px;" id="typeFilterManga">' +
           '<option value="All">All</option><option value="Manga" selected>Manga</option><option value="One-shot">One-shot</option>' +
           '<option value="Doujinshi">Doujinshi</option><option value="Light Novel">Light Novel</option><option value="Novel">Novel</option>' +
@@ -5719,7 +5850,7 @@ function delay(ms) {
 
           loadMoreButton.addEventListener("click", async function () {
             if (loadMoreButton.innerHTML === 'Load More') {
-              loadMoreButton.innerHTML = '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-size:12px;font-family:FontAwesome"></i>';
+              loadMoreButton.innerHTML = '<i class="fa fa-circle-o-notch fa-spin malCleanLoader"></i>';
               const selectedType = document.getElementById('typeFilterManga').value.split(',');
               let pageCount = document.getElementById('recently-added-manga').getAttribute('page');
               pageCount = parseInt(pageCount) + 50;
@@ -6112,9 +6243,216 @@ function delay(ms) {
   }
   //Forum Anime-Manga Embed //--END--//
 
+  //New Profile Comments Feature
+  async function newProfileComments(profile) {
+    let mainCont = profile ? $('#lastcomment') : $('#content');
+    if (profile) {
+      mainCont.css('max-width', '810px');
+    } else {
+      $('#content div:not(.borderClass):contains("Pages ")').hide();
+    }
+    let currPage = 1;
+    let oldprofileLinkArray = [];
+    let addedComCount = 0;
+    const loading = create("div",{ class: "user-history-loading actloading" },"Loading" +'<i class="fa fa-circle-o-notch fa-spin malCleanLoader"></i>');
+
+    function parseProfileHTML(html) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+      const section = doc.querySelector("#message")?.outerHTML;
+      const match = /uid:(\d+)/.exec(section);
+      return match ? match[1] : null;
+    }
+
+    async function getProfileId(profileUrl) {
+      try {
+        const response = await fetch(profileUrl);
+        const html = await response.text();
+        return parseProfileHTML(html);
+      } catch (error) {
+        console.error(`Error: ${error}`);
+        return null;
+      }
+    }
+
+    async function getNextComments(url) {
+      try {
+        const response = await fetch(url);
+        const html = await response.text();
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        return doc;
+      } catch (error) {
+        console.error(`Error: ${error}`);
+        return null;
+      }
+    }
+
+    async function fetchAndUpdateComments(element, url, newCommentsContainer, append = false) {
+      try {
+        const response = await fetch(url);
+        const html = await response.text();
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const comments = Array.from(doc.querySelectorAll('div[id^=comBox] > table > tbody > tr')).reverse();
+        let sender = $(doc).find("div[id^=com] > .dark_text a").last()[0];
+        let receiver = doc.querySelector("#content > div.borderClass.com-box-header a:last-child");
+        receiver.innerText = '@'+ receiver.innerText.replace("'s Profile","");
+        let isNameMatch = receiver.innerText !== '@'+sender.innerText ? 0 : 1;
+        comments.forEach((comment, index) => {
+          $(comment).find('.picSurround').addClass('image').find('img').css('height','55px');
+          if (!append && index === 0) {
+            if(!isNameMatch) {
+              $(comment).find('.spaceit').prepend(receiver,'<br>');
+            }
+            if (profile) {
+              $(comment).find('div[id^=com]').first().css({display:'inline-block',width:'calc(100% - 100px)'});
+              $(comment).find('.picSurround').css({display:'inline-block'});
+            }
+            element.innerHTML = comment.innerHTML;
+          } else {
+            newCommentsContainer.appendChild(comment.cloneNode(true));
+          }
+        });
+
+        // Create a “Load More” button if there is a “Prev” link
+        const prevLink = $(doc).find('a:contains("Prev")').attr('href');
+        if (prevLink) {
+          await createLoadMoreButton(prevLink, newCommentsContainer, element, 'child');
+        }
+        return comments.length ;
+      } catch (error) {
+        console.error(`Could not retrieve comments: ${error}`);
+      }
+    }
+
+    // Create a button to hide/show comments
+    async function createToggleButton(newCommentsContainer, commentsCount) {
+      if (commentsCount > 1) {
+        const commCount = commentsCount - 1 === 29 ? '29+' : commentsCount - 1;
+        const buttonDiv = create("div", { class: "newCommentsCommentButton" });
+        const buttonLabel = create("span", { class: "commentButtonLabel" }, commCount);
+        const button = create("a", { class: "commentButton fa fa-comment", style: {paddingRight: '5px', cursor:'pointer'}});
+        buttonDiv.append(button, buttonLabel);
+        button.addEventListener('click', () => {
+          newCommentsContainer.style.display = newCommentsContainer.style.display === "none" ? "inline-block" : "none";
+        });
+        return buttonDiv;
+      }
+    }
+
+    // Create load more button
+    function createLoadMoreButton(url, newCommentsContainer, element, className) {
+      let loadMoreButton = newCommentsContainer.querySelector(".newCommentsLoadMoreButton." + className);
+      if (loadMoreButton) return;
+      loadMoreButton = create("a", { class: "newCommentsLoadMoreButton " + className }, "Load More");
+      loadMoreButton.addEventListener('click', async () => {
+        mainCont.append(loading);
+        loadMoreButton.disabled = true;
+        loadMoreButton.textContent = "Loading...";
+        if (element) {
+          await fetchAndUpdateComments(element, url, newCommentsContainer, true);
+        } else {
+          const doc = await getNextComments(url);
+          if(doc) comToCom(url, doc);
+        }
+        loadMoreButton.disabled = false;
+        loadMoreButton.remove();
+      });
+      newCommentsContainer.appendChild(loadMoreButton);
+    }
+
+    // Main
+    async function comToCom(url, doc) {
+      url = url.replace(/&*show=\d*/g, "");
+      const idIndex = url.indexOf('id=');
+      let mainDelay = 500;
+      if (idIndex === -1) return;
+      const baseUrl = '/comtocom.php?id1=' + url.substring(idIndex + 3) + '&id2=';
+      let isProfilePage = document.location.href.includes('profile');
+      $('div[id^=comBox]').not('.newCommentsContainerMain').css('display','none');
+      if (doc) {
+        let els = doc.querySelectorAll('div[id^=comBox]');
+        for (const el of els) {
+          el.style.display = 'none';
+          mainCont.append(el, (profile ? $('a.btn-form-submit:contains("All Comments")').parent() : $('div[style="text-align: right;"]')));
+        }
+      }
+      let elements = isProfilePage ? document.querySelectorAll('div[id^=comBox]') : document.querySelectorAll('div[id^=comBox] > table > tbody > tr');
+      for (const el of elements) {
+        if (!el.getAttribute('comActive')) {
+          mainDelay = 500;
+          let profileLink = isProfilePage ? el.querySelector('.image')?.href : el.querySelector('.picSurround > a')?.href;
+          if(doc && profile) {
+            profileLink = el.querySelector('.picSurround > a')?.href;
+          }
+          const elParent = profile ? $(el) : $(el).parent().parent().parent();
+          elParent.css('display','none');
+          if (!profileLink) continue;
+          if (oldprofileLinkArray.indexOf(profileLink) === -1) {
+            oldprofileLinkArray.push(profileLink);
+            const profileId = await getProfileId(profileLink);
+            if (!profileId) continue;
+            const commentsUrl = `${baseUrl}${profileId}&last=1`;
+            const linkButton = create("a", { class: 'newCommentsLinkButton fa fa-link', href: commentsUrl});
+            const newCommentsContainer = create("div", { class: "newCommentsContainer", style: { display: 'none', width: '100%'  } });
+            const commentsCount = await fetchAndUpdateComments(el, commentsUrl, newCommentsContainer);
+            const toggleButton = await createToggleButton(newCommentsContainer, commentsCount);
+            if(profile) elParent.addClass('comment-profile');
+            if (toggleButton) {
+              elParent.prepend(linkButton),
+              elParent.append(toggleButton, newCommentsContainer);
+            }
+            mainCont.append(loading);
+            elParent.find('div[id^=com]').first().css('min-height','55px');
+            elParent.addClass('comment newCommentsContainerMain');
+            addedComCount++;
+          } else {
+            mainCont.children().remove('br');
+            elParent.remove();
+            mainDelay = 50;
+          }
+          el.setAttribute('comActive', '1');
+          elParent.css('display','');
+          await delay(mainDelay);
+        }
+      }
+      loading.remove();
+      currPage += 1;
+      let nextPage = $(`div[style="text-align: right;"] > a:contains(${currPage})`)?.attr('href');
+      if (doc) {
+        nextPage = $(doc).find(`div[style="text-align: right;"] > a:contains(${currPage})`)?.attr('href');
+      } else if (currPage === 2 && profile) {
+        let profileCount = await getNextComments(url);
+        nextPage = $(profileCount).find(`div[style="text-align: right;"] > a:contains(${currPage})`)?.attr('href');
+      }
+      if (nextPage) {
+        await createLoadMoreButton(nextPage, mainCont[0], null, 'parent');
+      }
+      if($('.newCommentsLoadMoreButton.parent')[0]) {
+        if(addedComCount < 6) {
+          $('.newCommentsLoadMoreButton.parent')[0].style.display = "none";
+          $('.newCommentsLoadMoreButton.parent')[0].click();
+        } else {
+          $('.newCommentsLoadMoreButton.parent')[0].style.display = "block";
+          loading.remove();
+          addedComCount = 0;
+        }
+      }
+    }
+    let comcomUrl = profile ? $('a:contains("All Comments")')?.attr('href') : location.href;
+    let checkComBox = document.querySelectorAll('div[id^=comBox]');
+    if(comcomUrl && checkComBox.length > 0) comToCom(comcomUrl);
+  }
+
+  if (svar.newComments && location.href.includes('https://myanimelist.net/comments.php')) {
+    newProfileComments();
+  }
+
   //Profile Section //--START--//
   if (/\/(profile)\/.?([\w]+)?\/?/.test(current)) {
-    addLoading();
+    addLoading("add",`Loading ${username}'s Profile`, 1, 1);
+    if (svar.profileNewComments && isMainProfilePage) {
+      newProfileComments(1);
+    }
     let banner = create('div', {class: 'banner',id: 'banner',});
     let shadow = create('div', {class: 'banner',id: 'shadow',});
     let container = create("div", { class: "container", id: "container" });
@@ -6166,10 +6504,11 @@ function delay(ms) {
       }
     }
 
-    async function startCustomProfile () {
+    async function startCustomProfile() {
       await imgLoad();
       await findCustomAbout();
-      if(customCSS && customCSS.constructor === Array && customCSS[1]){
+      await delay(250);
+      if (customCSS && customCSS.constructor === Array && customCSS[1]) {
         svar.modernLayout = true;
         await applyAl();
       }
@@ -6207,6 +6546,8 @@ function delay(ms) {
           }
         }
       }
+      await delay(1000);
+      addLoading("forceRemove");
     }
 
     //Add Block User Button
@@ -6215,7 +6556,7 @@ function delay(ms) {
     }
       shadow.setAttribute('style', 'background: linear-gradient(180deg,rgba(6,13,34,0) 40%,rgba(6,13,34,.6));height: 100%;left: 0;position: absolute;top: 0;width: 100%;');
       banner.append(shadow);
-      startCustomProfile();
+      await startCustomProfile();
 
     if($('title').text() === '404 Not Found - MyAnimeList.net\n') {
       addLoading("remove");
@@ -6334,6 +6675,10 @@ function delay(ms) {
         $(".sortCustomEl").remove();
         $(".editCustomEl").remove();
         $(".removeCustomEl").remove();
+      }
+
+      if ($('.user-genres').next().is('#customProfileEls')) {
+        $('.user-genres').css('margin-bottom','12px');
       }
     }
 
@@ -6642,45 +6987,10 @@ function delay(ms) {
       if (aboutSection && aboutSection.innerHTML.match(profileRegex.malClean)) {
         await processAboutSection(aboutSection.innerHTML);
         settingsFounded = 1;
-      } else if (!isMainProfilePage) {
-        try {
-          const response = await fetch('https://myanimelist.net/profile/' + username);
-          if (!response.ok) throw new Error('Network response was not ok');
-          const html = await response.text();
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-          const userProfileAbout = doc.querySelector('.user-profile-about');
-
-          if (userProfileAbout && userProfileAbout.innerHTML.match(profileRegex.malClean)) {
-            processAboutSection(userProfileAbout.innerHTML);
-            settingsFounded = 1;
-          }
-        } catch (error) {
-          console.error('Error fetching profile data:', error);
-        }
       }
-
-      // Find malclean settings on the blog page.
-      if (!settingsFounded) {
-        try {
-          const rssUrl = 'https://myanimelist.net/rss.php?type=blog&u=' + username;
-          const response = await fetch(rssUrl);
-          const str = await response.text();
-          const data = new window.DOMParser().parseFromString(str, "text/xml");
-          const items = data.querySelectorAll('item');
-
-          for (let i = 0; i < items.length; i++) {
-            const item = items[i];
-            const description = item.querySelector('description').textContent;
-            if (description.match(profileRegex.malClean)) {
-              processAboutSection(description);
-              settingsFounded = 2;
-              break;
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching RSS data:', error);
-        }
+      if(!settingsFounded) {
+        const profileData = await fetchCustomAbout(processProfilePage);
+        if(profileData) processAboutSection(profileData);
       }
     }
 
@@ -6814,7 +7124,7 @@ function delay(ms) {
             const loading = create(
               "div",
               { class: "user-history-loading actloading" },
-              "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-size:12px;font-family:FontAwesome"></i>'
+              "Loading" + '<i class="fa fa-circle-o-notch fa-spin malCleanLoader"></i>'
             );
             if (!l) {
               const html = await fetch("https://myanimelist.net/history/" + username)
@@ -8848,34 +9158,37 @@ function delay(ms) {
   if (current === "/blog.php" && !location.search && svar.blogContent) {
     getBlogContent();
   }
-  if (svar.blogRedesign && (/\/(blog)\//.test(current) || /\?eid=/.test(location.search))) {
-    //wrap header with a class and add href
-    $('.lightLink:not(.lightLink.to-left)').each(function(){
-      let headerHref;
-      if ($(this).nextAll('.borderClass').children().first().children().eq(1).attr('href')) {
-        headerHref = $(this).nextAll('.borderClass').children().first().children().eq(1).attr('href').replace('#comment','');
-      }
-      $(this).wrap(function() {
-        let hrefAttribute = !/\?eid=/.test(location.search) && headerHref ? `href="${headerHref}"` : '';
-        return `<a ${hrefAttribute} class="maljsBlogDivHeader"></a>`;
+
+  if ((/\/(blog)\//.test(current) || /\?eid=/.test(location.search))) {
+    if (svar.blogRedesign) {
+      //wrap header with a class and add href
+      $('.lightLink:not(.lightLink.to-left)').each(function () {
+        let headerHref;
+        if ($(this).nextAll('.borderClass').children().first().children().eq(1).attr('href')) {
+          headerHref = $(this).nextAll('.borderClass').children().first().children().eq(1).attr('href').replace('#comment', '');
+        }
+        $(this).wrap(function () {
+          let hrefAttribute = !/\?eid=/.test(location.search) && headerHref ? `href="${headerHref}"` : '';
+          return `<a ${hrefAttribute} class="maljsBlogDivHeader"></a>`;
+        });
       });
-    });
+      $('span.lightLink.to-left').css({ position: "absolute", margin: "-30px 0 0 10px" });
+      $('.borderClass').css({ border: "0" });
 
-    //wrap blog Div
-    $('.normal_header:not(:contains("Categories"))').each(function(){
-      $(this).nextUntil('.borderClass').last('div').addClass('maljsBlogDivContent');
-      $(this).nextUntil('.borderClass').wrapAll('<div class="maljsBlogDiv"></div>');
-    });
+      //wrap blog Div
+      $('.normal_header:not(:contains("Categories"))').each(function () {
+        $(this).nextUntil('.borderClass').last('div').addClass('maljsBlogDivContent');
+        $(this).nextUntil('.borderClass').wrapAll('<div class="maljsBlogDiv"></div>');
+      });
 
-    $('.maljsBlogDivHeader:not(.maljsBlogDiv .maljsBlogDivHeader)').each(function(){
-      $(this).nextUntil('.borderClass').last('div').addClass('maljsBlogDivContent');
-      $(this).nextUntil('.borderClass').addBack().addBack().wrapAll('<div class="maljsBlogDiv"></div>');
-    });
+      $('.maljsBlogDivHeader:not(.maljsBlogDiv .maljsBlogDivHeader)').each(function () {
+        $(this).nextUntil('.borderClass').last('div').addClass('maljsBlogDivContent');
+        $(this).nextUntil('.borderClass').addBack().addBack().wrapAll('<div class="maljsBlogDiv"></div>');
+      });
 
-    //wrap relations div
-    $('.maljsBlogDiv div:contains("Relations:")').wrap('<div class="maljsBlogDivRelations"></div>');
-    $('span.lightLink.to-left').css({position:"absolute", margin:"-30px 0 0 10px"});
-    $('.borderClass').css({border:"0"});
+      //wrap relations div
+      $('.maljsBlogDiv div:contains("Relations:")').wrap('<div class="maljsBlogDivRelations"></div>');
+    }
   }
 
   //blog fix for anisongs
