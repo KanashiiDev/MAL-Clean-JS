@@ -4,7 +4,7 @@
 // @match       https://myanimelist.net/*
 // @match       https://www.mal-badges.com/users/*malbadges
 // @grant       none
-// @version     1.29.85
+// @version     1.29.86
 // @author      KanashiiDev
 // @description Customizations and fixes for MyAnimeList
 // @license     GPL-3.0-or-later
@@ -2275,6 +2275,16 @@ let styles = `
 
 .maljsBlogDivContent {
     background: var(--color-foreground)!important
+}
+
+#myanimelist .blockUserIcon {
+    font-family: "Font Awesome 6 Pro";
+    float: right;
+    z-index: 10;
+    color: var(--color-link) !important;
+    font-weight: bold;
+    font-size: 12px;
+    cursor: pointer
 }
 
 .blogMainWide {
@@ -6473,23 +6483,21 @@ function delay(ms) {
       moreFavs: /(moreFavs)\/([^\/]+.)/gm,
     };
 
-    //block user icon
-     let blockU = create("i", {
-      class: "fa fa-ban mt4 ml12",
-      style: {
-        fontFamily: '"Font Awesome 6 Pro"',
-        float:'right',
-        zIndex:'10',
-        color: 'var(--color-link) !important',
-        fontWeight: 'bold',
-        fontSize: '12px',
-        cursor: 'pointer'},
-    });
-    //block user icon click
+    //Block User
+     let blockU = create("i", {class: "fa fa-ban mt4 ml12 blockUserIcon"});
     blockU.onclick = () => {
       blockUser(username);
     }
-
+    $(".user-friends.pt4.pb12").prev().addBack().wrapAll("<div id='user-friends-div'></div>");
+    $(".user-badges").prev().addBack().wrapAll("<div id='user-badges-div'></div>");
+    $(".user-profile-sns").has('a:contains("Recent")').prev().addBack().wrapAll("<div id='user-rss-feed-div'></div>");
+    $('.user-profile-sns:not(:contains("Recent"))').prev().addBack().wrapAll("<div id='user-links-div'></div>");
+    $('.user-button').attr('id', 'user-button-div');
+    $('.user-status:contains(Joined)').last().attr('id', 'user-status-div');
+    $('.user-status:contains(History)').attr('id', 'user-status-history-div');
+    $('.user-status:contains(Forum Posts)').attr('id', 'user-status-counts-div');
+    $('.user-statistics-stats').first().attr('id', 'user-stats-div');
+    $('.user-statistics-stats').last().attr('id', 'user-updates-div');
     //Wait for user image
     async function imgLoad() {
       userimg = document.querySelector('.user-image.mb8 > img');
@@ -6582,7 +6590,7 @@ function delay(ms) {
       let sortItem1 = null;
       let sortItem2 = null;
       if (svar.modernLayout) {
-        const appendLoc =  document.querySelector("#user-button-div");
+        const appendLoc = document.querySelector("#user-button-div");
         appendLoc.insertAdjacentElement("afterend", customElContent);
       } else {
         $(".user-comments").before(customElContent);
@@ -6985,10 +6993,9 @@ function delay(ms) {
 
       // Find profile about and processAboutSection
       if (aboutSection && aboutSection.innerHTML.match(profileRegex.malClean)) {
-        await processAboutSection(aboutSection.innerHTML);
+        processAboutSection(aboutSection.innerHTML);
         settingsFounded = 1;
-      }
-      if(!settingsFounded) {
+      } else if (!settingsFounded) {
         const profileData = await fetchCustomAbout(processProfilePage);
         if(profileData) processAboutSection(profileData);
       }
@@ -8294,18 +8301,6 @@ function delay(ms) {
       mutualFriends();
     }
     //profile Mutual Friends //-END-//
-
-    // Hide Profile Divs //-START-//
-    $(".user-friends.pt4.pb12").prev().addBack().wrapAll("<div id='user-friends-div'></div>");
-    $(".user-badges").prev().addBack().wrapAll("<div id='user-badges-div'></div>");
-    $(".user-profile-sns").has('a:contains("Recent")').prev().addBack().wrapAll("<div id='user-rss-feed-div'></div>");
-    $('.user-profile-sns:not(:contains("Recent"))').prev().addBack().wrapAll("<div id='user-links-div'></div>");
-    $('.user-button').attr('id', 'user-button-div');
-    $('.user-status:contains(Joined)').last().attr('id', 'user-status-div');
-    $('.user-status:contains(History)').attr('id', 'user-status-history-div');
-    $('.user-status:contains(Forum Posts)').attr('id', 'user-status-counts-div');
-    $('.user-statistics-stats').first().attr('id', 'user-stats-div');
-    $('.user-statistics-stats').last().attr('id', 'user-updates-div');
   }
   //Profile Section //--END--//
 
