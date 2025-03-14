@@ -2,9 +2,9 @@
 // @name        MAL-Clean-JS
 // @namespace   https://github.com/KanashiiDev
 // @match       https://myanimelist.net/*
-// @match       https://www.mal-badges.com/users/*malbadges
+// @match       https://www.mal-badges.com/users/*malbadges*
 // @grant       none
-// @version     1.29.87
+// @version     1.29.88
 // @author      KanashiiDev
 // @description Customizations and fixes for MyAnimeList
 // @license     GPL-3.0-or-later
@@ -175,12 +175,16 @@ function nativeTimeElement(e) {
 }
 
 //Fix Date for Modern Anime/Manga List option
-function parseDate(dateString) {
+function parseDate(dateString, string) {
   const parts = dateString.split("-");
-  const day = parts[0];
-  const month = parts[1];
-  const year = parts[2].length === 2 ? "20" + parts[2] : parts[2];
-  return new Date(`${year}-${month}-${day}`).getTime();
+  let day = parts[0];
+  let month = parts[1];
+  let yearSuffix = parts[2];
+  const currentYear = new Date().getFullYear();
+  const currentYearSuffix = currentYear % 100 + 4;
+  let year = parseInt(yearSuffix, 10) > currentYearSuffix ? "19" + yearSuffix : "20" + yearSuffix;
+  const fromString = { month: parseInt(month, 10), day: parseInt(day, 10), year: parseInt(year, 10),};
+  return string ? fromString : new Date(`${year}-${month}-${day}`).getTime();
 }
 
 //Set Element Shorthand Function
@@ -1222,6 +1226,7 @@ async function getUserGenres(type, createDiv) {
 }
 
 async function getMalBadges(url) {
+  if (!svar.modernLayout) url += '&default';
   let badgesDivMain = create("div", { class: "user-mal-badges", id: "user-mal-badges" }, `<h5 style="font-size: 11px;margin-bottom: 8px;margin-left: 2px;">Mal Badges</h5>`);
   let badgesDivInner = create("div", { class: "badges-inner", id: "badges-inner" });
   let badgesDivIframeInner = create("div", { class: "badges-iframe-inner", id: "badges-iframe-inner" });
@@ -1229,6 +1234,10 @@ async function getMalBadges(url) {
   let badgesIframeLoading = create("div", {
     class: "actloading", style: { position: 'relative', left: '0px', right: '0px', fontSize: '14px', height: '120px', alignContent: 'center', zIndex: '2' },
   }, "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome;word-break: break-word;"></i>');
+  if (!svar.modernLayout) {
+    $([badgesIframe, badgesDivIframeInner, badgesDivInner]).addClass('defaultMal');
+    badgesIframeLoading.style.height = "72px";
+  }
   badgesIframe.onerror = function () {
     badgesDivMain.remove();
   };
@@ -1239,7 +1248,7 @@ async function getMalBadges(url) {
   badgesDivMain.append(badgesDivInner);
   badgesDivInner.append(badgesDivIframeInner);
   badgesDivIframeInner.append(badgesIframeLoading, badgesIframe);
-  $(badgesDivIframeInner).wrap(`<a href="${url.replace('?simple', '').replace(/(\?|\&)malbadges/, '')}"></a>`);
+  $(badgesDivIframeInner).wrap(`<a href="${url.split('?')[0]}"></a>`);
   $('#user-badges-div').after(badgesDivMain);
 }
 
@@ -1412,6 +1421,7 @@ async function getCustomCover(storeType) {
                     coverImage: img.src
                   });
                 }
+                mainButton.innerText = "Change Cover";
                 if (storeType === "cover") {
                   await loadCustomCover(1);
                 } else if (storeType === "character") {
@@ -1574,7 +1584,7 @@ async function editAboutPopup(data, type) {
       };
       let userBlogPage = 'https://myanimelist.net/blog/' + headerUserName;
       popupLoading.innerHTML = "Updating" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
-
+      $iframeContents.find('body')[0].setAttribute('style', 'background:0!important');
       if ($iframeContents.find(".goodresult")[0]) {
         canSubmit = 0;
         window.location.reload();
@@ -1753,6 +1763,7 @@ async function editPopup(id, type, add, addCount) {
     document.body.style.overflow = "hidden";
 
     $(iframe).on("load", function () {
+       $(iframe).contents().find('body')[0].setAttribute('style', 'background:0!important');
       if (!add) {
         popupLoading.remove();
         iframe.style.opacity = 1;
@@ -1903,6 +1914,7 @@ async function blockUser(id) {
     document.body.style.overflow = "hidden";
 
     $(iframe).on("load", function () {
+      $(iframe).contents().find('body')[0].setAttribute('style', 'background:0!important');
       iframe.style.opacity = 1;
       popupLoading.remove();
       if ($(iframe).contents().find("form > input.inputtext")[0]) {
@@ -2150,6 +2162,7 @@ let svar = {
   profileHeader: false,
   customCSS: false,
   modernLayout: false,
+  autoModernLayout: false,
   animeInfo: true,
   embed: true,
   embedTTL: 2592000000,
@@ -2576,7 +2589,7 @@ i.year-filter-clear.fa.fa-close {
     border-radius: 5px;
     float: right;
     cursor: pointer;
-    margin-right: 86%;
+    margin-right: 83%;
     margin-top: -2px;
     margin-bottom: 0px
 }
@@ -4025,7 +4038,19 @@ input#badgeInput {
   resize: none;
   overflow: hidden;
   margin-top: -95px;
-  margin-left: -20px
+  margin-left: -16px
+}
+
+#badges-iframe.defaultMal {
+    width: 668px;
+    max-width: 668px;
+    height: 480px;
+    max-height: 480px;
+    margin-top: -67px;
+    margin-left: -6px;
+    -webkit-transform: scale(0.35);
+        -ms-transform: scale(0.35);
+            transform: scale(0.35)
 }
 
 div#badges-inner {
@@ -4035,6 +4060,13 @@ div#badges-inner {
   border: var(--border) solid var(--border-color);
   -webkit-border-radius: var(--border-radius);
   border-radius: var(--border-radius)
+}
+
+div#badges-inner.defaultMal {
+  padding: 0;
+  border: 1px solid var(--border-color);
+  -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+  box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
 }
 
 div#badges-iframe-inner {
@@ -4047,6 +4079,16 @@ div#badges-iframe-inner {
   background: var(--color-foreground2);
   -webkit-border-radius: 10px;
   border-radius: 10px
+}
+
+div#badges-iframe-inner.defaultMal {
+  height: 100px;
+  border: 0 !important;
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+  background: var(--color-foreground);
+  -webkit-border-radius: var(--border-radius);
+  border-radius: var(--border-radius);
 }
 
 .sceditor-container.sourceMode.ltr {
@@ -4430,9 +4472,13 @@ if (!defaultMal) {
 function createButton({ id, setting, text }) {
   const button = create("button", { class: "mainbtns", id });
   if (text) button.textContent = text;
+  if (setting === "removeAllCustom") button.setAttribute('style', 'color: #e06c64 !important;font-weight: bold;');
   button.onclick = () => {
     if (setting === "removeAllCustom") {
-      editAboutPopup(`...`, 'removeAll');
+      const userConfirmed = confirm("Are you sure you want to remove all custom profile settings?");
+      if (userConfirmed) {
+        editAboutPopup(`...`, 'removeAll');
+      }
     } else {
       svar[setting] = !svar[setting];
       svar.save();
@@ -4780,7 +4826,11 @@ var customProfileElUpdateButton = create("button", { class: "mainbtns", id: "hid
 var customProfileElRightUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton", style: { width: '48%' } }, "Add to Right Side");
 
 customProfileElUpdateButton.onclick = () => {
-  createCustomDiv();
+  if(svar.modernLayout) {
+    createCustomDiv();
+  } else {
+    createCustomDiv('right');
+  }
 }
 
 customProfileElRightUpdateButton.onclick = () => {
@@ -4792,18 +4842,18 @@ let malBadgesInput = create("input", { class: "malBadgesInput", id: "malBadgesIn
 malBadgesInput.placeholder = "Paste your Mal-Badges Url Here";
 var malBadgesButton = create("button", { class: "mainbtns", id: "malBadgesBtn" }, "Update");
 var malBadgesRemoveButton = create("button", { class: "mainbtns fa fa-trash", id: "malBadgesRemove" });
-var malBadgesSimpleButton = create("button", { class: "mainbtns", id: "malBadgesBtn", style: { height: "32px", width: "32px", verticalAlign: "middle" } });
-var malBadgesSimpleButtonText = create("h3", { style: { display: 'inline' } }, "Simple Mode");
-let malBadgesSimpleButtonEnabled = false;
-malBadgesSimpleButton.onclick = () => {
-  malBadgesSimpleButtonEnabled = !malBadgesSimpleButtonEnabled;
-  malBadgesSimpleButton.classList.toggle('btn-active', malBadgesSimpleButtonEnabled);
+var malBadgesDetailButton = create("button", { class: "mainbtns", id: "malBadgesBtn", style: { height: "32px", width: "32px", verticalAlign: "middle" } });
+var malBadgesDetailButtonText = create("h3", { style: { display: 'inline' }}, "Detailed Badge (Required Modern Layout)");
+let malBadgesDetailButtonEnabled = false;
+malBadgesDetailButton.onclick = () => {
+  malBadgesDetailButtonEnabled = !malBadgesDetailButtonEnabled;
+  malBadgesDetailButton.classList.toggle('btn-active', malBadgesDetailButtonEnabled);
 }
 
 malBadgesButton.onclick = () => {
   if (malBadgesInput.value.length > 1 && malBadgesInput.value.includes('mal-badges.com')) {
-    const simpleMode = malBadgesSimpleButtonEnabled ? '?simple' : '';
-    const badgeBase64 = LZString.compressToBase64(JSON.stringify(malBadgesInput.value + simpleMode));
+    const detailMode = malBadgesDetailButtonEnabled ? '?detail' : '';
+    const badgeBase64 = LZString.compressToBase64(JSON.stringify(malBadgesInput.value + detailMode));
     const badgeBase64Url = badgeBase64.replace(/\//g, '_');
     editAboutPopup(`malBadges/${badgeBase64Url}`, 'malBadges');
     malBadgesInput.addEventListener(`focus`, () => bgInput.select());
@@ -5096,10 +5146,10 @@ function createDiv() {
     [badgeInput, badgeColorSelector, badgeColorLoop, badgeButton], svar.modernLayout, "profile"
   );
   let malBadgesDiv = createCustomSettingDiv(
-    "Mal-Badges (Required " + modernBtn + ")",
+    "Mal-Badges",
     "You can add Mal-Badges to your profile. This will be visible to users with the script." +
     "<p>If the badge does not appear, it means that the Mal-Badges is blocking access. There is nothing you can do about it.</p>",
-    [malBadgesInput, malBadgesButton, malBadgesRemoveButton, malBadgesSimpleButton, malBadgesSimpleButtonText], svar.modernLayout, "profile"
+    [malBadgesInput, malBadgesButton, malBadgesRemoveButton, malBadgesDetailButton, malBadgesDetailButtonText], 1, "profile"
   );
   let customCSSDiv = createCustomSettingDiv(
     "Custom CSS",
@@ -5229,6 +5279,7 @@ function createDiv() {
   createSettingDropdown("#embedBtnOption", "ttl", svar, "embedTTL", "embed");
   createSettingDropdown("#animeTagBtnOption", "ttl", svar, "tagTTL", "tag");
   createSettingDropdown("#animeRelationBtnOption", "ttl", svar, "relationTTL", "relation");
+  createSettingDropdown("#modernLayoutBtnOption", "svar", svar, "autoModernLayoutBtn", "Turn off auto modern layout detection.");
 
   $("#moreFavsModeBtn").on('click', async function () {
     await delay(200);
@@ -5274,17 +5325,29 @@ function delay(ms) {
     $('#content  div[data-page-id="main"] .userv2-detail').css('background', '#fff0');
     $('#content  .mr-auto').css('background', '#fff0'); $('body').css('background-color', '#fff0');
     $('#content').css('background', '#fff0');
-    $('.userv2-stats').css({ 'font-size': '16px', 'gap': '8px', 'padding-right': '5px' });
     $('.user_badge img').css('max-width', 'initial');
-    $('.value-display.value-display--plain .count').css('font-size', '45px');
 
-    // Simple View
-    if (location.href.endsWith('?simple&malbadges')) {
+    // Detailed Badge
+    if (location.href.endsWith('?detail&malbadges')) {
+      $('.userv2-stats').css({ 'font-size': '15px', 'gap': '8px', 'padding-right': '12px' });
+      $('.value-display.value-display--plain .count').css('font-size', '45px');
+    } else {
       $('.userv2-stats').remove();
       $('.value-display.value-display--plain .count').css('font-size', '55px');
       $('.userv2-detail__stats').css('grid-template-columns', '1fr 1fr 1fr');
       let statsDivs = $('.userv2-detail__stats .value-display');
       statsDivs.eq(-2).before(statsDivs.eq(-1));
+      $('.userv2-detail-bar .value-display__label, .userv2-detail-bar .value-display__value').css('font-size', '16px');
+      $('.userv2-detail-bar .count').css('font-size', '20px');
+      $('.userv2-detail-bar .value-display.value-display--rank').last().find('.value-display__label').text('Comp Rank');
+      $('.userv2-detail-bar .value-display__value').css('font-size', '13px');
+      const xpLen = $('.userv2-detail__stats .count').last().attr('data-number')?.length;
+      if (xpLen > 4) {
+        $('.userv2-detail__stats .count').css('font-size', '55px');
+      }
+      if (xpLen > 5) {
+        $('.userv2-detail__stats .count').css('font-size', '50px');
+      }
     }
   }
   // News and Forum - Load iframe only when the spoiler button is clicked
@@ -6372,6 +6435,7 @@ function delay(ms) {
         loadMoreButton.remove();
       });
       newCommentsContainer.appendChild(loadMoreButton);
+      if(profile) mainCont.append($('a.btn-form-submit:contains("All Comments")').parent());
     }
 
     // Main
@@ -6406,7 +6470,7 @@ function delay(ms) {
             const profileId = await getProfileId(profileLink);
             if (!profileId) continue;
             const commentsUrl = `${baseUrl}${profileId}&last=1`;
-            const linkButton = create("a", { class: 'newCommentsLinkButton fa fa-link', href: commentsUrl });
+            const linkButton = create("a", { class: 'newCommentsLinkButton fa fa-link', href: commentsUrl, target:"_blank" });
             const newCommentsContainer = create("div", { class: "newCommentsContainer", style: { display: 'none', width: '100%' } });
             const commentsCount = await fetchAndUpdateComments(el, commentsUrl, newCommentsContainer);
             const toggleButton = await createToggleButton(newCommentsContainer, commentsCount);
@@ -6467,6 +6531,10 @@ function delay(ms) {
     if (svar.profileNewComments && isMainProfilePage) {
       newProfileComments(1);
     }
+    if ($('.comment-form').text().trim() === `You must be friends with ${username} to comment on their profile.`) {
+      const profileComID = $('a:contains("Report")').last().attr('href').split('&')[2];
+      $('.comment-form').append(`<br><a href=https://myanimelist.net/comments.php?${profileComID}>All Comments</a>`);
+    }
     let banner = create('div', { class: 'banner', id: 'banner', });
     let shadow = create('div', { class: 'banner', id: 'shadow', });
     let container = create("div", { class: "container", id: "container" });
@@ -6519,18 +6587,8 @@ function delay(ms) {
     async function startCustomProfile() {
       await imgLoad();
       await findCustomAbout();
-      await delay(250);
-      if (customCSS && customCSS.constructor === Array && customCSS[1]) {
-        svar.modernLayout = true;
-        await applyAl();
-      }
-      else if (customCSS && svar.customCSS) {
-        svar.modernLayout = false;
-        await applyAl();
-      } else if (customModernLayoutFounded || svar.modernLayout === true) {
-        svar.modernLayout = true;
-        await applyAl();
-      }
+      await applyAl();
+
       if (svar.profileHeader && !svar.modernLayout) {
         let title = document.querySelector('#contentWrapper h1');
         title.setAttribute('style', 'padding-left: 2px;margin-bottom:5px');
@@ -6716,7 +6774,7 @@ function delay(ms) {
       } else {
         $("#content > div > div.container-right > h2").nextUntil(".user-comments").wrapAll("<div class='favContainer' id='user-def-favs'></div>");
         $(".user-comments").before(FavContent);
-        $(FavContent).css({ marginBottom: '30px', width: '813px' });
+        $(FavContent).css({ marginBottom: '30px', width: '813px', display: 'inline-block'});
         opGroup.classList.add("flex2x");
         edGroup.classList.add("flex2x");
       }
@@ -6888,12 +6946,35 @@ function delay(ms) {
             customModernLayoutFounded = 1;
           }
         }
+        if (badgeMatch) {
+          const badgeData = badgeMatch[0].replace(profileRegex.badge, '$2');
+          if (badgeData !== '...') {
+            let badgeBase64Url = badgeData.replace(/_/g, "/");
+            custombadge = JSON.parse(LZString.decompressFromBase64(badgeBase64Url));
+            const badgeDiv = create('div', { class: 'maljsProfileBadge', });
+            badgeDiv.innerHTML = custombadge[0];
+            if (custombadge[1] === 'loop') {
+              $(badgeDiv).addClass('rainbow');
+            } else {
+              badgeDiv.style.background = custombadge[1];
+            }
+            container.append(badgeDiv);
+            customModernLayoutFounded = 1;
+          }
+        }
         if (cssMatch) {
           const cssData = cssMatch[0].replace(profileRegex.css, '$2');
           if (cssData !== '...') {
             let cssBase64Url = cssData.replace(/_/g, "/");
             customCSS = JSON.parse(LZString.decompressFromBase64(cssBase64Url));
           }
+        }
+        if (customModernLayoutFounded && !svar.autoModernLayout) {
+          svar.modernLayout = true;
+        }
+        if (customCSS && customCSS.constructor === Array && !customCSS[1] || customCSS && customCSS.constructor !== Array ||
+            !svar.modernLayout && customModernLayoutFounded && svar.autoModernLayout) {
+          svar.modernLayout = false;
         }
         if (colorMatch) {
           const colorData = colorMatch[0].replace(profileRegex.colors, '$2');
@@ -6922,22 +7003,6 @@ function delay(ms) {
             applyHiddenDivs();
           }
         }
-        if (badgeMatch) {
-          const badgeData = badgeMatch[0].replace(profileRegex.badge, '$2');
-          if (badgeData !== '...') {
-            let badgeBase64Url = badgeData.replace(/_/g, "/");
-            custombadge = JSON.parse(LZString.decompressFromBase64(badgeBase64Url));
-            const badgeDiv = create('div', { class: 'maljsProfileBadge', });
-            badgeDiv.innerHTML = custombadge[0];
-            if (custombadge[1] === 'loop') {
-              $(badgeDiv).addClass('rainbow');
-            } else {
-              badgeDiv.style.background = custombadge[1];
-            }
-            container.append(badgeDiv);
-            customModernLayoutFounded = 1;
-          }
-        }
         if (moreFavsMatch) {
           const moreFavsData = moreFavsMatch[0].replace(profileRegex.moreFavs, '$2');
           if (moreFavsData !== '...') {
@@ -6956,12 +7021,6 @@ function delay(ms) {
             }
           }
         }
-        if (customModernLayoutFounded) {
-          svar.modernLayout = true;
-        }
-        if (customCSS && customCSS.constructor === Array && !customCSS[1] || customCSS && customCSS.constructor !== Array) {
-          svar.modernLayout = false;
-        }
         if (fgMatch) {
           const fgData = fgMatch[0].replace(profileRegex.fg, '$2');
           if (fgData !== '...') {
@@ -6975,8 +7034,8 @@ function delay(ms) {
           if (malBadgesData !== '...' && isMainProfilePage) {
             let malBadgesBase64Url = malBadgesData.replace(/_/g, "/");
             malBadgesUrl = JSON.parse(LZString.decompressFromBase64(malBadgesBase64Url));
-            if (malBadgesUrl) malBadgesUrl += malBadgesUrl.endsWith('?simple') ? '&malbadges' : '?malbadges';
-            if (svar.modernLayout) await getMalBadges(malBadgesUrl);
+            if (malBadgesUrl) malBadgesUrl += malBadgesUrl.endsWith('?detail') ? '&malbadges' : '?malbadges';
+            await getMalBadges(malBadgesUrl);
           }
         }
         if (favSongMatch) {
@@ -7283,7 +7342,7 @@ function delay(ms) {
         set(1, ".user-image .btn-detail-add-picture", { sa: { 0: "display: flex;flex-direction: column;justify-content: center;" } });
         document.querySelector(".user-image").setAttribute("style", "top: 99px;left: 99px;position: relative;");
         avatar.setAttribute("style", "display: flex;height: inherit;align-items: flex-end;position: relative;width:500px;");
-        name.css({ "font-size": "2rem", "font-weight": "800", left: "35px", top: "-35px", color: 'var(--color-main-text-op)' });
+        name.css({ "font-size": "2rem", "font-weight": "800", left: "35px", top: "-35px", color: 'var(--color-main-text-op)', opacity: '.93' });
         name.html(name.html().replace(/'s Profile/g, "\n"));
         avatar.append(name[0]);
         set(2, "#container span.profile-team-title.js-profile-team-title", { sl: { top: "18px" } });
@@ -7551,11 +7610,7 @@ function delay(ms) {
       }
       const entryRow = create('div', { class: 'entry row' });
       const coverDiv = create('div', { class: 'cover' });
-      const imageDiv = create('img', {
-        class: 'image',
-        alt: animeData.title,
-        src: animeData.imageUrl,
-      });
+      const imageDiv = create('img', {class: 'image lazyload', alt: animeData.title, src: animeData.imageUrl});
       if (animeData.airingStatus == 1 && svar.listAiringStatus) {
         const airingDot = create('span', { class: 'airing-dot' });
         coverDiv.append(airingDot);
@@ -7592,13 +7647,14 @@ function delay(ms) {
       entryRow.appendChild(formatDiv);
       section.appendChild(entryRow);
       entryRow.setAttribute("genres", animeData.genres ? JSON.stringify(animeData.genres) : "");
-      entryRow.setAttribute("season", animeData.season ? JSON.stringify(animeData.season) : "");
+      entryRow.setAttribute("season", animeData.season ? JSON.stringify(animeData.season) : "0");
       entryRow.setAttribute("tags", animeData.tags ? animeData.tags : "");
       entryRow.setAttribute("startDate", animeData.startDate ? animeData.startDate : "");
       entryRow.setAttribute("finishDate", animeData.finishDate ? animeData.finishDate : "");
       entryRow.setAttribute("createdAt", animeData.createdAt ? JSON.stringify(animeData.createdAt) : "");
       entryRow.setAttribute("updatedAt", animeData.updatedAt ? JSON.stringify(animeData.updatedAt) : "");
       entryRow.setAttribute("progress", animeData.progress ? JSON.stringify(animeData.progress) : "0");
+      if(isManga) entryRow.setAttribute("mangaYear", animeData.mangaYear ? JSON.stringify(animeData.mangaYear) : "");
     }
     async function fetchWithTimeout(url, timeout = 10000) {
       const controller = new AbortController();
@@ -7676,6 +7732,7 @@ function delay(ms) {
                 href: list[x].manga_url,
                 title: list[x].manga_title,
                 score: list[x].score,
+                mangaYear: parseDate(list[x].manga_start_date_string, 1),
                 airingStatus: list[x].manga_publishing_status,
                 startDate: list[x].start_date_string,
                 finishDate: list[x].finish_date_string,
@@ -7868,11 +7925,18 @@ function delay(ms) {
 
       //Year Filter
       const yearFilter = create('div', { class: 'filterList_YearFilter' });
-      const yearFilterThisYear = new Date().getFullYear();
+      const currentYear = new Date().getFullYear();
+      const yearFilterMax = currentYear;
+      const yearFilterMin = currentYear - 95;
       const yearFilterClear = create('i', { class: 'year-filter-clear fa fa-close' });
-      yearFilter.innerHTML = '<div class="year-filter-slider-container">' +
-        '<input type="range" id="year-filter-slider" min="1917" max="' + yearFilterThisYear + '"value="' + yearFilterThisYear + '" step="1"><span id="year-filter-label">' + yearFilterThisYear + '</span></div>';
-      if (!isManga && animeDataList[0] && animeDataList[0].season) {
+      yearFilter.innerHTML = `<div class="year-filter-slider-container">
+      <input type="range" id="year-filter-slider" min="${yearFilterMin}" max="${yearFilterMax}" value="${yearFilterMax}" step="1">
+      <span id="year-filter-label">${yearFilterMax}</span></div>`;
+      let canAddYearFilter = 0;
+      if (!isManga && animeDataList[0] && animeDataList[0].season || isManga && animeDataList[0] && animeDataList[0].mangaYear) {
+        canAddYearFilter = 1;
+      }
+      if (canAddYearFilter) {
         $(yearFilter).prepend('<h3>Year</h3>');
         $(yearFilter).prepend($(yearFilterClear));
         listFilter.appendChild(yearFilter);
@@ -7897,8 +7961,8 @@ function delay(ms) {
           $yearFilterLabel.text($(this).val());
           const entries = document.querySelectorAll('.entry');
           entries.forEach(entry => {
-            const seasonData = JSON.parse(entry.getAttribute('season'));
-            const entryYear = seasonData ? seasonData.year : null;
+            const seasonData = isManga ? JSON.parse(entry.getAttribute('mangayear')) : JSON.parse(entry.getAttribute('season'));
+            const entryYear = seasonData?.year ? seasonData.year : 0;
             if (entryYear && entryYear === parseInt($(this).val(), 10)) {
               entry.classList.remove('hidden');
             } else {
@@ -7913,12 +7977,13 @@ function delay(ms) {
 
       //Sort Filter
       const sortFilter = create("div", { class: "filterList_SortFilter" });
-      sortFilter.innerHTML =
-        '<div class="sort-container" style="display: -webkit-box;display: -webkit-flex;display: -ms-flexbox;display: flex;gap: 0px 10px;margin-top: 10px;">' +
-        '<select id="sort-select" style="width:100%"><option value="title">Title</option><option value="score">Score</option><option value="progress">Progress</option>' +
-        '<option value="startdate">Start Date</option><option value="finishdate">Finish Date</option><option value="createdat">Last Added</option>' +
-        '<option value="updatedat">Last Updated</option></select><button class="fa fa-arrow-up" id="sort-asc" style="font-family: FontAwesome;width:33px;margin-top:0"></button>' +
-        '<button class="fa fa-arrow-down" id="sort-desc" style="font-family: FontAwesome;width:33px;margin-top:0"></button></div>';
+      sortFilter.innerHTML = `
+      <div class="sort-container" style="display: -webkit-box; display: -webkit-flex; display: -ms-flexbox; display: flex; gap: 0px 10px; margin-top: 10px;">
+      <select id="sort-select" style="width:100%"><option value="title">Title</option><option value="score">Score</option>
+      <option value="progress">Progress</option><option value="startdate">Start Date</option><option value="finishdate">Finish Date</option>
+      ${isManga ? '' : `<option value="createdat">Last Added</option> <option value="updatedat">Last Updated</option>`}</select>
+      <button class="fa fa-arrow-up" id="sort-asc" style="font-family: FontAwesome; width:33px; margin-top:0"></button>
+      <button class="fa fa-arrow-down" id="sort-desc" style="font-family: FontAwesome; width:33px; margin-top:0"></button></div>`;
       listFilter.appendChild(sortFilter);
       const sortSelect = document.getElementById("sort-select");
       const sortAsc = document.getElementById("sort-asc");
@@ -8303,6 +8368,11 @@ function delay(ms) {
       mutualFriends();
     }
     //profile Mutual Friends //-END-//
+
+    //Profile Vertical Favs Fix
+    if ($('#anime_favorites').css('width') <= '191px') {
+      $('#user-def-favs h5').attr('style', 'padding: 0!important;opacity: 0;height: 0px');
+    }
   }
   //Profile Section //--END--//
 
