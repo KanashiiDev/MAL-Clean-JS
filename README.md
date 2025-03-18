@@ -1,9 +1,10 @@
 # MAL-Clean-JS
 Customizations and fixes for MyAnimeList!<br>
 Made for the <a href="https://userstyles.world/style/10678/myanimelist-clean">MyAnimeList - Clean</a> userstyle, but users without it can also use it.
-<br><br><a href="https://github.com/KanashiiDev/MAL-Clean-JS/raw/main/mal-clean.user.js"><img src="https://shields.io/badge/Mal%20Clean%20JS%20Install%20Userscript-brightgreen" alt="Get Userscript"/></a><br>
-<h6><b><a href="https://github.com/KanashiiDev/MAL-Clean-JS/blob/main/howtoopen.png">How to Open Settings</a></b> <br>
-<h3>Features</h3>
+<br><br><a href="https://github.com/KanashiiDev/MAL-Clean-JS/raw/main/src/build/malclean.user.js"><img src="https://shields.io/badge/Mal%20Clean%20JS%20Install%20Userscript-brightgreen" alt="Get Userscript"/></a><br>
+<h6><b><a href="https://github.com/KanashiiDev/MAL-Clean-JS/blob/main/howtoopen.png">How to Open Settings</a></b></h6>
+<p align="left">
+<details><summary>Features</summary>
 <b>Panel</b>
 <li>Add more info to seasonal anime.</li>
 <li>Add recently added anime & manga.</li>
@@ -34,4 +35,28 @@ Made for the <a href="https://userstyles.world/style/10678/myanimelist-clean">My
 <li>Show mutual friends.</li>
 <li>Custom profile colors.</li>
 <li>Make profile looks like AniList <i>(Custom avatar, banner and badge will be visible to users with the script)</i></li>
-<li>Custom CSS <i>(This will be visible to users with the script)</i></li>
+<li>Custom CSS <i>(This will be visible to users with the script)</i></li></details></p>
+
+## Build from source
+
+"src/" contains a makefile, run "make" there.
+Requires make, m4 and basic shell utilities
+
+Will build the userscript in src/build/
+
+## Copyright
+
+Copyright (C) 2023-2025 KanashiiDev and the Mal-Clean-JS contributors
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
