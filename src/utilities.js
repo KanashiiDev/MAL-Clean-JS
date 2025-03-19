@@ -130,10 +130,8 @@ async function editAboutPopup(data, type) {
       return;
     }
     let canSubmit = 1;
-    const url = location.pathname === "/" ? null : 1;
     const popup = create("div", { id: "currently-popup" });
     const popupClose = create("a", { id: "currently-closePopup", class: "fa-solid fa-xmark", href: "javascript:void(0);" });
-    const popupBack = create("a", { class: "popupBack fa-solid fa-arrow-left", href: "javascript:void(0);" });
     const popupMask = create("div", {
       class: "fancybox-overlay",
       style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "11" },
@@ -148,9 +146,7 @@ async function editAboutPopup(data, type) {
       },
       "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome;word-break: break-word;"></i>'
     );
-    const iframe = create("iframe", { src: "https://myanimelist.net/editprofile.php" });
-    iframe.style.pointerEvents = "none";
-    iframe.style.opacity = 0;
+    const iframe = create("iframe", { style: { pointerEvents: "none", opacity: "0" }, src: "https://myanimelist.net/editprofile.php" });
 
     // close popup function
     const close = () => {
@@ -167,7 +163,7 @@ async function editAboutPopup(data, type) {
     async function notFound() {
       iframe.remove();
       popupLoading.innerHTML = "You are not using classic about.<br><br>Please paste this code into a blog post on the first page so that the code will run automatically.<br><br>";
-      popupDataText.innerHTML = "[url=https://malcleansettings/] [/url]";
+      popupDataText.innerHTML = "[url=https://malcleansettings/]‎ [/url]";
       popupLoading.append(popupDataText, popupDataTextButton);
       popupDataTextButton.addEventListener("click", async function () {
         try {
@@ -185,7 +181,7 @@ async function editAboutPopup(data, type) {
       let isClassic = $iframeContents.find("#about_me_setting_2").is(":checked");
       let $submit = $iframeContents.find('.inputButton[type="submit"]');
       const regexes = {
-        match: /(\[url=).*(malcleansettings)\/.*([^.]]+)/gm,
+        match: /(\[url=https:\/\/malcleansettings\/)(.*)(]‎) \[\/url\]/gm,
         add: /(\[url=https:\/\/malcleansettings\/)(.*)(]‎)/gm,
         privateProfile: /(privateProfile)\/([^\/]+.)/gm,
         hideProfileEl: /(hideProfileEl)\/([^\/]+.)/gm,
@@ -249,7 +245,7 @@ async function editAboutPopup(data, type) {
         } else if (type === "private") {
           aboutText = replaceTextIfMatches(regexes.privateProfile, aboutText, `${data}/`);
         } else if (type === "pf") {
-          aboutText = replaceTextIfMatches(regexes.custompf, aboutText, `${data}/`);
+          aboutText = replaceTextIfMatches(regexes.customPf, aboutText, `${data}/`);
         } else if (type === "fg") {
           aboutText = replaceTextIfMatches(regexes.customFg, aboutText, `${data}/`);
         } else if (type === "bg") {
@@ -291,17 +287,17 @@ async function editAboutPopup(data, type) {
         iframe.src = userBlogPage;
       }
       if ($(iframe).contents()[0].URL.indexOf("editprofile.php") === -1) {
-        if (!settingsFounded && $(iframe).contents()[0].URL.indexOf("myblog.php") === -1) {
+        if (settingsFounded && $(iframe).contents()[0].URL.indexOf("myblog.php") === -1) {
           let $blogFound = null;
-          let $maljsBlogDivs = $iframeContents.find('#content > div div:has(a:contains("Edit Entry"))').prev();
+          const $maljsBlogDivs = $iframeContents.find('#content > div div:has(a:contains("Edit Entry"))').prev();
           if ($maljsBlogDivs.length) {
             $maljsBlogDivs.each(function () {
-              let $this = $(this);
-              if ($this.html().indexOf("malcleansettings") > -1) {
-                $blogFound = $(this);
-                let $editLink = $blogFound.next().find('a[href*="/myblog.php?go=edit"]');
+              const $this = $(this);
+              if ($this.html().includes("malcleansettings")) {
+                $blogFound = 1;
+                const $editLink = $this.next().find('a[href*="/myblog.php?go=edit"]');
                 if ($editLink.length) {
-                  $editLink[0].click();
+                  iframe.src = $editLink.attr("href");
                 }
               }
             });
@@ -346,8 +342,7 @@ async function editPopup(id, type, add, addCount) {
       class: "fancybox-overlay",
       style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "11" },
     });
-    const iframe = create("iframe", { src: popupId });
-    iframe.style.opacity = 0;
+    const iframe = create("iframe", { style: { opacity: "0" }, src: popupId });
     const close = () => {
       if ($(iframe).contents().find(".goodresult")[0] && url) {
         window.location.reload();
@@ -503,11 +498,9 @@ async function editPopup(id, type, add, addCount) {
 // Block User Popup
 async function blockUser(id) {
   return new Promise((resolve, reject) => {
-    const url = location.pathname === "/" ? null : 1;
     const popup = create("div", { id: "currently-popup" });
     const popupClose = create("a", { id: "currently-closePopup", class: "fa-solid fa-xmark", href: "javascript:void(0);" });
     const popupId = "/editprofile.php?go=privacy";
-    const popupBack = create("a", { class: "popupBack fa-solid fa-arrow-left", href: "javascript:void(0);" });
     const popupLoading = create(
       "div",
       {
@@ -520,8 +513,7 @@ async function blockUser(id) {
       class: "fancybox-overlay",
       style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "11" },
     });
-    const iframe = create("iframe", { src: popupId });
-    iframe.style.opacity = 0;
+    const iframe = create("iframe", { style: { opacity: "0" }, src: popupId });
     const close = () => {
       popup.remove();
       popupMask.remove();
