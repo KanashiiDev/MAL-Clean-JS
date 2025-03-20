@@ -1,7 +1,9 @@
 //MalClean Settings - Create Settings Div
 function createDiv() {
   const modernBtn = "<a style=\"cursor: pointer;\" onclick=\"document.getElementById('modernLayoutBtn').scrollIntoView({ behavior: 'smooth', block: 'center' });\">Modern Profile Layout</a>";
-  let listDiv = create("div", { class: "malCleanMainContainer" }, '<div class="malCleanMainHeader"><b>' + stLink.innerText + "</b></div>");
+  const listNav = ` <div class="malCleanMainHeaderNav"><button>My Panel</button><button>Anime Manga</button><button>Character</button>
+  <button>People</button><button>Blog</button><button>Club</button><button>Forum</button><button>Profile</button></div>`;
+  let listDiv = create("div", { class: "malCleanMainContainer" }, '<div class="malCleanMainHeader"><div class="malCleanMainHeaderTitle"><b>' + stLink.innerText + "</b></div>" + listNav + "</div>");
   let customfgDiv = createCustomSettingDiv(
     "Custom Foreground Color (Required " + modernBtn + ")",
     "Change profile foreground color. This will be visible to users with the script.",
@@ -73,7 +75,7 @@ function createDiv() {
     return acc;
   }, {});
 
-  listDiv.querySelector(".malCleanMainHeader").append(reloadButton, closeButton);
+  listDiv.querySelector(".malCleanMainHeaderTitle").append(reloadButton, closeButton);
   listDiv.append(
     createListDiv("My Panel", [
       { b: buttons["animeInfoBtn"], t: "Add info to seasonal anime (hover over anime to make it appear)" },
@@ -86,7 +88,7 @@ function createDiv() {
       ...(!defaultMal ? [{ b: buttons["headerSlideBtn"], t: "Auto Hide/Show header" }] : []),
       ...(defaultMal ? [{ b: buttons["scrollbarStyleBtn"], t: "Change Scrollbar Appearance" }] : []),
     ]),
-    createListDiv("Anime / Manga", [
+    createListDiv("Anime - Manga", [
       { b: buttons["animeBgBtn"], t: "Add dynamic background color based cover art's color palette" },
       { b: buttons["animeBannerBtn"], t: "Add banner image from Anilist" },
       { b: buttons["animeBannerMoveBtn"], t: "Move the cover image below the banner image." },
@@ -155,4 +157,49 @@ function createDiv() {
     }
   });
   getSettings();
+
+  //Navigation
+  const navButtons = listDiv.querySelectorAll(".malCleanMainHeaderNav button");
+  const settingContainers = listDiv.querySelectorAll(".malCleanSettingContainer[id]");
+  navButtons.forEach((button) => {
+    button.classList.add("mainbtns");
+    const sectionName = button.textContent.trim().replace(/[\W_]+/, "-");
+    button.onclick = function () {
+      const targetSection = listDiv.querySelector(".malCleanSettingContainer#" + sectionName);
+      if (targetSection) {
+        const offset = 90;
+        const elementPosition = targetSection.offsetTop;
+        const offsetPosition = elementPosition - offset;
+        listDiv.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth",
+        });
+      }
+    };
+  });
+
+  function highlightClosestSection() {
+    let minDistance = Infinity;
+    let closestSection = null;
+
+    settingContainers.forEach((section) => {
+      const rect = section.getBoundingClientRect();
+      const navbarHeight = listDiv.querySelector(".malCleanMainHeader").offsetHeight;
+      const distance = Math.abs(rect.top - navbarHeight - 10);
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestSection = section;
+      }
+    });
+
+    if (closestSection) {
+      const activeSection = closestSection.id;
+      navButtons.forEach((button) => {
+        button.classList.toggle("btn-active-def", button.textContent.trim().replace(/[\W_]+/, "-") === activeSection);
+      });
+    }
+  }
+  listDiv.addEventListener("scroll", highlightClosestSection);
+  highlightClosestSection();
 }

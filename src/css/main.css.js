@@ -1545,7 +1545,7 @@ div#custom-preview-div > div blockquote.spoiler {
 }
 
 .malCleanMainContainer > .malCleanSettingContainer:nth-child(2) {
-    margin-top: 45px
+    margin-top: 85px
 }
 
 .mainListBtnDiv,.malCleanSettingPopup .settingContainer.svar {
@@ -1573,6 +1573,11 @@ div#custom-preview-div > div blockquote.spoiler {
     align-content: center
 }
 
+.malCleanMainContainer .malCleanMainHeaderTitle #reloadbtn,
+.malCleanMainContainer .malCleanMainHeaderTitle #closebtn {
+    font-family: fontAwesome
+}
+
 .textpb {
     padding-top: 5px !important;
     font-weight: bold
@@ -1583,14 +1588,6 @@ div#custom-preview-div > div blockquote.spoiler {
 }
 
 .malCleanMainHeader {
-    display: -ms-inline-grid;
-    display: inline-grid;
-    -ms-grid-columns: 4fr 1fr 1fr;
-    grid-template-columns: 4fr 1fr 1fr;
-    -webkit-box-align: center;
-    -webkit-align-items: center;
-    -ms-flex-align: center;
-    align-items: center;
     font-size: medium;
     position: fixed;
     background: var(--color-foregroundOP);
@@ -1598,10 +1595,27 @@ div#custom-preview-div > div blockquote.spoiler {
     border-top-left-radius: 10px;
     margin-top: 0px;
     padding: 10px;
-    height: 35px;
+    height: 75px;
     top: inherit;
     z-index:2;
     right: 25px
+}
+.malCleanMainHeaderNav {
+    display: -ms-grid;
+    display: grid;
+    grid-auto-flow: column
+}
+
+.malCleanMainHeaderTitle {
+    width: 505px;
+    display: -ms-inline-grid;
+    display: inline-grid;
+    -ms-grid-columns: 85% auto auto;
+    grid-template-columns: 85% auto auto;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    -ms-flex-align: center;
+    align-items: center;
 }
 
 #currently-popup .dataTextButton,

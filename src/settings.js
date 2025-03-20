@@ -1,4 +1,5 @@
 let defaultMal,
+  settingsActive,
   settingsFounded,
   loadingMoreFavorites,
   loadingCustomCover = 0;
@@ -19,7 +20,6 @@ const userNotHeaderUser = username !== headerUserName;
 const isMainProfilePage = /\/profile\/.*\/\w/gm.test(current) ? 0 : 1;
 var stLink = create("a", { class: "malCleanSettingLink", id: "malCleanSettingLink" }, "MalClean Settings");
 var stButton = create("li", { class: "malCleanSettingButton", id: "malCleanSettingButton" });
-var active = !1;
 
 let svar = {
   animeBg: true,

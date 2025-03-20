@@ -2,16 +2,16 @@
 function closeDiv() {
   $(".malCleanMainContainer").remove();
   clearHiddenDivs();
-  active = !1;
+  settingsActive = !1;
 }
 
 //MalClean Settings - Settings Open & Close
 function Settings() {
-  active = !active;
-  if (active) {
+  settingsActive = !settingsActive;
+  if (settingsActive) {
     createDiv();
   }
-  if (!active) {
+  if (!settingsActive) {
     closeDiv();
   }
 }
@@ -21,13 +21,13 @@ stButton.onclick = () => {
 };
 
 //MalClean Settings - Close Button
-var closeButton = create("button", { class: "mainbtns", id: "closebtn" }, "Close");
+var closeButton = create("button", { class: "mainbtns fa fa-x", id: "closebtn" });
 closeButton.onclick = () => {
   closeDiv();
 };
 
 //MalClean Settings - Reload Button
-var reloadButton = create("button", { class: "mainbtns", id: "reloadbtn" }, "Refresh");
+var reloadButton = create("button", { class: "mainbtns fa fa-refresh", id: "reloadbtn" });
 reloadButton.onclick = () => {
   window.location.reload();
 };

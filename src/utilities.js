@@ -162,7 +162,7 @@ async function editAboutPopup(data, type) {
 
     async function notFound() {
       iframe.remove();
-      popupLoading.innerHTML = "You are not using classic about.<br><br>Please paste this code into a blog post on the first page so that the code will run automatically.<br><br>";
+      popupLoading.innerHTML = "You are not using classic about.<br><br>Please paste this code into a public blog post on the first page so that the code will run automatically.<br><br>";
       popupDataText.innerHTML = "[url=https://malcleansettings/]‎ [/url]";
       popupLoading.append(popupDataText, popupDataTextButton);
       popupDataTextButton.addEventListener("click", async function () {
@@ -287,7 +287,7 @@ async function editAboutPopup(data, type) {
         iframe.src = userBlogPage;
       }
       if ($(iframe).contents()[0].URL.indexOf("editprofile.php") === -1) {
-        if (settingsFounded && $(iframe).contents()[0].URL.indexOf("myblog.php") === -1) {
+        if ($(iframe).contents()[0].URL.indexOf("myblog.php") === -1) {
           let $blogFound = null;
           const $maljsBlogDivs = $iframeContents.find('#content > div div:has(a:contains("Edit Entry"))').prev();
           if ($maljsBlogDivs.length) {
@@ -874,7 +874,7 @@ function createListDiv(title, buttons) {
     $(mainDiv).append(buttons[x].b, "<h3>" + buttons[x].t + "</h3>", buttons[x]?.s);
     btns.append(mainDiv);
   }
-  let div = create("div", { class: "malCleanSettingContainer" }, '<div class="malCleanSettingHeader"><h2>' + title + "</h2></div>");
+  let div = create("div", { class: "malCleanSettingContainer", id: title.trim().replace(/[\W_]+/, "-") }, '<div class="malCleanSettingHeader"><h2>' + title + "</h2></div>");
   div.append(btns);
   return div;
 }

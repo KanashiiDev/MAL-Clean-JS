@@ -1,6 +1,6 @@
 m4_divert(-1)m4_dnl
 m4_changequote(<m4<,>m4>)
-m4_define(MALCLEAN_VERSION,1.29.90)
+m4_define(MALCLEAN_VERSION,1.29.91)
 m4_divert(0)m4_dnl
 // ==UserScript==
 // @name        MAL-Clean-JS
@@ -27,9 +27,6 @@ m4_include(settings.js)
 m4_include(utilities.js)
 m4_include(polyfills.js)
 m4_include(css/main.css.js)
-m4_include(settings/main.js)
-m4_include(settings/objects.js)
-m4_include(settings/build.js)
 (async function() {
 "use strict";
 /*
@@ -48,6 +45,9 @@ m4_include(settings/build.js)
 
 	<https://www.gnu.org/licenses/>.
 */
+m4_include(settings/main.js)
+m4_include(settings/objects.js)
+m4_include(settings/build.js)
 m4_include(controller.js)
 m4_include(build/userModules.js)
 })()
