@@ -37,6 +37,21 @@ async function loadAniSong() {
     }
     const options = { cacheTTL: 604800000, class: "anisongs" };
     let anisongdata, op1, ed1;
+    function sanitizeTitle(text) {
+      text = text
+        .replace(/\((?!.*(Ver\.|ver\.))(.*?)\)+?/g, "")
+        .replace(/(.*)( by )(.*)/g, "$1")
+        .replace(/(.*)( feat\.| ft\. )(.*)/g, "$1")
+        .replace(/(Produced|\WProduced)/g, "")
+        .replace(/["']/g, "")
+        .replace(/[^\x20-\x7E]/g, "")
+        .replace(/,/g, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+      text = DOMPurify.sanitize(text);
+      return text;
+    }
+
     const API = {
       //Get Songs from JikanAPI
       async getSongs(mal_id) {
@@ -129,30 +144,8 @@ async function loadAniSong() {
               let vid = videos[x];
               let link = vid.animethemeentries[0].videos[0] && vid.animethemeentries[0].videos[0].link ? vid.animethemeentries[0].videos[0].link : null;
               let m = 0;
-              let title = DOMPurify.sanitize(cleanTitle(e));
-              title = title
-                .replace(/(\w\d+\: |)/gm, "")
-                .replace(/\((?!.*(Ver\.|ver\.))(.*?)\)+?/g, "")
-                .replace(/(.*)( by )(.*)/g, "$1")
-                .replace(/(.*)( feat. | ft. )(.*)/g, "$1")
-                .replace(/(Produced|\WProduced)/g, "")
-                .replace(/["']/g, "")
-                .replace(/<.*>/g, "")
-                .replace(/[^\w\s\(\)\[\]\,\-\:]/g, "")
-                .trim();
-              title = DOMPurify.sanitize(title);
-              let title2 = vid.song.title ? vid.song.title : null;
-              title2 = DOMPurify.sanitize(title2);
-              title2 = title2
-                .replace(/\((?!.*(Ver\.|ver\.))(.*?)\)+?/g, "")
-                .replace(/(.*)( by )(.*)/g, "$1")
-                .replace(/(.*)( feat. | ft. )(.*)/g, "$1")
-                .replace(/(Produced|\WProduced)/g, "")
-                .replace(/["']/g, "")
-                .replace(/<.*>/g, "")
-                .replace(/[^\w\s\(\)\[\]\,\-\:]/g, "")
-                .trim();
-              title2 = DOMPurify.sanitize(title2);
+              let title = sanitizeTitle(cleanTitle(e));
+              let title2 = vid.song.title ? sanitizeTitle(vid.song.title) : null;
               let ep = cleanTitle(e)
                 .replace(/(.*).((eps|ep) (\w.*\ |)(.*)\))/gm, "$5")
                 .replace(/\s/g, "");

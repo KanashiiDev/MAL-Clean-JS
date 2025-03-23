@@ -137,15 +137,15 @@ if (svar.embed && /\/(forum)\/.?topicid([\w-]+)?\/?/.test(location.href)) {
       content = content
         .replace(/(http:\/\/|https:\/\/)(myanimelist\.net\/(anime|manga)\.php\?id=)([0-9]+)/gm, "https://myanimelist.net/$2/$3")
         .replace(/(<a href="\b(http:\/\/|https:\/\/)(myanimelist\.net\/(anime|manga)\/[0-9]+))/gm, " $1");
-      let matches = content.match(/<a href="\b(http:\/\/|https:\/\/)(myanimelist\.net\/(anime|manga)\/)([0-9]+)([^"'<]+)(?=".\w)/gm);
+      let matches = content.match(/<a href="https:\/\/myanimelist\.net\/(anime|manga|character|people)\/([0-9]+)([^"'<]+)".*?>.*?<\/a>/gm);
       matches = matches ? matches.filter((link) => !link.includes("/video")) : matches;
       if (matches && !headerRegex.test(forumHeader)) {
         let uniqueMatches = Array.from(new Set(matches));
         for (let i = 0; i < uniqueMatches.length; i++) {
           let match = uniqueMatches[i];
           const id = match.split("/")[4];
-          match = DOMPurify.sanitize(match);
-          const reg = new RegExp('(?<!Div">)(' + match.replace(/\./g, "\\.").replace(/\//g, "\\/").replace(/\?/g, ".*?") + '".*?>[a-zA-Z0-9_ ].*?</a>)', "gms");
+          const escapedMatch = match.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+          const reg = new RegExp('(?<!Div">)(' + escapedMatch + ")", "gms");
           if (!id.startsWith("0")) {
             const type = match.split("/")[3];
             let link = create("a", { href: match });
@@ -157,14 +157,14 @@ if (svar.embed && /\/(forum)\/.?topicid([\w-]+)?\/?/.test(location.href)) {
               content = content.replace(reg, await DOMPurify.sanitize(cont));
             }
             if (matches.length > 4 && i % 4 === 0) {
-              cached ? await delay(33) : await delay(999);
+              cached ? await delay(33) : await delay(777);
             } else {
               cached ? await delay(33) : await delay(333);
             }
           }
           c[x].innerHTML = content;
         }
-        await delay(999);
+        await delay(777);
       }
       if (c[x].className === "message" && !c[x].id) {
         c[x].remove();
