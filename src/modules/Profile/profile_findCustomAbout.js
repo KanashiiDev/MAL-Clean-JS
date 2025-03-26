@@ -54,19 +54,22 @@ async function findCustomAbout() {
       if (cssData !== "...") {
         let cssBase64Url = cssData.replace(/_/g, "/");
         customCSS = JSON.parse(LZString.decompressFromBase64(cssBase64Url));
+        if (svar.customCSS) {
+          await findCustomCSS();
+        }
       }
     }
     if (customModernLayoutFounded && !svar.autoModernLayout) {
       svar.modernLayout = true;
     }
     if (
-      (customCSS && customCSS.constructor === Array && !customCSS[1]) ||
-      (customCSS && customCSS.constructor !== Array) ||
-      (!svar.modernLayout && customModernLayoutFounded && svar.autoModernLayout)
+      (svar.customCSS && customCSS && customCSS.constructor === Array && !customCSS[1]) ||
+      (svar.customCSS && customCSS && customCSS.constructor !== Array) ||
+      (svar.modernLayout && customModernLayoutFounded && svar.autoModernLayout)
     ) {
       svar.modernLayout = false;
     }
-    if (colorMatch) {
+    if (colorMatch && svar.modernLayout) {
       const colorData = colorMatch[0].replace(profileRegex.colors, "$2");
       if (colorData !== "...") {
         let colorBase64Url = colorData.replace(/_/g, "/");

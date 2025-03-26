@@ -67,7 +67,7 @@ if (!defaultMal) {
 function createButton({ id, setting, text }) {
   const button = create("button", { class: "mainbtns", id });
   if (text) button.textContent = text;
-  if (setting === "removeAllCustom") button.setAttribute("style", "color: #e06c64 !important;font-weight: bold;");
+  if (setting === "removeAllCustom") button.setAttribute("style", "color: #e06c64 !important;font-weight: bold; width:98%;");
   button.onclick = () => {
     if (setting === "removeAllCustom") {
       const userConfirmed = confirm("Are you sure you want to remove all custom profile settings?");
@@ -85,7 +85,7 @@ function createButton({ id, setting, text }) {
 }
 
 //MalClean Settings - Create Custom Settings Div Function
-function createCustomSettingDiv(title, description, elementsToAppend, svar = "0", forProfile) {
+function createCustomSettingDiv(title, description, elementsToAppend, buttonsToAppend, buttonsWidth, infoToAppend, svar = "0", forProfile) {
   const div = create(
     "div",
     { class: "malCleanSettingContainer" },
@@ -93,9 +93,13 @@ function createCustomSettingDiv(title, description, elementsToAppend, svar = "0"
        <h2>${title}</h2>
        <h3>${description}</h3>
        <div class="malCleanSettingInner"></div>
+       <div class="malCleanSettingButtons" style= "grid-template-columns: ${buttonsWidth};"></div>
+       <div class="malCleanSettingInfo"></div>
      </div>`
   );
   const innerDiv = div.querySelector(".malCleanSettingInner");
+  const buttonDiv = div.querySelector(".malCleanSettingButtons");
+  const infoDiv = div.querySelector(".malCleanSettingInfo");
   let profileCheck = forProfile ? userNotHeaderUser : false;
   if (!profileCheck) {
     if (svar === "0" || svar) {
@@ -103,6 +107,22 @@ function createCustomSettingDiv(title, description, elementsToAppend, svar = "0"
         elementsToAppend.forEach((element) => {
           innerDiv.append(element);
         });
+      } else {
+        innerDiv.remove();
+      }
+      if (buttonsToAppend && Array.isArray(buttonsToAppend)) {
+        buttonsToAppend.forEach((button) => {
+          buttonDiv.append(button);
+        });
+      } else {
+        buttonDiv.remove();
+      }
+      if (infoToAppend && Array.isArray(infoToAppend)) {
+        infoToAppend.forEach((info) => {
+          infoDiv.append(info);
+        });
+      } else {
+        infoDiv.remove();
       }
     }
   } else {
@@ -111,6 +131,8 @@ function createCustomSettingDiv(title, description, elementsToAppend, svar = "0"
       window.location.href = "https://myanimelist.net/profile/" + headerUserName;
     };
     innerDiv.append(profileBtn);
+    buttonDiv.remove();
+    infoDiv.remove();
   }
   return div;
 }

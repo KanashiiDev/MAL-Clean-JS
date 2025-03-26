@@ -1,6 +1,6 @@
 let fgColor = getComputedStyle(document.body);
-fgColor = tinycolor(fgColor.getPropertyValue('--fg'));
-const fgOpacity = fgColor.setAlpha(.8).toRgbString();
+fgColor = tinycolor(fgColor.getPropertyValue("--fg"));
+const fgOpacity = fgColor.setAlpha(0.8).toRgbString();
 
 let styles = `
 .malCleanLoader {
@@ -1241,8 +1241,15 @@ font-family: "Font Awesome 6 Pro";
 #customAddContainerInside textarea#content-input {
     width: 95%;
     max-width: 95%;
+    background-color: var(--color-foreground);
     border: 1px solid var(--border-color);
+    padding: 10px;
+    border-radius: 4px;
     margin: 5px 0px
+}
+
+.malCleanSettingPopup .settingContainer.input input {
+    background-color: var(--color-foreground2)
 }
 
 #customAddContainer.right #customAddContainerInside input#header-input {
@@ -1506,22 +1513,24 @@ div#custom-preview-div > div blockquote.spoiler {
     right: 0;
     width: 520px;
     height: 86vh;
-    margin-right: 15px;
-    -webkit-transition: .4s;
-    -o-transition: .4s;
-    transition: .4s;
+    margin-right: 10px;
+    -webkit-transition: 0.4s;
+    -o-transition: 0.4s;
+    transition: 0.4s;
     position: fixed;
     top: 55px;
-    z-index: 11;
+    z-index: 100;
     background: var(--color-foregroundOP);
     overflow-y: auto;
     display: -ms-grid;
     display: grid;
     color: var(--color-text);
     padding: 10px;
-    border: 1px solid #6969694d;
+    border: var(--border) solid var(--border-color);
+    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
     -webkit-border-radius: 10px;
-    border-radius: 10px
+            border-radius: 10px
 }
 
 @media (max-width: 768px) {
@@ -1537,7 +1546,8 @@ div#custom-preview-div > div blockquote.spoiler {
 }
 
 .malCleanSettingContainer {
-    margin-top: 10px
+    margin-top: 10px;
+    width: auto
 }
 
 .malCleanSettingPopup {
@@ -1582,6 +1592,7 @@ div#custom-preview-div > div blockquote.spoiler {
     align-content: center
 }
 
+.malCleanMainContainerList .malCleanSettingButtons .removeButton,
 .malCleanMainContainer .malCleanMainHeaderTitle #reloadbtn,
 .malCleanMainContainer .malCleanMainHeaderTitle #closebtn {
     font-family: fontAwesome
@@ -1597,26 +1608,42 @@ div#custom-preview-div > div blockquote.spoiler {
 }
 
 .malCleanMainHeader {
-    font-size: medium;
-    position: fixed;
-    background: var(--color-foregroundOP);
-    width: 505px;
-    border-top-left-radius: 10px;
-    margin-top: 0px;
-    padding: 10px;
-    height: 75px;
-    top: inherit;
-    z-index:2;
-    right: 25px
+    font-size: 1rem;
+    padding-bottom: 5px
 }
+
 .malCleanMainHeaderNav {
     display: -ms-grid;
     display: grid;
-    grid-auto-flow: column
+    grid-auto-flow: column;
+    width: 100%
+}
+
+.malCleanMainContainerList { 
+    display: inline-block;
+    padding-right: 6px;
+    overflow-y: auto;
+    overflow-x: hidden
+}
+
+.malCleanMainContainerList::-webkit-scrollbar-thumb,
+.malCleanMainContainerList::-webkit-scrollbar {
+    background: var(--color-background);
+    -webkit-border-radius: 4px;
+    border-radius: 4px
+}
+
+.malCleanMainContainerList::-webkit-scrollbar-corner,
+.malCleanMainContainerList::-webkit-scrollbar-track {
+    background: #fff0
+}
+
+.malCleanMainContainerList::-webkit-scrollbar-thumb {
+    background: var(--color-foreground4)
 }
 
 .malCleanMainHeaderTitle {
-    width: 505px;
+    width: 100%;
     display: -ms-inline-grid;
     display: inline-grid;
     -ms-grid-columns: 85% auto auto;
@@ -1624,7 +1651,7 @@ div#custom-preview-div > div blockquote.spoiler {
     -webkit-box-align: center;
     -webkit-align-items: center;
     -ms-flex-align: center;
-    align-items: center;
+    align-items: center
 }
 
 #currently-popup .dataTextButton,
@@ -1642,8 +1669,8 @@ div#custom-preview-div > div blockquote.spoiler {
     color: var(--color-text)
 }
 
-#currently-popup .dataTextButton:hover,
-.mainbtns:hover:not(#customColorUpdate) {
+.malCleanMainContainer .mainbtns:hover,
+#currently-popup .dataTextButton:hover {
     -webkit-transform: scale(1.04);
     -ms-transform: scale(1.04);
     transform: scale(1.04)
@@ -1705,7 +1732,7 @@ div#custom-preview-div > div blockquote.spoiler {
     grid-template-columns: 1fr 1fr 1fr
 }
 
-.customColorsInside .colorGroup .colorOption{
+.customColorsInside .colorGroup .colorOption {
     margin-top: 5px;
     display: -webkit-box;
     display: -webkit-flex;
@@ -1717,80 +1744,33 @@ div#custom-preview-div > div blockquote.spoiler {
     align-items: center;
     gap: 5px
 }
+
 .customColorsInside .colorGroup .colorOption input{
     cursor: pointer
 }
-button#hideProfileElementsButton,
-button#hideProfileElementsUpdateButton,
-button#customColorUpdate,
-button#customColorRemove,
-button#custombgRemove,
-button#malBadgesRemove,
-button#customFgRemove,
-button#hideProfileElementsRemove,
-button#custompfRemove,
-button#customCSSRemove,
-button#customCSS,
-button#privateProfile,
-button#privateRemove,
-button#malBadgesBtn,
-button#malBadgesRemove,
-button#custombg,
-button#custompf {
+
+body .malCleanMainContainerList .malCleanSettingButtons {
+    display: -ms-grid;
+    display: grid;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    -ms-flex-align: center;
+    align-items: center;
+    margin-top: 10px
+}
+
+body .malCleanMainContainerList .malCleanSettingButtons button,
+body .malCleanMainContainerList .malCleanSettingButtons input {
+    background: var(--color-background);
     height: 40px;
-    width: 26%
-}
-
-button#malBadgesRemove,
-button#customFgRemove,
-button#hideProfileElementsRemove,
-button#customColorRemove,
-button#custombgRemove,
-button#custompfRemove,
-button#customCSSRemove {
-    width: 5%;
-    font-family:FontAwesome
-}
-
-button#customColorUpdate {
-  width: 472px;
-  margin: 10px 5px 0px 0px
-}
-
-#custombadgeColorLoop,
-#badgecolorselector,
-button#custombadge{
-    height: 40px;
-    width: 15%
-}
-
-input#badgeInput,
-input#malBadgesInput,
-input#cssInput,
-input#bgInput,
-input#pfInput {
+    width: auto;
+    margin: 4px;
     border: 1px solid var(--border-color);
-    padding: 10px;
-    width: 60%;
-    height: 15px;
-    margin-right: 5px
+    border-radius: 4px
 }
 
-input#badgeInput {
-    width: 45%
-}
-
-#badgecolorselector{
-    position: relative;
-    top: 10px;
-    margin: 0px 2px
-}
-#fgcolorselector{
-    position: relative;
-    top: 10px;
-    width: 65%;
-    margin: 0px 2px;
-    height: 40px
+.malCleanMainContainerList input:focus-visible {
+    outline: 2px solid var(--color-foreground4)!important
 }
 
 .malCleanMainContainer .malCleanSettingContainer h2 {
@@ -2058,7 +2038,7 @@ body {
   --color-backgroundo: #12121266!important;
   --color-foreground: #181818!important;
   --color-foreground2: #242424!important;
-  --color-foreground3: #28282866!important;
+  --color-foreground3: #323232!important;
   --color-foregroundOP: #181818!important;
   --color-foregroundOP2: #242424!important;
   --color-foreground4: #282828!important;
@@ -2074,24 +2054,24 @@ body {
   --color-text-hover: #cfcfcf!important;
   --color-link-hover: #cee7ff!important
 }
-${svar.scrollbarStyle ?
-    `::-webkit-scrollbar {
-  background: 0 0
-}
 
-::-webkit-scrollbar-track {
-  background: #fff0
+${svar.scrollbarStyle ? 
+    `
+    ::-webkit-scrollbar {
+       background: 0 0
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--color-foreground2);
+      -webkit-border-radius: 3px;
+      border-radius: 3px
+    }
+    ::-webkit-scrollbar-track,
+    ::-webkit-scrollbar-corner {
+      background: var(--color-background);
+    }`
+    : ``
 }
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-foreground2);
-  -webkit-border-radius: 3px;
-  border-radius: 3px
-}
-
-::-webkit-scrollbar-corner {
-  background: #0000
-}` : ``}
 
 a.feed-main-button {
   top: 0!important
@@ -2134,24 +2114,23 @@ body {
   --color-link-hover: #cee7ff!important
 }
 
-${svar.scrollbarStyle ?
-    `::-webkit-scrollbar {
-  background: 0 0
+${svar.scrollbarStyle ? 
+    `
+    ::-webkit-scrollbar {
+       background: 0 0
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--color-foreground2);
+      -webkit-border-radius: 3px;
+      border-radius: 3px
+    }
+    ::-webkit-scrollbar-track,
+    ::-webkit-scrollbar-corner {
+      background: var(--color-background);
+    }`
+    : ``
 }
-
-::-webkit-scrollbar-track {
-  background: #fff0
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-foreground2);
-  -webkit-border-radius: 3px;
-  border-radius: 3px
-}
-
-::-webkit-scrollbar-corner {
-  background: #0000
-}` : ``}
 
 a.feed-main-button {
   top: 0!important
@@ -2183,14 +2162,6 @@ let defaultCSSFixes = `
   height:90px!important
 }
 
-#fgcolorselector {
-  width: 64%
-}
-
-button#customColorUpdate {
-  width: 460px
-}
-
 .profileRightActions {
   position: relative;
   top: -50px
@@ -2210,21 +2181,20 @@ button#customColorUpdate {
 `;
 
 //Create Style Elements
-let styleSheet = document.createElement('style');
-let styleSheet2 = document.createElement('style');
-let styleSheet3 = document.createElement('style');
-styles = styles.replace(/\n/g, '');
-styles2 = styles2.replace(/\n/g, '');
-styles3 = styles3.replace(/\n/g, '');
-defaultColors = defaultColors.replace(/\n/g, '');
-defaultColorsLight = defaultColorsLight.replace(/\n/g, '');
-defaultCSSFixes = defaultCSSFixes.replace(/\n/g, '');
-
+let styleSheet = document.createElement("style");
+let styleSheet2 = document.createElement("style");
+let styleSheet3 = document.createElement("style");
+styles = styles.replace(/\n/g, "");
+styles2 = styles2.replace(/\n/g, "");
+styles3 = styles3.replace(/\n/g, "");
+defaultColors = defaultColors.replace(/\n/g, "");
+defaultColorsLight = defaultColorsLight.replace(/\n/g, "");
+defaultCSSFixes = defaultCSSFixes.replace(/\n/g, "");
 
 //Add CSS
-if ($('style:contains(--fg:)').length) {
+if ($("style:contains(--fg:)").length) {
   styleSheet.innerText = styles;
-} else if ($('html').hasClass('dark-mode')) {
+} else if ($("html").hasClass("dark-mode")) {
   styleSheet.innerText = styles + defaultColors + defaultCSSFixes;
   defaultMal = 1;
 } else {

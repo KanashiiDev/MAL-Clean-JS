@@ -1,7 +1,7 @@
 //Profile Foreground Color
 let fgColorSelector = create("input", { class: "badgeInput", id: "fgcolorselector", type: "color" });
 let updateFgButton = create("button", { class: "mainbtns", id: "privateProfile" }, "Update");
-let removeFgButton = create("button", { class: "mainbtns fa fa-trash", id: "customFgRemove" });
+let removeFgButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "customFgRemove" });
 let fgColorValue = "var(--color-foreground)";
 let defaultFgColor = getComputedStyle(document.body);
 defaultFgColor = defaultFgColor.getPropertyValue("--color-foreground");
@@ -23,8 +23,8 @@ removeFgButton.onclick = () => {
 };
 
 //Private Profile
-var privateButton = create("button", { class: "mainbtns", id: "privateProfile", style: { width: "48%" } }, "Private");
-var removePrivateButton = create("button", { class: "mainbtns", id: "privateRemove", style: { width: "48%" } }, "Public");
+var privateButton = create("button", { class: "mainbtns", id: "privateProfile" }, "Private");
+var removePrivateButton = create("button", { class: "mainbtns", id: "privateRemove" }, "Public");
 
 privateButton.onclick = () => {
   editAboutPopup(`privateProfile/IxA=`, "private");
@@ -35,9 +35,9 @@ removePrivateButton.onclick = () => {
 };
 
 //Hide Profile Elements
-var hideProfileElButton = create("button", { class: "mainbtns", id: "hideProfileElementsButton", style: { width: "45%" } }, "Hide");
-var hideProfileElUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton", style: { width: "45%" } }, "Update");
-var removehideProfileElButton = create("button", { class: "mainbtns fa fa-trash", id: "hideProfileElementsRemove" });
+var hideProfileElButton = create("button", { class: "mainbtns", id: "hideProfileElementsButton" }, "Hide");
+var hideProfileElUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton" }, "Update");
+var removehideProfileElButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "hideProfileElementsRemove" });
 let hiddenProfileElements = [];
 let hiddenProfileElementsTemp = [];
 const divIds = [
@@ -143,8 +143,8 @@ removehideProfileElButton.onclick = () => {
 };
 
 //Custom Profile Elements
-var customProfileElUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton", style: { width: "48%" } }, "Add to Left Side");
-var customProfileElRightUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton", style: { width: "48%" } }, "Add to Right Side");
+var customProfileElUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton" }, "Add to Left Side");
+var customProfileElRightUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton" }, "Add to Right Side");
 
 customProfileElUpdateButton.onclick = () => {
   if (svar.modernLayout) {
@@ -162,7 +162,7 @@ customProfileElRightUpdateButton.onclick = () => {
 let bgInput = create("input", { class: "bgInput", id: "bgInput" });
 bgInput.placeholder = "Paste your Background Image Url here";
 var bgButton = create("button", { class: "mainbtns", id: "custombg" }, "Update");
-var bgRemoveButton = create("button", { class: "mainbtns fa fa-trash", id: "custombgRemove" });
+var bgRemoveButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "custombgRemove" });
 var bgInfo = create("p", { class: "textpb" }, "");
 
 bgButton.onclick = () => {
@@ -181,7 +181,7 @@ bgRemoveButton.onclick = () => {
 
 //Custom Avatar
 var pfButton = create("button", { class: "mainbtns", id: "custompf" }, "Update");
-var pfRemoveButton = create("button", { class: "mainbtns fa fa-trash", id: "custompfRemove" });
+var pfRemoveButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "custompfRemove" });
 let pfInput = create("input", { class: "pfInput", id: "pfInput" });
 pfInput.placeholder = "Paste your Avatar Image Url here";
 var pfInfo = create("p", { class: "textpb" }, "");
@@ -201,7 +201,7 @@ pfRemoveButton.onclick = () => {
 
 //Custom CSS
 var cssButton = create("button", { class: "mainbtns", id: "customCSS" }, "Update");
-var cssRemoveButton = create("button", { class: "mainbtns fa fa-trash", id: "customCSSRemove" });
+var cssRemoveButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "customCSSRemove" });
 var cssInfo = create("p", { class: "textpb" }, "");
 let cssInput = create("input", { class: "cssInput", id: "cssInput" });
 var cssmodernLayout = create("button", { class: "mainbtns", id: "cssmodernLayout", style: { height: "32px", width: "32px", verticalAlign: "middle" } });
@@ -214,6 +214,10 @@ cssmodernLayout.onclick = () => {
 cssInput.placeholder = "Paste your CSS here";
 cssButton.onclick = () => {
   if (cssInput.value.length > 1) {
+    cssInput.value = cssInput.value
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\s*([{}:;,])\s*/g, "$1")
+      .replace(/\n+/g, "");
     const cssBase64 = LZString.compressToBase64(JSON.stringify([cssInput.value, cssmodernLayoutEnabled]));
     const cssbase64url = cssBase64.replace(/\//g, "_");
     editAboutPopup(`customCSS/${cssbase64url}`, "css");
@@ -230,7 +234,7 @@ cssRemoveButton.onclick = () => {
 let malBadgesInput = create("input", { class: "malBadgesInput", id: "malBadgesInput" });
 malBadgesInput.placeholder = "Paste your Mal-Badges Url Here";
 var malBadgesButton = create("button", { class: "mainbtns", id: "malBadgesBtn" }, "Update");
-var malBadgesRemoveButton = create("button", { class: "mainbtns fa fa-trash", id: "malBadgesRemove" });
+var malBadgesRemoveButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "malBadgesRemove" });
 var malBadgesDetailButton = create("button", { class: "mainbtns", id: "malBadgesBtn", style: { height: "32px", width: "32px", verticalAlign: "middle" } });
 var malBadgesDetailButtonText = create("h3", { style: { display: "inline" } }, "Detailed Badge (Required Modern Layout)");
 let malBadgesDetailButtonEnabled = false;
@@ -240,14 +244,16 @@ malBadgesDetailButton.onclick = () => {
 };
 
 malBadgesButton.onclick = () => {
-  const allowedHost = "mal-badges.com";
-  const url = new URL(malBadgesInput.value);
-  if (malBadgesInput.value.length > 1 && url.hostname === allowedHost) {
-    const detailMode = malBadgesDetailButtonEnabled ? "?detail" : "";
-    const badgeBase64 = LZString.compressToBase64(JSON.stringify(malBadgesInput.value + detailMode));
-    const badgeBase64Url = badgeBase64.replace(/\//g, "_");
-    editAboutPopup(`malBadges/${badgeBase64Url}`, "malBadges");
-    malBadgesInput.addEventListener(`focus`, () => bgInput.select());
+  if (malBadgesInput.value.length > 1) {
+    const allowedHost = "mal-badges.com";
+    const url = new URL(malBadgesInput.value);
+    if (url.hostname === allowedHost) {
+      const detailMode = malBadgesDetailButtonEnabled ? "?detail" : "";
+      const badgeBase64 = LZString.compressToBase64(JSON.stringify(malBadgesInput.value + detailMode));
+      const badgeBase64Url = badgeBase64.replace(/\//g, "_");
+      editAboutPopup(`malBadges/${badgeBase64Url}`, "malBadges");
+      malBadgesInput.addEventListener(`focus`, () => bgInput.select());
+    }
   }
 };
 malBadgesRemoveButton.onclick = () => {
@@ -292,7 +298,7 @@ badgeButton.onclick = () => {
 //Custom Profile Colors
 const createColorInput = () => create("input", { class: "customColorInput", type: "color" });
 const customColorButton = create("button", { class: "mainbtns", id: "customColorUpdate" }, "Update");
-const customColorRemoveButton = create("button", { class: "mainbtns fa fa-trash", id: "customColorRemove" });
+const customColorRemoveButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "customColorRemove" });
 const customColors = create("div", { class: "customColorsInside" });
 let defaultLinkColor = getComputedStyle(document.body);
 defaultLinkColor = defaultLinkColor.getPropertyValue("--color-link");

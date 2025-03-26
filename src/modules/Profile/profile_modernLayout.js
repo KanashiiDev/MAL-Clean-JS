@@ -1,44 +1,4 @@
 async function applyAl() {
-  if (svar.customCSS) {
-    function findcss() {
-      let customCSSData, customCSSAl;
-      if (customCSS && customCSS.constructor === Array) {
-        customCSSData = customCSS[0];
-        customCSSAl = customCSS[1];
-      } else {
-        customCSSData = customCSS;
-      }
-      if (customCSS) {
-        if (!customCSSAl) {
-          const malscss = document.createElement("style");
-          malscss.textContent = `#currently-popup, .malCleanMainHeader, .malCleanMainContainer {background:#121212!important;}`;
-          document.head.appendChild(malscss);
-          $("style:contains(--fg:)").html("");
-        }
-        styleSheet3.innerText = styles3;
-        document.getElementsByTagName("head")[0].appendChild(styleSheet3);
-        styleSheet.innerText = styles;
-        document.getElementsByTagName("head")[0].appendChild(styleSheet);
-        function getdata() {
-          let css = document.createElement("style");
-          if (customCSSData.match(/^https.*\.css$/)) {
-            let cssLink = document.createElement("link");
-            cssLink.rel = "stylesheet";
-            cssLink.type = "text/css";
-            cssLink.href = customCSS;
-            document.getElementsByTagName("head")[0].appendChild(cssLink);
-          } else {
-            if (customCSSData.length < 1e6) {
-              css.innerText = customCSSData;
-              document.getElementsByTagName("head")[0].appendChild(css);
-            }
-          }
-        }
-        getdata();
-      }
-    }
-    findcss();
-  }
   if (svar.modernLayout) {
     //CSS Fix for Modern Profile Layout
     let fixstyle = `
@@ -346,7 +306,7 @@ async function applyAl() {
       let mangaUpdates = document.querySelector("#statistics .updates.manga");
       let animeStats = document.querySelector("#statistics .stats.anime");
       let animeUpdates = document.querySelector("#statistics .updates.anime");
-      s.setAttribute("style", "width: 813px");
+      s.setAttribute("style", "width: 810px");
       s.children[1].append(mangaStats);
       s.children[2].prepend(animeUpdates);
       s.prepend(document.querySelector("#statistics > div:nth-child(2)"));

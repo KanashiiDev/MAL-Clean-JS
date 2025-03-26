@@ -1,6 +1,6 @@
 m4_divert(-1)m4_dnl
 m4_changequote(<m4<,>m4>)
-m4_define(MALCLEAN_VERSION,1.29.92)
+m4_define(MALCLEAN_VERSION,1.29.93)
 m4_divert(0)m4_dnl
 // ==UserScript==
 // @name        MAL-Clean-JS

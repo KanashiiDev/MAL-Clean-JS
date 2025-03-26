@@ -1,13 +1,18 @@
 //MalClean Settings - Create Settings Div
 function createDiv() {
-  const modernBtn = "<a style=\"cursor: pointer;\" onclick=\"document.getElementById('modernLayoutBtn').scrollIntoView({ behavior: 'smooth', block: 'center' });\">Modern Profile Layout</a>";
+  const modernBtn = "<a style=\"cursor: pointer;\" onclick=\"document.getElementById('modernLayoutBtn').scrollIntoView({ behavior: 'smooth', block: 'start' });\">Modern Profile Layout</a>";
   const listNav = ` <div class="malCleanMainHeaderNav"><button>My Panel</button><button>Anime Manga</button><button>Character</button>
   <button>People</button><button>Blog</button><button>Club</button><button>Forum</button><button>Profile</button></div>`;
-  let listDiv = create("div", { class: "malCleanMainContainer" }, '<div class="malCleanMainHeader"><div class="malCleanMainHeaderTitle"><b>' + stLink.innerText + "</b></div>" + listNav + "</div>");
+  let mainInner = create("div", { class: "malCleanMainContainer" }, '<div class="malCleanMainHeader"><div class="malCleanMainHeaderTitle"><b>' + stLink.innerText + "</b></div>" + listNav + "</div>");
+  let listDiv = create("div", { class: "malCleanMainContainerList" });
+  mainInner.append(listDiv);
   let customfgDiv = createCustomSettingDiv(
     "Custom Foreground Color (Required " + modernBtn + ")",
     "Change profile foreground color. This will be visible to users with the script.",
+    null,
     [fgColorSelector, updateFgButton, removeFgButton],
+    ["65% 25% 10%"],
+    null,
     svar.modernLayout,
     "profile"
   );
@@ -15,21 +20,30 @@ function createDiv() {
   let custombgDiv = createCustomSettingDiv(
     "Custom Banner (Required " + modernBtn + ")",
     "Add custom banner to your profile. This will be visible to users with the script.",
-    [bgInput, bgButton, bgRemoveButton, bgInfo],
+    null,
+    [bgInput, bgButton, bgRemoveButton],
+    ["65% 25% 10%"],
+    [bgInfo],
     svar.modernLayout,
     "profile"
   );
   let custompfDiv = createCustomSettingDiv(
     "Custom Avatar",
     "Add custom avatar to your profile. This will be visible to users with the script.",
-    [pfInput, pfButton, pfRemoveButton, pfInfo],
+    null,
+    [pfInput, pfButton, pfRemoveButton],
+    ["65% 25% 10%"],
+    [pfInfo],
     1,
     "profile"
   );
   let custombadgeDiv = createCustomSettingDiv(
     "Custom Badge (Required " + modernBtn + ")",
     "Add custom badge to your profile. This will be visible to users with the script." + "<p>You can use HTML elements. Maximum size 300x150. Update empty to delete.</p>",
+    null,
     [badgeInput, badgeColorSelector, badgeColorLoop, badgeButton],
+    ["50% 15% 15% 20%"],
+    null,
     svar.modernLayout,
     "profile"
   );
@@ -37,36 +51,60 @@ function createDiv() {
     "Mal-Badges",
     "You can add Mal-Badges to your profile. This will be visible to users with the script." +
       "<p>If the badge does not appear, it means that the Mal-Badges is blocking access. There is nothing you can do about it.</p>",
-    [malBadgesInput, malBadgesButton, malBadgesRemoveButton, malBadgesDetailButton, malBadgesDetailButtonText],
+    null,
+    [malBadgesInput, malBadgesButton, malBadgesRemoveButton],
+    ["65% 25% 10%"],
+    [malBadgesDetailButton, malBadgesDetailButtonText],
     1,
     "profile"
   );
   let customCSSDiv = createCustomSettingDiv(
     "Custom CSS",
     "Add custom css to your profile. This will be visible to users with the script.",
-    [cssInput, cssButton, cssRemoveButton, cssmodernLayout, cssmodernLayoutText, cssInfo],
+    null,
+    [cssInput, cssButton, cssRemoveButton],
+    ["65% 25% 10%"],
+    [cssmodernLayout, cssmodernLayoutText, cssInfo],
     1,
     "profile"
   );
   let customColorsDiv = createCustomSettingDiv(
     "Custom Profile Colors",
     "Change profile colors. This will be visible to users with the script.",
-    [customColors, customColorButton, customColorRemoveButton],
+    [customColors],
+    [customColorButton, customColorRemoveButton],
+    ["90% 10%"],
+    null,
     1,
     "profile"
   );
-  let privateProfileDiv = createCustomSettingDiv("Profile Privacy", "You can make your profile private or public for users with the script.", [privateButton, removePrivateButton], 1, "profile");
+  let privateProfileDiv = createCustomSettingDiv(
+    "Profile Privacy",
+    "You can make your profile private or public for users with the script.",
+    null,
+    [privateButton, removePrivateButton],
+    ["50% 50%"],
+    null,
+    1,
+    "profile"
+  );
   let hideProfileElDiv = createCustomSettingDiv(
     "Hide Profile Elements",
     "You can hide your profile elements. This will also apply to users with the script.",
+    null,
     [hideProfileElButton, hideProfileElUpdateButton, removehideProfileElButton],
+    ["65% 25% 10%"],
+    null,
     1,
     "profile"
   );
   let customProfileElDiv = createCustomSettingDiv(
     "Custom Profile Elements",
     "You can add custom profile elements your profile. This will be visible to users with the script. You can use HTML elements.",
+    null,
     [customProfileElUpdateButton, customProfileElRightUpdateButton],
+    ["50% 50%"],
+    null,
     1,
     "profile"
   );
@@ -75,7 +113,7 @@ function createDiv() {
     return acc;
   }, {});
 
-  listDiv.querySelector(".malCleanMainHeaderTitle").append(reloadButton, closeButton);
+  mainInner.querySelector(".malCleanMainHeaderTitle").append(reloadButton, closeButton);
   listDiv.append(
     createListDiv("My Panel", [
       { b: buttons["animeInfoBtn"], t: "Add info to seasonal anime (hover over anime to make it appear)" },
@@ -135,7 +173,7 @@ function createDiv() {
   );
   listDiv.append(privateProfileDiv, hideProfileElDiv, customProfileElDiv, malBadgesDiv, custompfDiv, custombadgeDiv, custombgDiv, customfgDiv);
   listDiv.append(customColorsDiv, customCSSDiv);
-  document.querySelector("#headerSmall").insertAdjacentElement("afterend", listDiv);
+  document.querySelector("#headerSmall").insertAdjacentElement("beforeend", mainInner);
   listDiv.append(buttons["removeAllCustomBtn"]);
 
   createSettingDropdown("#replaceListBtnOption", "svar", svar, "listAiringStatusBtn", "Show Airing Status Dot");
@@ -145,6 +183,7 @@ function createDiv() {
   createSettingDropdown("#animeRelationBtnOption", "ttl", svar, "relationTTL", "relation");
   createSettingDropdown("#modernLayoutBtnOption", "svar", svar, "autoModernLayoutBtn", "Turn off auto modern layout detection.");
 
+  $(".malCleanSettingButtons input").attr("style", "height: 38px;padding: 0 6px!important");
   $("#moreFavsModeBtn").on("click", async function () {
     await delay(200);
     if ($("#moreFavsModeBtn").hasClass("btn-active")) {
@@ -171,19 +210,19 @@ function createDiv() {
     disableButton("profileAnimeGenreBtn", "Modern Profile Layout Required!");
     disableButton("profileMangaGenreBtn", "Modern Profile Layout Required!");
   } else {
-    disableButton("profileHeaderBtn", "This setting is only for users who do not have Modern Profile Layout.");
+    disableButton("profileHeaderBtn", "Disable Modern Profile Layout.");
   }
 
   //Navigation
-  const navButtons = listDiv.querySelectorAll(".malCleanMainHeaderNav button");
-  const settingContainers = listDiv.querySelectorAll(".malCleanSettingContainer[id]");
+  const navButtons = mainInner.querySelectorAll(".malCleanMainHeaderNav button");
+  const settingContainers = mainInner.querySelectorAll(".malCleanSettingContainer[id]");
   navButtons.forEach((button) => {
     button.classList.add("mainbtns");
     const sectionName = button.textContent.trim().replace(/[\W_]+/, "-");
     button.onclick = function () {
-      const targetSection = listDiv.querySelector(".malCleanSettingContainer#" + sectionName);
+      const targetSection = mainInner.querySelector(".malCleanSettingContainer#" + sectionName);
       if (targetSection) {
-        const offset = 90;
+        const offset = 80;
         const elementPosition = targetSection.offsetTop;
         const offsetPosition = elementPosition - offset;
         listDiv.scrollTo({
@@ -194,28 +233,39 @@ function createDiv() {
     };
   });
 
+  //Highlight Active Section
+  const navBarNav = document.querySelector(".malCleanMainHeader");
+  let ticking = false;
   function highlightClosestSection() {
-    let minDistance = Infinity;
-    let closestSection = null;
-
-    settingContainers.forEach((section) => {
-      const rect = section.getBoundingClientRect();
-      const navbarHeight = listDiv.querySelector(".malCleanMainHeader").offsetHeight;
-      const distance = Math.abs(rect.top - navbarHeight - 10);
-
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestSection = section;
-      }
-    });
-
-    if (closestSection) {
-      const activeSection = closestSection.id;
-      navButtons.forEach((button) => {
-        button.classList.toggle("btn-active-def", button.textContent.trim().replace(/[\W_]+/, "-") === activeSection);
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      let closestSection = null;
+      let minDistance = Infinity;
+      const navRect = navBarNav.getBoundingClientRect();
+      const navBottom = navRect.bottom;
+      settingContainers.forEach((section) => {
+        const sectionRect = section.getBoundingClientRect();
+        const sectionTop = sectionRect.top;
+        const distance = Math.abs(sectionTop - navBottom);
+        if (distance <= 10 && distance < minDistance) {
+          minDistance = distance;
+          closestSection = section;
+        }
       });
-    }
+
+      if (closestSection) {
+        const activeSection = closestSection.id;
+        navButtons.forEach((button) => {
+          button.classList.toggle("btn-active-def", button.textContent.trim().replace(/[\W_]+/, "-") === activeSection);
+        });
+      }
+      ticking = false;
+    });
   }
-  listDiv.addEventListener("scroll", highlightClosestSection);
+  function throttledScroll() {
+    highlightClosestSection();
+  }
+  listDiv.addEventListener("scroll", throttledScroll);
   highlightClosestSection();
 }

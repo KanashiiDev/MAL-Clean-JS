@@ -1,4 +1,3 @@
-//Change Foreground Color
 async function changeForeground(color) {
   let cArr = [
     `--fg: ${color}!important;`,
@@ -22,7 +21,7 @@ async function changeForeground(color) {
     await delay(200);
     $("style").each(function () {
       let styleContent = $(this).html();
-      if (styleContent.includes("--fg:") || styleContent.includes("--color-")) {
+      if (styleContent.includes("--fg:")) {
         let updatedStyle = styleContent
           .replace(/--fg:\s*[^;]+;/g, cArr[0])
           .replace(/--fg2:\s*[^;]+;/g, cArr[1])

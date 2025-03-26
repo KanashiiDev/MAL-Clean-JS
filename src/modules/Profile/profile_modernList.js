@@ -49,7 +49,7 @@ if (svar.replaceList) {
     }
     const editDiv = create("div", { class: "edit fa-pen", id: animeData.id });
     editDiv.onclick = async () => {
-      isManga ? await editPopup(editDiv.id, "manga") : await editPopup(editDiv.id);
+      isManga ? await editPopup(editDiv.id, "manga", null, null, 1) : await editPopup(editDiv.id, null, null, null, 1);
     };
     coverDiv.append(imageDiv, editDiv);
     // Create the title div

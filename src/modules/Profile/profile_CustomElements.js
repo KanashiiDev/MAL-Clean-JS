@@ -121,7 +121,7 @@ async function buildCustomElements(data) {
     appendLoc.insertAdjacentElement("afterend", customElContent);
   } else {
     $(".user-comments").before(customElContent);
-    $(customElContent).css({ marginBottom: "30px", width: "813px" });
+    $(customElContent).css({ marginBottom: "30px", width: "810px" });
     mainGroup.classList.add("flex2x");
   }
   $(".user-comments").before(customElContentRight);

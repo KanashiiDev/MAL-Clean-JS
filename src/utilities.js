@@ -123,6 +123,27 @@ function createDisplayBox(cssProperties, windowTitle) {
   return innerSpace;
 }
 
+//Copy mal clean colors to iframe (required for customFg customization)
+function copyLastFgStyleToIframe(iframe) {
+  if (!iframe.contentDocument) {
+    return;
+  }
+  let styles = document.head.querySelectorAll("style");
+  let lastFgStyle = null;
+  styles.forEach((style) => {
+    if (style.textContent.includes("--fg:")) {
+      lastFgStyle = style;
+    }
+  });
+
+  if (lastFgStyle) {
+    let iframeDoc = iframe.contentDocument;
+    let newStyle = iframeDoc.createElement("style");
+    newStyle.textContent = lastFgStyle.textContent;
+    iframeDoc.head.appendChild(newStyle);
+  }
+}
+
 // MalClen Settings - Edit About Popup
 async function editAboutPopup(data, type) {
   return new Promise((resolve, reject) => {
@@ -320,7 +341,7 @@ async function editAboutPopup(data, type) {
 }
 
 // Anime/Manga Edit Popup
-async function editPopup(id, type, add, addCount) {
+async function editPopup(id, type, add, addCount, addFg) {
   return new Promise((resolve, reject) => {
     if ($("#currently-popup").length) {
       return;
@@ -362,6 +383,9 @@ async function editPopup(id, type, add, addCount) {
 
     $(iframe).on("load", function () {
       $(iframe).contents().find("body")[0].setAttribute("style", "background:0!important");
+      if (addFg) {
+        copyLastFgStyleToIframe(iframe);
+      }
       if (!add) {
         popupLoading.remove();
         iframe.style.opacity = 1;

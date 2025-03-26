@@ -24,6 +24,7 @@ async function on_load() {
   if ((svar.customCharacterCover && (/\/(profile)\/.?([\w]+)?\/?/.test(current) || $(".detail-characters-list").length)) || current.endsWith("/characters") || current.endsWith("/character.php")) {
     await loadCustomCover(1, "character");
   }
+
   if ($("#loadingDiv").length) {
     addLoading("remove");
   }

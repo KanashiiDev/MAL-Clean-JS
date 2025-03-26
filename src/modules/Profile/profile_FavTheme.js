@@ -22,7 +22,7 @@ async function buildFavSongs(data) {
   } else {
     $("#content > div > div.container-right > h2").nextUntil(".user-comments").wrapAll("<div class='favContainer' id='user-def-favs'></div>");
     $(".user-comments").before(FavContent);
-    $(FavContent).css({ marginBottom: "30px", width: "813px", display: "inline-block" });
+    $(FavContent).css({ marginBottom: "30px", width: "810px", display: "inline-block" });
     opGroup.classList.add("flex2x");
     edGroup.classList.add("flex2x");
   }
