@@ -234,38 +234,60 @@ function createDiv() {
   });
 
   //Highlight Active Section
-  const navBarNav = document.querySelector(".malCleanMainHeader");
   let ticking = false;
   function highlightClosestSection() {
     if (ticking) return;
     ticking = true;
+
     requestAnimationFrame(() => {
       let closestSection = null;
       let minDistance = Infinity;
-      const navRect = navBarNav.getBoundingClientRect();
-      const navBottom = navRect.bottom;
+      const listTop = listDiv.getBoundingClientRect().top;
+      const referencePoint = listTop + 20;
+
       settingContainers.forEach((section) => {
-        const sectionRect = section.getBoundingClientRect();
-        const sectionTop = sectionRect.top;
-        const distance = Math.abs(sectionTop - navBottom);
-        if (distance <= 10 && distance < minDistance) {
+        const rect = section.getBoundingClientRect();
+        const distance = Math.abs(rect.top - referencePoint);
+        const isInView = rect.top <= referencePoint && rect.bottom >= listTop;
+
+        if (isInView && distance < minDistance) {
           minDistance = distance;
           closestSection = section;
         }
       });
 
-      if (closestSection) {
-        const activeSection = closestSection.id;
-        navButtons.forEach((button) => {
-          button.classList.toggle("btn-active-def", button.textContent.trim().replace(/[\W_]+/, "-") === activeSection);
-        });
-      }
+      // Highlight the closest section
+      navButtons.forEach((button) => {
+        if (closestSection) {
+          const buttonTarget = button.textContent
+            .trim()
+            .replace(/[^\w]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+
+          const isActive = buttonTarget === closestSection.id;
+          button.classList.toggle("btn-active-def", isActive);
+        } else {
+          button.classList.remove("btn-active-def");
+        }
+      });
+
       ticking = false;
     });
   }
-  function throttledScroll() {
+
+  // Throttling
+  function throttledEvent() {
     highlightClosestSection();
   }
-  listDiv.addEventListener("scroll", throttledScroll);
+
+  // Debounce for better performance
+  function debounce(func, wait = 50) {
+    let timeout;
+    return function () {
+      clearTimeout(timeout);
+      timeout = setTimeout(func, wait);
+    };
+  }
+  listDiv.addEventListener("scroll", debounce(throttledEvent));
   highlightClosestSection();
 }

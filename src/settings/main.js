@@ -68,11 +68,12 @@ function createButton({ id, setting, text }) {
   const button = create("button", { class: "mainbtns", id });
   if (text) button.textContent = text;
   if (setting === "removeAllCustom") button.setAttribute("style", "color: #e06c64 !important;font-weight: bold; width:98%;");
-  button.onclick = () => {
+  button.onclick = async () => {
     if (setting === "removeAllCustom") {
       const userConfirmed = confirm("Are you sure you want to remove all custom profile settings?");
       if (userConfirmed) {
-        editAboutPopup(`...`, "removeAll");
+        await localforage.dropInstance({ name: "MalJS" });
+        await editAboutPopup(`...`, "removeAll");
       }
     } else if (setting !== "removeAllCustom" || setting !== "save") {
       svar[setting] = !svar[setting];
@@ -88,7 +89,7 @@ function createButton({ id, setting, text }) {
 function createCustomSettingDiv(title, description, elementsToAppend, buttonsToAppend, buttonsWidth, infoToAppend, svar = "0", forProfile) {
   const div = create(
     "div",
-    { class: "malCleanSettingContainer" },
+    { class: "malCleanSettingContainer", id: (forProfile ? 'Profile' : 'default') },
     `<div class="malCleanSettingHeader">
        <h2>${title}</h2>
        <h3>${description}</h3>

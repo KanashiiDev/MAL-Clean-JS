@@ -152,7 +152,7 @@ async function editAboutPopup(data, type) {
     }
     let canSubmit = 1;
     const popup = create("div", { id: "currently-popup" });
-    const popupClose = create("a", { id: "currently-closePopup", class: "fa-solid fa-xmark", href: "javascript:void(0);" });
+    const popupClose = create("a", { id: "currently-closePopup", class: "fa-solid fa-xmark", href: "javascript:void(0);", style: { display: "none" } });
     const popupMask = create("div", {
       class: "fancybox-overlay",
       style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "11" },
@@ -183,6 +183,7 @@ async function editAboutPopup(data, type) {
 
     async function notFound() {
       iframe.remove();
+      popupClose.style.display = "block";
       popupLoading.innerHTML = "You are not using classic about.<br><br>Please paste this code into a public blog post on the first page so that the code will run automatically.<br><br>";
       popupDataText.innerHTML = "[url=https://malcleansettings/]‎ [/url]";
       popupLoading.append(popupDataText, popupDataTextButton);
@@ -690,29 +691,48 @@ function addLoading(type = "add", text = "Loading", circle = 1, force = 0) {
   }
 }
 
-async function compressLocalForageDB(dbName, dbName2 = null) {
+//Compresses multiple localForage databases into a single LZString compressed string
+async function compressLocalForageDB(...dbNames) {
   try {
-    async function fetchDB(name) {
-      const db = await localforage.createInstance({ name: "MalJS", storeName: name });
-      const keys = await db.keys();
-      let data = {};
-      for (const key of keys) {
-        const value = await db.getItem(key);
-        data[key] = value;
-      }
-      return data;
+    // Validate input
+    if (!dbNames.length || dbNames.length < 2) {
+      throw new Error("At least 2 database names must be provided");
     }
-    const dbData = {};
-    if (dbName) dbData[dbName] = await fetchDB(dbName);
-    if (dbName2) dbData[dbName2] = await fetchDB(dbName2);
 
-    // JSON -> LZString
+    // Helper function to fetch all data from a database
+    const fetchDB = async (name) => {
+      const db = await localforage.createInstance({
+        name: "MalJS",
+        storeName: name,
+      });
+
+      const keys = await db.keys();
+      const data = {};
+
+      await Promise.all(
+        keys.map(async (key) => {
+          data[key] = await db.getItem(key);
+        })
+      );
+
+      return data;
+    };
+
+    // Fetch all databases in parallel
+    const dbData = {};
+    await Promise.all(
+      dbNames.map(async (name) => {
+        if (name) dbData[name] = await fetchDB(name);
+      })
+    );
+
+    // Compress the data
     const jsonString = JSON.stringify(dbData);
     const compressedData = LZString.compressToBase64(jsonString).replace(/\//g, "_");
 
     return compressedData;
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Database compression error:", error);
     return null;
   }
 }

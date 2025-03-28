@@ -99,18 +99,32 @@ async function findCustomAbout() {
     if (moreFavsMatch) {
       const moreFavsData = moreFavsMatch[0].replace(profileRegex.moreFavs, "$2");
       if (moreFavsData !== "...") {
-        let moreFavsDecompressed = moreFavsData.replace(/_/g, "/");
-        moreFavsDecompressed = JSON.parse(LZString.decompressFromBase64(moreFavsDecompressed));
-        const animanga = Object.values(moreFavsDecompressed.moreFavs_anime_manga);
-        const character = Object.values(moreFavsDecompressed.moreFavs_character);
-        if (!userNotHeaderUser) {
-          if (svar.moreFavsMode) {
-            await replaceLocalForageDB("moreFavs_anime_manga", animanga);
-            await replaceLocalForageDB("moreFavs_character", character);
+        try {
+          let moreFavsDecompressed = moreFavsData.replace(/_/g, "/");
+          moreFavsDecompressed = JSON.parse(LZString.decompressFromBase64(moreFavsDecompressed));
+
+          // Null check
+          const safeGetValues = (obj) => (obj && typeof obj === "object" && !Array.isArray(obj) ? Object.values(obj) : []);
+          const animanga = safeGetValues(moreFavsDecompressed?.moreFavs_anime_manga);
+          const character = safeGetValues(moreFavsDecompressed?.moreFavs_character);
+          const people = safeGetValues(moreFavsDecompressed?.moreFavs_people);
+          const company = safeGetValues(moreFavsDecompressed?.moreFavs_company);
+
+          if (!userNotHeaderUser) {
+            if (svar.moreFavsMode) {
+              if (animanga.length) await replaceLocalForageDB("moreFavs_anime_manga", animanga);
+              if (character.length) await replaceLocalForageDB("moreFavs_character", character);
+              if (people.length) await replaceLocalForageDB("moreFavs_people", people);
+              if (company.length) await replaceLocalForageDB("moreFavs_company", company);
+            }
+          } else {
+            if (animanga.length) await loadMoreFavs(1, "anime_manga", animanga);
+            if (character.length) await loadMoreFavs(1, "character", character);
+            if (people.length) await loadMoreFavs(1, "people", people);
+            if (company.length) await loadMoreFavs(1, "company", company);
           }
-        } else {
-          await loadMoreFavs(1, "anime_manga", animanga);
-          await loadMoreFavs(1, "character", character);
+        } catch (error) {
+          console.error("Error processing moreFavs data:", error);
         }
       }
     }

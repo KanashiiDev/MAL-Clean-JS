@@ -49,5 +49,5 @@ async function applyPrivateProfile() {
 }
 //Profile Vertical Favs Fix
 if ($("#anime_favorites").css("width") <= "191px") {
-  $("#user-def-favs h5").attr("style", "padding: 0!important;opacity: 0;height: 0px");
+  $("#user-def-favs h5").attr("style", "padding: 0!important;opacity: 0;height: 0px").text('');
 }
