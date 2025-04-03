@@ -1,17 +1,26 @@
 async function buildFavSongs(data) {
-  let parts = data.split("/");
-  let favarray = [];
-  for (let i = 0; i < parts.length; i++) {
-    if (parts[i] === "favSongEntry") {
-      if (i + 1 < parts.length) {
+  if (!data) return;
+  const parts = data.split("/");
+  const favarray = [];
+  
+  try {
+    for (let i = 0; i < parts.length; i++) {
+      if (parts[i] === "favSongEntry" && parts[i + 1]) {
         const base64 = parts[i + 1].replace(/_/g, "/");
         const lzbase64 = LZString.decompressFromBase64(base64);
-        let dec = JSON.parse(lzbase64);
-        favarray.push(dec);
+        if (lzbase64) {
+          const dec = JSON.parse(lzbase64);
+          favarray.push(dec);
+        }
       }
     }
+  } catch (error) {
+    console.error("Error processing fav songs:", error);
+    return;
   }
 
+  if (!favarray.length) return;
+  
   let opGroup = create("div", { id: "op-group" });
   let edGroup = create("div", { id: "ed-group" });
   let FavContent = create("div", { class: "favThemes", id: "favThemes" });
@@ -73,9 +82,9 @@ async function buildFavSongs(data) {
       }
     } else if (type === "ED") {
       edGroup.appendChild(container);
-    }
-    if ($(edGroup).children().length === 1) {
-      $(edGroup).before(`<h5>Endings</h5>`);
+      if ($(edGroup).children().length === 1) {
+        $(edGroup).before(`<h5>Endings</h5>`);
+      }
     }
   });
   function toggleShowMore(groupSelector) {
@@ -106,12 +115,12 @@ async function buildFavSongs(data) {
   }
   toggleShowMore("op-group");
   toggleShowMore("ed-group");
-  function replaceFavSongs() {
+  async function replaceFavSongs() {
     const sortItem1compressedBase64 = LZString.compressToBase64(JSON.stringify(favarray[sortItem1]));
     const sortItem1base64url = sortItem1compressedBase64.replace(/\//g, "_");
     const sortItem2compressedBase64 = LZString.compressToBase64(JSON.stringify(favarray[sortItem2]));
     const sortItem2base64url = sortItem2compressedBase64.replace(/\//g, "_");
-    editAboutPopup([sortItem1base64url, sortItem2base64url], "replaceFavSong");
+    await editAboutPopup([sortItem1base64url, sortItem2base64url], "replaceFavSong");
     sortItem1 = null;
     sortItem2 = null;
   }

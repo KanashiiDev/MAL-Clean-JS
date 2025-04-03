@@ -176,7 +176,7 @@ async function loadMoreFavs(force = "0", storeType = "character", aboutData = nu
     if (Array.isArray(aboutData)) {
       processFavs(aboutData, storeType);
     } else {
-      moreFavsLocalForage.iterate((value, key) => {
+      await moreFavsLocalForage.iterate((value) => {
         processFavItem(value, storeType);
       });
     }

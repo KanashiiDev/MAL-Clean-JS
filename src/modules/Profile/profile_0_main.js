@@ -33,7 +33,6 @@ $(".user-statistics-stats").first().attr("id", "user-stats-div");
 $(".user-statistics-stats").last().attr("id", "user-updates-div");
 shadow.setAttribute("style", "background: linear-gradient(180deg,rgba(6,13,34,0) 40%,rgba(6,13,34,.6));height: 100%;left: 0;position: absolute;top: 0;width: 100%;");
 banner.append(shadow);
-await startCustomProfile();
 if ($("title").text() === "404 Not Found - MyAnimeList.net\n") {
   addLoading("remove");
 }
@@ -46,8 +45,4 @@ async function applyPrivateProfile() {
     $("#navbar").hide();
     addLoading("add", "Private Profile", 0, 1);
   }
-}
-//Profile Vertical Favs Fix
-if ($("#anime_favorites").css("width") <= "191px") {
-  $("#user-def-favs h5").attr("style", "padding: 0!important;opacity: 0;height: 0px").text('');
 }

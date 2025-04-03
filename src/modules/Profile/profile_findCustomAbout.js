@@ -116,6 +116,10 @@ async function findCustomAbout() {
               if (character.length) await replaceLocalForageDB("moreFavs_character", character);
               if (people.length) await replaceLocalForageDB("moreFavs_people", people);
               if (company.length) await replaceLocalForageDB("moreFavs_company", company);
+              await loadMoreFavs(1, "character");
+              await loadMoreFavs(1, "anime_manga");
+              await loadMoreFavs(1, "people");
+              await loadMoreFavs(1, "company");
             }
           } else {
             if (animanga.length) await loadMoreFavs(1, "anime_manga", animanga);
@@ -126,6 +130,13 @@ async function findCustomAbout() {
         } catch (error) {
           console.error("Error processing moreFavs data:", error);
         }
+      }
+    } else {
+      if (svar.moreFavs && !userNotHeaderUser) {
+        await loadMoreFavs(1, "character");
+        await loadMoreFavs(1, "anime_manga");
+        await loadMoreFavs(1, "people");
+        await loadMoreFavs(1, "company");
       }
     }
     if (fgMatch) {

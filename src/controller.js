@@ -64,12 +64,6 @@ if (pageIsCompany) {
 
 if (pageIsProfile) {
   addLoading("add", `Loading ${username}'s Profile`, 1, 1);
-  if (svar.moreFavs && !userNotHeaderUser) {
-    await loadMoreFavs(1, "character");
-    await loadMoreFavs(1, "anime_manga");
-    await loadMoreFavs(1, "people");
-    await loadMoreFavs(1, "company");
-  }
   if (svar.profileNewComments && isMainProfilePage) {
     newProfileComments(1);
   }

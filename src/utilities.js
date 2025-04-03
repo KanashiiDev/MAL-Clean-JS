@@ -284,9 +284,10 @@ async function editAboutPopup(data, type) {
           if (!$iframeContents.find(".goodresult")[0]) {
             if (aboutText.indexOf(data) > -1) {
               popupLoading.innerHTML = "Already Added";
+              popupClose.style.display = "block";
               canSubmit = 0;
             } else {
-              aboutText = replaceTextIfMatches(regexes.favSongEntry, aboutText, `${data}/`);
+              aboutText = replaceTextIfMatches(regexes.favSongEntry, aboutText, `${data}/`, 1);
             }
           }
         } else if (type === "editCustomEl") {

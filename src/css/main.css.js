@@ -1655,6 +1655,7 @@ div#custom-preview-div > div blockquote.spoiler {
 }
 
 #currently-popup .dataTextButton,
+.mainbtns.disabled,
 .mainbtns {
     -webkit-transition: 0.25s;
     -o-transition: 0.25s;
@@ -1667,6 +1668,11 @@ div#custom-preview-div > div blockquote.spoiler {
     cursor: pointer;
     background-color: var(--color-background);
     color: var(--color-text)
+}
+
+.mainbtns.disabled:before,
+.mainbtns.disabled:hover {
+    background: 0 0 !important
 }
 
 .malCleanMainContainer .mainbtns:hover,

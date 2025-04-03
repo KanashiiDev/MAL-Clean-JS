@@ -40,7 +40,7 @@ async function getCustomCover(storeType) {
   if (location.pathname.endsWith("/pics")) {
     const coverLocalForage = localforage.createInstance({ name: "MalJS", storeName: storeType });
     let coverCache = await coverLocalForage.getItem(entryId + "-" + entryType);
-    const picTable = document.querySelector("#content > table > tbody > tr > td:nth-child(2) table[cellspacing='10']");
+    const picTable = document.querySelector("#content > table > tbody > tr > td:nth-child(2) table[cellspacing='10'] tbody");
     const mainButton = create("a", { active: "0", class: "add-custom-pic-button", style: { cursor: "pointer" } }, "Change Cover");
     const defaultImg = document.querySelector("div:nth-child(1) > a > img");
     const characterTitle = $(".title-name")

@@ -481,3 +481,17 @@ if (/\/(forum)\/.?topicid([\w-]+)?\/?/.test(location.href) || /\/(news)\/\d/.tes
     hideButton.setAttribute("onclick", hideButton.getAttribute("onclick") + 'this.parentElement.querySelector("iframe.movie").removeAttribute("src")');
   });
 }
+
+// Genre List Design Fix
+if (location.href === "https://myanimelist.net/anime.php" || location.href === "https://myanimelist.net/manga.php") {
+  document.querySelectorAll(".genre-link").forEach((genreLink) => {
+    const genreCol = genreLink.querySelector(".genre-list-col");
+    if (genreCol) {
+      genreCol.setAttribute("style", "display: -webkit-inline-box;display: -webkit-inline-flex;display: inline-flex;-webkit-flex-wrap: wrap;flex-wrap: wrap;");
+      genreLink.querySelectorAll(".genre-list.al").forEach((genre) => {
+        genreCol.appendChild(genre);
+      });
+    }
+  });
+  $(".genre-list-col:empty").remove();
+}

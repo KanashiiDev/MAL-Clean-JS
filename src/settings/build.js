@@ -103,7 +103,7 @@ function createDiv() {
     "You can add custom profile elements your profile. This will be visible to users with the script. You can use HTML elements.",
     null,
     [customProfileElUpdateButton, customProfileElRightUpdateButton],
-    ["50% 50%"],
+    [svar.modernLayout ? "50% 50%" : "100%"],
     null,
     1,
     "profile"
@@ -129,7 +129,6 @@ function createDiv() {
     createListDiv("Anime - Manga", [
       { b: buttons["animeBgBtn"], t: "Add dynamic background color based cover art's color palette" },
       { b: buttons["animeBannerBtn"], t: "Add banner image from Anilist" },
-      { b: buttons["animeBannerMoveBtn"], t: "Move the cover image below the banner image." },
       { b: buttons["animeTagBtn"], t: "Add tags from Anilist" },
       { b: buttons["animeRelationBtn"], t: "Replace relations" },
       { b: buttons["relationFilterBtn"], t: "Add filter to replaced relations" },
@@ -182,6 +181,7 @@ function createDiv() {
   createSettingDropdown("#animeTagBtnOption", "ttl", svar, "tagTTL", "tag");
   createSettingDropdown("#animeRelationBtnOption", "ttl", svar, "relationTTL", "relation");
   createSettingDropdown("#modernLayoutBtnOption", "svar", svar, "autoModernLayoutBtn", "Turn off auto modern layout detection.");
+  createSettingDropdown("#animeBannerBtnOption", "svar", svar, "animeBannerMoveBtn", "Move the cover image below the banner image.");
 
   $(".malCleanSettingButtons input").attr("style", "height: 38px;padding: 0 6px!important");
   $("#moreFavsModeBtn").on("click", async function () {
