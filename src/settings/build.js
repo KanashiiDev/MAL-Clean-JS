@@ -54,7 +54,7 @@ function createDiv() {
     null,
     [malBadgesInput, malBadgesButton, malBadgesRemoveButton],
     ["65% 25% 10%"],
-    [malBadgesDetailButton, malBadgesDetailButtonText],
+    [malBadgesDetailButton, malBadgesDetailButtonText, malBadgesInfo],
     1,
     "profile"
   );

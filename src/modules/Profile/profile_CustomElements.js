@@ -40,8 +40,73 @@ async function createCustomDiv(appLoc, header, content, editData) {
       }
       addSCEditorCommands();
       scParserActions("content-input", "bbRefresh");
+      const purifyConfig = {
+        FORBID_TAGS: ["script", "object", "embed", "frame", "frameset"],
+        FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onmouseenter", "onmouseleave", "srcdoc"],
+        ADD_TAGS: [
+          "b",
+          "i",
+          "u",
+          "strong",
+          "em",
+          "a",
+          "img",
+          "div",
+          "span",
+          "p",
+          "ul",
+          "ol",
+          "li",
+          "br",
+          "hr",
+          "h1",
+          "h2",
+          "h3",
+          "h4",
+          "h5",
+          "h6",
+          "table",
+          "thead",
+          "tbody",
+          "tr",
+          "td",
+          "th",
+          "video",
+          "audio",
+          "iframe",
+          "source",
+          "blockquote",
+          "pre",
+          "code",
+        ],
+        ADD_ATTR: [
+          "frameborder",
+          "sandbox",
+          "allow",
+          "href",
+          "src",
+          "alt",
+          "title",
+          "width",
+          "height",
+          "controls",
+          "loop",
+          "autoplay",
+          "muted",
+          "class",
+          "id",
+          "style",
+          "target",
+          "rel",
+          "colspan",
+          "rowspan",
+        ],
+        SAFE_FOR_JQUERY: true,
+        KEEP_CONTENT: false,
+        ALLOW_UNKNOWN_PROTOCOLS: false,
+      };
       const headerText = DOMPurify.sanitize(headerInput.value) || "No Title";
-      const contentText = DOMPurify.sanitize(scParserActions("content-input", "fromBBGetVal"));
+      const contentText = DOMPurify.sanitize(scParserActions("content-input", "fromBBGetVal"), purifyConfig);
       document.querySelector("#custom-preview-div").innerHTML = `
       <h2>Preview</h2>
       ${
@@ -210,4 +275,25 @@ async function buildCustomElements(data) {
     $(".editCustomEl").remove();
     $(".removeCustomEl").remove();
   }
+
+  // Spoiler Show - Hide
+  setTimeout(function () {
+    let showButtons = document.querySelectorAll(".show_button");
+    showButtons.forEach(function (button) {
+      button.addEventListener("click", function () {
+        let spoilerContent = this.nextElementSibling;
+        spoilerContent.style.display = "inline-block";
+        this.style.display = "none";
+      });
+    });
+
+    let hideButtons = document.querySelectorAll(".hide_button");
+    hideButtons.forEach(function (button) {
+      button.addEventListener("click", function () {
+        let spoilerContent = this.closest(".spoiler").querySelector(".spoiler_content");
+        spoilerContent.style.display = "none";
+        this.closest(".spoiler").querySelector(".show_button").style.display = "inline-block";
+      });
+    });
+  }, 0);
 }

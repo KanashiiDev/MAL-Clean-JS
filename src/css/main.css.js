@@ -1305,7 +1305,8 @@ div#custom-preview-div > div blockquote:not(.spoiler) {
     border-radius: var(--br)
 }
 
-div#custom-preview-div > div blockquote.spoiler {
+.custom-el-container .custom-el-inner blockquote.spoiler,
+div#custom-preview-div blockquote.spoiler {
     margin: 5px
 }
 

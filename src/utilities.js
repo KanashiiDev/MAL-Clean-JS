@@ -1007,24 +1007,44 @@ async function addSCEditorCommands() {
     html: function (token, attrs, content) {
       var data = "";
       var desc = attrs.defaultattr || "Spoiler";
-      content =
-        '<div class="spoiler">' +
-        '<input type="button" class="button show_button" onclick="this.nextSibling.style.display=\'inline-block\';this.style.display=\'none\';" data-showname="Show Spoiler" data-hidename="Hide Spoiler" value="Show ' +
-        desc +
-        '">' +
-        '<span class="spoiler_content" style="display:none">' +
-        '<input type="button" class="button hide_button" onclick="this.parentNode.style.display=\'none\';this.parentNode.parentNode.childNodes[0].style.display=\'inline-block\';" value="Hide ' +
-        desc +
-        '">' +
-        "<br>" +
-        content +
-        "</span></div>";
+      content = `
+      <div class="spoiler">
+        <input type="button" class="button show_button" value="Show ${desc}">
+        <span class="spoiler_content" style="display:none">
+          <input type="button" class="button hide_button" value="Hide ${desc}">
+          <br>
+          ${content}
+        </span>
+      </div>`;
+
+      // Spoiler Show - Hide
+      setTimeout(function () {
+        var showButtons = document.querySelectorAll(".show_button");
+        showButtons.forEach(function (button) {
+          button.addEventListener("click", function () {
+            var spoilerContent = this.nextElementSibling;
+            spoilerContent.style.display = "inline-block";
+            this.style.display = "none";
+          });
+        });
+
+        var hideButtons = document.querySelectorAll(".hide_button");
+        hideButtons.forEach(function (button) {
+          button.addEventListener("click", function () {
+            var spoilerContent = this.closest(".spoiler").querySelector(".spoiler_content");
+            spoilerContent.style.display = "none";
+            this.closest(".spoiler").querySelector(".show_button").style.display = "inline-block";
+          });
+        });
+      }, 0);
+
       if (attrs.defaultattr) {
         data += ' data-desc="' + sceditor.escapeEntities(attrs.defaultattr) + '"';
       }
       return "<blockquote" + data + ' class="spoiler">' + content + "</blockquote>";
     },
   });
+
   sceditor.command.set("spoiler", {
     exec: function (caller) {
       var html = '<blockquote class="spoiler"><button>spoiler</button><span class="spoiler_content" style="display:none"></span></blockquote>';
@@ -1039,6 +1059,20 @@ async function addSCEditorCommands() {
     },
     txtExec: ["[spoiler]", "[/spoiler]"],
     tooltip: "Insert a spoiler",
+  });
+
+  //ScEditor BR
+  sceditor.formats.bbcode.set("br", {
+    isSelfClosing: true,
+    allowsEmpty: true,
+    breakAfter: false,
+    breakBefore: false,
+    format: function () {
+      return "[br]";
+    },
+    html: function () {
+      return "<br>";
+    },
   });
 
   //ScEditor Center
@@ -1154,12 +1188,22 @@ async function addSCEditorCommands() {
   sceditor.command.set("div", {
     txtExec: function (caller, content) {
       let editor = this;
-      let sce_div = '<div id="sce_divoptionsbox"><div class="sce_div-option" data-action="insertDiv">';
-      sce_div += '<label for="div-id">ID (Optional):</label><input id="div-id" type="text" placeholder=".id" />';
-      sce_div += '<label for="div-class">Class (Optional):</label><input id="div-class" type="text" placeholder="#class" />';
-      sce_div += '<label for="div-style">Style (Optional):</label><input id="div-style" type="text" placeholder="" /><br>';
-      sce_div += '<input id="insert-div-btn" type="button" class="button" value="Insert"></input>';
-      sce_div += "</div></div>";
+      const sce_div = `
+      <div id="sce_divoptionsbox">
+        <div class="sce_div-option" data-action="insertDiv">
+          <label for="div-id">ID (Optional):</label>
+          <input id="div-id" type="text" />
+    
+          <label for="div-class">Class (Optional):</label>
+          <input id="div-class" type="text" />
+    
+          <label for="div-style">Style (Optional):</label>
+          <input id="div-style" type="text" placeholder="background:#fff;" /><br>
+    
+          <input id="insert-div-btn" type="button" class="button" value="Insert" />
+        </div>
+      </div>`;
+
       let drop_content = $(sce_div);
 
       // Handle div insertion
@@ -1177,88 +1221,93 @@ async function addSCEditorCommands() {
     tooltip: "Insert a Div",
   });
 
-  //ScEditor Iframe
+  // SCEditor Iframe
   sceditor.formats.bbcode.set("iframe", {
     allowsEmpty: false,
     tags: {
       iframe: {
-        class: null,
-        style: null,
         src: null,
         width: null,
         height: null,
+        style: null,
+        allow: null,
+        loading: null,
+        frameborder: null,
+        allowfullscreen: null,
       },
     },
     format: function (element, content) {
-      let elId = element.getAttribute("id") ? ` id="${element.getAttribute("id")}"` : "";
-      let elClass = element.getAttribute("class") ? ` class="${element.getAttribute("class")}"` : "";
       let elStyle = element.getAttribute("style") ? ` style="${element.getAttribute("style")}"` : "";
       let src = element.getAttribute("src");
-      let width = element.getAttribute("width") || 415;
-      let height = element.getAttribute("height") || 315;
-      let title = element.getAttribute("title") ? ` title="${element.getAttribute("title")}"` : "";
-      let sandbox = element.getAttribute("sandbox") ? ` sandbox="${element.getAttribute("sandbox")}"` : "";
+      let width = element.getAttribute("width") || "100%";
+      let height = element.getAttribute("height") || "152";
       let allow = element.getAttribute("allow") ? ` allow="${element.getAttribute("allow")}"` : "";
       let loading = element.getAttribute("loading") ? ` loading="${element.getAttribute("loading")}"` : "";
-      let referrerpolicy = element.getAttribute("referrerpolicy") ? ` referrerpolicy="${element.getAttribute("referrerpolicy")}"` : "";
-      let mergedAttributes = `${title}${sandbox}${allow}${loading}${referrerpolicy}`;
 
       if (src && src.startsWith("https://")) {
-        return `[iframe${elId}${elClass}${elStyle} width="${width}" height="${height}"${mergedAttributes}]${src}[/iframe]`;
+        return `[iframe${elStyle} width="${width}" height="${height}"${allow}${loading}]${src}[/iframe]`;
       }
       return content;
     },
     html: function (token, attrs, content) {
-      let elId = attrs.id ? ` id="${attrs.id}"` : ` id="mc-iframe"`;
-      let elClass = attrs.class ? ` class="${attrs.class}"` : ` class="mc-iframe"`;
       let elStyle = attrs.style ? ` style="${attrs.style}"` : "";
-      let width = attrs.width || 415;
-      let height = attrs.height || 315;
-      let title = attrs.title ? ` title="${attrs.title}"` : "";
+      let width = attrs.width || "100%";
+      let height = attrs.height || "352";
       let allow = attrs.allow ? ` allow="${attrs.allow}"` : "";
       let loading = attrs.loading ? ` loading="${attrs.loading}"` : "";
-      let referrerpolicy = attrs.referrerpolicy ? ` referrerpolicy="${attrs.referrerpolicy}"` : "";
+      let frameborder = attrs.frameborder ? ` frameborder="${attrs.frameborder}"` : ` frameborder="0"`;
       let sandbox = 'sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"';
-      let mergedAttributes = `${title}${allow}${loading}${referrerpolicy}`;
 
       if (content && content.startsWith("https://")) {
-        return `<iframe${elId}${elClass}${elStyle} width="${width}" height="${height}" src="${content}" ${mergedAttributes} ${sandbox}></iframe>`;
+        return `<iframe${elStyle} width="${width}" height="${height}" src="${content}" ${allow}${loading}${frameborder} ${sandbox}></iframe>`;
       }
       return "";
     },
   });
+
   sceditor.command.set("iframe", {
     txtExec: function (caller) {
       var editor = this;
-      var sce_iframe = '<div id="sce_iframeoptionsbox"><div class="sce_iframe-option" data-action="insertIframe">';
-      sce_iframe += '<label for="iframe-src">Iframe URL:</label><input id="iframe-src" type="text" placeholder="https://" />';
-      sce_iframe += '<label for="iframe-width">Width (Optional):</label><input id="iframe-width" type="text" placeholder="" />';
-      sce_iframe += '<label for="iframe-height">Height (Optional):</label><input id="iframe-height" type="text" placeholder="" />';
-      sce_iframe += '<label for="iframe-style">Style (Optional):</label><input id="iframe-style" type="text" placeholder="" /><br>';
-      sce_iframe += '<label for="iframe-html-src">Iframe as HTML (Optional):</label><textarea id="iframe-html-src" placeholder="<iframe src=&quot;&quot;></iframe>" /></textarea>';
-      sce_iframe += '<input id="insert-iframe-btn" type="button" class="button" value="Insert"></input>';
-      sce_iframe += "</div></div>";
+      var sce_iframe = `
+      <div id="sce_iframeoptionsbox">
+        <div class="sce_iframe-option">
+          <label for="iframe-url">Iframe URL (https only):</label>
+          <input id="iframe-url" type="text" placeholder="https://" />
+          
+          <label for="iframe-width">Width:</label>
+          <input id="iframe-width" type="text" placeholder="100%" />
+          
+          <label for="iframe-height">Height:</label>
+          <input id="iframe-height" type="text" placeholder="352" />
+          
+          <label for="iframe-style">Style (Optional):</label>
+          <input id="iframe-style" type="text" placeholder="border-radius:8px;" />
+          
+          <label for="iframe-allow">Allow Attributes (Optional):</label>
+          <input id="iframe-allow" type="text" placeholder="autoplay; fullscreen;" /></br>
+          
+          <input id="insert-iframe-btn" type="button" class="button" value="Insert" />
+        </div>
+      </div>`;
+
       var drop_content = $(sce_iframe);
 
-      // Handle iframe insertion
       drop_content.find("#insert-iframe-btn").click(function (e) {
-        let iframeSrc = $("#iframe-src").val();
-        let iframeHTMLSrc = $("#iframe-html-src").val();
-        let iframeWidth = $("#iframe-width").val() ? ` width="${$("#iframe-width").val()}"` : "";
-        let iframeHeight = $("#iframe-height").val() ? ` height="${$("#iframe-height").val()}"` : "";
-        let iframeStyle = $("#iframe-style").val() ? ` style="${$("#iframe-style").val()}"` : "";
-        let iframeTag;
-        if (iframeHTMLSrc) {
-          iframeSrc = "";
+        let iframeUrl = $("#iframe-url").val();
+        if (!iframeUrl.startsWith("https://")) {
+          alert("Only HTTPS URLs are allowed for iframes");
+          return;
         }
-        if (iframeSrc.startsWith("https://") && !iframeHTMLSrc) {
-          iframeTag = `[iframe${iframeWidth}${iframeHeight}${iframeStyle}]${iframeSrc}[/iframe]`;
-          editor.insert(iframeTag);
-        }
-        if (/src="https:\/\//.test(iframeHTMLSrc)) {
-          iframeTag = iframeHTMLSrc;
-          editor.insert(iframeTag);
-        }
+
+        let iframeWidth = $("#iframe-width").val();
+        let iframeHeight = $("#iframe-height").val();
+        let iframeStyle = $("#iframe-style").val();
+        let iframeAllow = $("#iframe-allow").val();
+
+        let bbcode =
+          `[iframe` + (iframeStyle ? ` style="${iframeStyle}"` : "") + ` width="${iframeWidth}" height="${iframeHeight}"` + (iframeAllow ? ` allow="${iframeAllow}"` : "") + `]${iframeUrl}[/iframe]`;
+
+        editor.insert(bbcode);
         editor.closeDropDown(true);
         e.preventDefault();
       });
@@ -1360,7 +1409,7 @@ async function addSCEditor(source) {
     width: "100%",
     height: "180px",
     charset: "utf-8",
-    emoticonsEnabled: true,
+    emoticonsEnabled: false,
     resizeMaxHeight: -1,
     resizeMinHeight: 100,
     resizeMinWidth: 440,
@@ -1368,6 +1417,7 @@ async function addSCEditor(source) {
     resizeWidth: false,
     startInSourceMode: true,
     autoUpdate: true,
+    plugins: 'undo',
     toolbar: "bold,italic,underline,strike|size,center,right,colorpick|bulletlist,orderedlist|code,quote,spoiler|image,link,youtube|video,iframe,div",
     allowIFrame: true,
     allowedIframeUrls: [],
@@ -1392,8 +1442,8 @@ function scParserActions(elementId, type) {
     return scParser.fromBBCode(scText, true);
   }
   if (type === "bbRefresh") {
+    scText = scText.replace(/\n/g, "[br]");
     let bbCodeContent = scParser.toBBCode(scText);
-
     scParser.val(bbCodeContent);
   }
 }
@@ -1455,7 +1505,7 @@ async function getRecentlyAdded(type, page) {
   const dataArray = [];
   try {
     await delay(250);
-    const response = await fetch(`https://myanimelist.net/${type ? "manga" : "anime"}.php?o=9&c%5B0%5D=a&c%5B1%5D=d&cv=2&w=1&show=${page ? page : "0"}`);
+    const response = await fetch(`https://myanimelist.net/${type ? "manga" : "anime"}.php?o=9&c%5B0%5D=a&c%5B1%5D=d&cv=2&w=1&genre_ex%5B%5D=12&show=${page ? page : "0"}`);
     const html = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");

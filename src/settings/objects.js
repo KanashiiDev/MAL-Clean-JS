@@ -166,6 +166,7 @@ var bgRemoveButton = create("button", { class: "mainbtns fa fa-trash removeButto
 var bgInfo = create("p", { class: "textpb" }, "");
 
 bgButton.onclick = () => {
+  bgInfo.innerText = "";
   if (bgInput.value.length > 1) {
     const bgBase64 = LZString.compressToBase64(JSON.stringify(bgInput.value));
     const bgbase64url = bgBase64.replace(/\//g, "_");
@@ -186,6 +187,7 @@ let pfInput = create("input", { class: "pfInput", id: "pfInput" });
 pfInput.placeholder = "Paste your Avatar Image Url here";
 var pfInfo = create("p", { class: "textpb" }, "");
 pfButton.onclick = () => {
+  pfInfo.innerText = "";
   if (pfInput.value.length > 1) {
     const pfBase64 = LZString.compressToBase64(JSON.stringify(pfInput.value));
     const pfbase64url = pfBase64.replace(/\//g, "_");
@@ -213,6 +215,7 @@ cssmodernLayout.onclick = () => {
 };
 cssInput.placeholder = "Paste your CSS here";
 cssButton.onclick = () => {
+  cssInfo.innerText = "";
   if (cssInput.value.length > 1) {
     cssInput.value = cssInput.value
       .replace(/\/\*[\s\S]*?\*\//g, "")
@@ -238,6 +241,7 @@ var malBadgesRemoveButton = create("button", { class: "mainbtns fa fa-trash remo
 var malBadgesDetailButton = create("button", { class: "mainbtns", id: "malBadgesBtn", style: { height: "32px", width: "32px", verticalAlign: "middle" } });
 var malBadgesDetailButtonText = create("h3", { style: { display: "inline" } }, "Detailed Badge (Required Modern Layout)");
 let malBadgesDetailButtonEnabled = false;
+let malBadgesInfo = create("p", { class: "textpb" }, "");
 malBadgesDetailButton.onclick = () => {
   malBadgesDetailButtonEnabled = !malBadgesDetailButtonEnabled;
   malBadgesDetailButton.classList.toggle("btn-active", malBadgesDetailButtonEnabled);
@@ -245,14 +249,20 @@ malBadgesDetailButton.onclick = () => {
 
 malBadgesButton.onclick = () => {
   if (malBadgesInput.value.length > 1) {
-    const allowedHost = "mal-badges.com";
-    const url = new URL(malBadgesInput.value);
-    if (url.hostname === allowedHost) {
-      const detailMode = malBadgesDetailButtonEnabled ? "?detail" : "";
-      const badgeBase64 = LZString.compressToBase64(JSON.stringify(malBadgesInput.value + detailMode));
-      const badgeBase64Url = badgeBase64.replace(/\//g, "_");
-      editAboutPopup(`malBadges/${badgeBase64Url}`, "malBadges");
-      malBadgesInput.addEventListener(`focus`, () => bgInput.select());
+    try {
+      malBadgesInfo.innerText = "";
+      const url = new URL(malBadgesInput.value);
+      if (url.hostname.endsWith("mal-badges.com")) {
+        const detailMode = malBadgesDetailButtonEnabled ? "?detail" : "";
+        const badgeBase64 = LZString.compressToBase64(JSON.stringify(malBadgesInput.value + detailMode));
+        const badgeBase64Url = badgeBase64.replace(/\//g, "_");
+        editAboutPopup(`malBadges/${badgeBase64Url}`, "malBadges");
+        malBadgesInput.addEventListener(`focus`, () => bgInput.select());
+      } else {
+        malBadgesInfo.innerText = "Please enter a valid URL.\nExample: https://www.mal-badges.com/users/USERNAME";
+      }
+    } catch (e) {
+      malBadgesInfo.innerText = "Please enter a valid URL.\nExample: https://www.mal-badges.com/users/USERNAME";
     }
   }
 };

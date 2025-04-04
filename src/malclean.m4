@@ -1,6 +1,6 @@
 m4_divert(-1)m4_dnl
 m4_changequote(<m4<,>m4>)
-m4_define(MALCLEAN_VERSION,1.29.95)
+m4_define(MALCLEAN_VERSION,1.29.96)
 m4_divert(0)m4_dnl
 // ==UserScript==
 // @name        MAL-Clean-JS
@@ -15,10 +15,10 @@ m4_divert(0)m4_dnl
 // @supportURL  https://github.com/KanashiiDev/MAL-Clean-JS/issues
 // @run-at      document-end
 // @require     https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js
-// @require     https://cdn.jsdelivr.net/npm/colorthief@2.4.0/dist/color-thief.min.js
+// @require     https://cdn.jsdelivr.net/npm/colorthief@2.6.0/dist/color-thief.min.js
 // @require     https://cdn.jsdelivr.net/npm/tinycolor2@1.6.0/cjs/tinycolor.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js
-// @require     https://cdn.jsdelivr.net/npm/dompurify@3.1.4/dist/purify.min.js
+// @require     https://cdn.jsdelivr.net/npm/dompurify@3.2.5/dist/purify.min.js
 // ==/UserScript==
 // SPDX-FileCopyrightText: 2023-2025 KanashiiDev and the MAL-Clean-JS contributors
 //
