@@ -15,47 +15,62 @@ async function findCustomAbout() {
     const moreFavsMatch = aboutContent.match(profileRegex.moreFavs);
     if (pfMatch) {
       const pfData = pfMatch[0].replace(profileRegex.pf, "$2");
-      if (pfData !== "...") {
-        let pfBase64Url = pfData.replace(/_/g, "/");
-        custompf = JSON.parse(LZString.decompressFromBase64(pfBase64Url));
-        document.querySelector(".user-image.mb8 > img").setAttribute("src", custompf);
+      if (pfData && pfData !== "...") {
+        try {
+          custompf = decodeAndParseBase64(pfData, purifyConfigText);
+          document.querySelector(".user-image.mb8 > img").setAttribute("src", custompf);
+        } catch (error) {
+          console.error("An error occurred while processing the custom profile avatar: ", error);
+        }
       }
     }
     if (bgMatch) {
       const bgData = bgMatch[0].replace(profileRegex.bg, "$2");
-      if (bgData !== "...") {
-        let bgBase64Url = bgData.replace(/_/g, "/");
-        custombg = JSON.parse(LZString.decompressFromBase64(bgBase64Url));
-        banner.setAttribute(
-          "style",
-          `background-color: var(--color-foreground); background: url(${custombg}); background-position: 50% 35%; background-repeat: no-repeat; background-size: cover; height: 330px; position: relative;`
-        );
-        customModernLayoutFounded = 1;
+      if (bgData && bgData !== "...") {
+        try {
+          custombg = decodeAndParseBase64(bgData, purifyConfigText);
+          banner.setAttribute(
+            "style",
+            `background-color: var(--color-foreground); background: url(${custombg}); background-position: 50% 35%; 
+            background-repeat: no-repeat; background-size: cover; height: 330px; position: relative;`
+          );
+          customModernLayoutFounded = 1;
+        } catch (error) {
+          console.error("An error occurred while processing the custom profile banner: ", error);
+        }
       }
     }
     if (badgeMatch) {
       const badgeData = badgeMatch[0].replace(profileRegex.badge, "$2");
-      if (badgeData !== "...") {
-        let badgeBase64Url = badgeData.replace(/_/g, "/");
-        custombadge = JSON.parse(LZString.decompressFromBase64(badgeBase64Url));
-        const badgeDiv = create("div", { class: "maljsProfileBadge" });
-        badgeDiv.innerHTML = custombadge[0];
-        if (custombadge[1] === "loop") {
-          $(badgeDiv).addClass("rainbow");
-        } else {
-          badgeDiv.style.background = custombadge[1];
+      if (badgeData && badgeData !== "...") {
+        try {
+          custombadge = decodeAndParseBase64(badgeData, purifyConfig);
+          if (Array.isArray(custombadge) && custombadge[0].length > 1) {
+            const badgeDiv = create("div", { class: "maljsProfileBadge" });
+            badgeDiv.innerHTML = custombadge[0];
+            if (custombadge[1] === "loop") {
+              $(badgeDiv).addClass("rainbow");
+            } else {
+              badgeDiv.style.background = custombadge[1];
+            }
+            container.append(badgeDiv);
+            customModernLayoutFounded = 1;
+          }
+        } catch (error) {
+          console.error("An error occurred while processing the custom badge: ", error);
         }
-        container.append(badgeDiv);
-        customModernLayoutFounded = 1;
       }
     }
     if (cssMatch) {
       const cssData = cssMatch[0].replace(profileRegex.css, "$2");
-      if (cssData !== "...") {
-        let cssBase64Url = cssData.replace(/_/g, "/");
-        customCSS = JSON.parse(LZString.decompressFromBase64(cssBase64Url));
-        if (svar.customCSS) {
-          await findCustomCSS();
+      if (cssData && cssData !== "...") {
+        try {
+          customCSS = decodeAndParseBase64(cssData, purifyConfigText);
+          if (svar.customCSS) {
+            await findCustomCSS();
+          }
+        } catch (error) {
+          console.error("An error occurred while processing the custom css: ", error);
         }
       }
     }
@@ -72,18 +87,24 @@ async function findCustomAbout() {
     if (colorMatch && svar.modernLayout) {
       const colorData = colorMatch[0].replace(profileRegex.colors, "$2");
       if (colorData !== "...") {
-        let colorBase64Url = colorData.replace(/_/g, "/");
-        customcolors = JSON.parse(LZString.decompressFromBase64(colorBase64Url));
-        await applyCustomColors(customcolors);
+        try {
+          customcolors = decodeAndParseBase64(colorData, purifyConfigText);
+          await applyCustomColors(customcolors);
+        } catch (error) {
+          console.error("An error occurred while processing the custom profile color: ", error);
+        }
       }
     }
     if (privateProfileMatch) {
       const privateData = privateProfileMatch[0].replace(profileRegex.privateProfile, "$2");
-      if (privateData !== "...") {
-        let privateBase64Url = privateData.replace(/_/g, "/");
-        privateProfile = JSON.parse(LZString.decompressFromBase64(privateBase64Url));
-        privateButton.classList.toggle("btn-active-def", privateProfile);
-        applyPrivateProfile();
+      if (privateData && privateData !== "...") {
+        try {
+          privateProfile = decodeAndParseBase64(privateData, purifyConfigText);
+          privateButton.classList.toggle("btn-active-def", privateProfile);
+          applyPrivateProfile();
+        } catch (error) {
+          console.error("An error occurred while processing the private profile:", error);
+        }
       } else {
         removePrivateButton.classList.toggle("btn-active-def", 1);
       }
@@ -91,17 +112,19 @@ async function findCustomAbout() {
     if (hideProfileElMatch) {
       const hideProfileElData = hideProfileElMatch[0].replace(profileRegex.hideProfileEl, "$2");
       if (hideProfileElData !== "...") {
-        let profileElBase64Url = hideProfileElData.replace(/_/g, "/");
-        hiddenProfileElements = JSON.parse(LZString.decompressFromBase64(profileElBase64Url));
-        applyHiddenDivs();
+        try {
+          hiddenProfileElements = decodeAndParseBase64(hideProfileElData, purifyConfigText);
+          applyHiddenDivs();
+        } catch (error) {
+          console.error("An error occurred while processing the hide profile elements:", error);
+        }
       }
     }
     if (moreFavsMatch) {
       const moreFavsData = moreFavsMatch[0].replace(profileRegex.moreFavs, "$2");
-      if (moreFavsData !== "...") {
+      if (moreFavsData && moreFavsData !== "...") {
         try {
-          let moreFavsDecompressed = moreFavsData.replace(/_/g, "/");
-          moreFavsDecompressed = JSON.parse(LZString.decompressFromBase64(moreFavsDecompressed));
+          const moreFavsDecompressed = decodeAndParseBase64(moreFavsData, purifyConfig);
 
           // Null check
           const safeGetValues = (obj) => (obj && typeof obj === "object" && !Array.isArray(obj) ? Object.values(obj) : []);
@@ -128,7 +151,7 @@ async function findCustomAbout() {
             if (company.length) await loadMoreFavs(1, "company", company);
           }
         } catch (error) {
-          console.error("Error processing moreFavs data:", error);
+          console.error("An error occurred while processing the moreFavs:", error);
         }
       }
     } else {
@@ -141,29 +164,43 @@ async function findCustomAbout() {
     }
     if (fgMatch) {
       const fgData = fgMatch[0].replace(profileRegex.fg, "$2");
-      if (fgData !== "...") {
-        let fgBase64Url = fgData.replace(/_/g, "/");
-        customfg = JSON.parse(LZString.decompressFromBase64(fgBase64Url));
-        await changeForeground(customfg);
+      if (fgData && fgData !== "...") {
+        try {
+          customfg = decodeAndParseBase64(fgData, purifyConfigText);
+          await changeForeground(customfg);
+        } catch (error) {
+          console.error("An error occurred while processing the hide custom foreground color:", error);
+        }
       }
     }
     if (malBadgesMatch) {
       const malBadgesData = malBadgesMatch[0].replace(profileRegex.malBadges, "$2");
       if (malBadgesData !== "..." && isMainProfilePage) {
-        let malBadgesBase64Url = malBadgesData.replace(/_/g, "/");
-        malBadgesUrl = JSON.parse(LZString.decompressFromBase64(malBadgesBase64Url));
-        if (malBadgesUrl) malBadgesUrl += malBadgesUrl.endsWith("?detail") ? "&malbadges" : "?malbadges";
-        await getMalBadges(malBadgesUrl);
+        try {
+          malBadgesUrl = decodeAndParseBase64(malBadgesData, purifyConfigText);
+          if (malBadgesUrl) malBadgesUrl += malBadgesUrl.endsWith("?detail") ? "&malbadges" : "?malbadges";
+          await getMalBadges(malBadgesUrl);
+        } catch (error) {
+          console.error("An error occurred while processing the hide custom mal-badges:", error);
+        }
       }
     }
     if (favSongMatch) {
       if (isMainProfilePage) {
-        await buildFavSongs(aboutContent);
+        try {
+          await buildFavSongs(aboutContent);
+        } catch (error) {
+          console.error("An error occurred while processing the hide custom fav songs", error);
+        }
       }
     }
     if (customElMatch) {
       if (isMainProfilePage) {
-        await buildCustomElements(aboutContent);
+        try {
+          await buildCustomElements(aboutContent);
+        } catch (error) {
+          console.error("An error occurred while processing the hide custom elements", error);
+        }
       }
     }
   };

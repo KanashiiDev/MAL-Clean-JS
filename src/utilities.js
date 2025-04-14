@@ -5,6 +5,17 @@ function delay(ms) {
   });
 }
 
+//Debounce Function
+function debounce(func, delay) {
+  let timeoutId;
+  return function (...args) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      func.apply(this, args);
+    }, delay);
+  };
+}
+
 //Simple Create Element Shorthand Function
 function create(e, t, n) {
   if (!e) throw SyntaxError("'tag' not defined");
@@ -165,7 +176,7 @@ async function editAboutPopup(data, type) {
         class: "actloading",
         style: { position: "relative", left: "0px", right: "0px", fontSize: "16px", height: "100%", alignContent: "center", zIndex: "2" },
       },
-      "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome;word-break: break-word;"></i>'
+      translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome;word-break: break-word;"></i>'
     );
     const iframe = create("iframe", { style: { pointerEvents: "none", opacity: "0" }, src: "https://myanimelist.net/editprofile.php" });
 
@@ -184,7 +195,7 @@ async function editAboutPopup(data, type) {
     async function notFound() {
       iframe.remove();
       popupClose.style.display = "block";
-      popupLoading.innerHTML = "You are not using classic about.<br><br>Please paste this code into a public blog post on the first page so that the code will run automatically.<br><br>";
+      popupLoading.innerHTML = translate("$malCleanCustomError");
       popupDataText.innerHTML = "[url=https://malcleansettings/]‎ [/url]";
       popupLoading.append(popupDataText, popupDataTextButton);
       popupDataTextButton.addEventListener("click", async function () {
@@ -219,7 +230,7 @@ async function editAboutPopup(data, type) {
         moreFavs: /(moreFavs)\/([^\/]+.)/gm,
       };
       let userBlogPage = "https://myanimelist.net/blog/" + headerUserName;
-      popupLoading.innerHTML = "Updating" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
+      popupLoading.innerHTML = translate("$updating") + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
       $iframeContents.find("body")[0].setAttribute("style", "background:0!important");
       if ($iframeContents.find(".goodresult")[0]) {
         canSubmit = 0;
@@ -228,7 +239,7 @@ async function editAboutPopup(data, type) {
       }
       if ($iframeContents.find(".badresult")[0]) {
         canSubmit = 0;
-        popupLoading.innerHTML = "An error occured. Please try again.";
+        popupLoading.innerHTML = translate("$anErrorOccured");
         return;
       }
 
@@ -283,7 +294,7 @@ async function editAboutPopup(data, type) {
         } else if (type === "favSongEntry") {
           if (!$iframeContents.find(".goodresult")[0]) {
             if (aboutText.indexOf(data) > -1) {
-              popupLoading.innerHTML = "Already Added";
+              popupLoading.innerHTML = translate("$alreadyAdded");
               popupClose.style.display = "block";
               canSubmit = 0;
             } else {
@@ -359,7 +370,7 @@ async function editPopup(id, type, add, addCount, addFg) {
         class: "actloading",
         style: { position: "relative", left: "0px", right: "0px", fontSize: "16px", height: "100%", alignContent: "center", zIndex: "2" },
       },
-      "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>'
+      translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>'
     );
     const popupMask = create("div", {
       class: "fancybox-overlay",
@@ -392,13 +403,13 @@ async function editPopup(id, type, add, addCount, addFg) {
         popupLoading.remove();
         iframe.style.opacity = 1;
       } else {
-        popupLoading.innerHTML = "Updating" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
+        popupLoading.innerHTML = translate("$updating") + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
       }
       if (add && $(iframe).contents().find(".goodresult")[0]) {
         close();
       }
       if ($(iframe).contents().find(".badresult")[0]) {
-        popupLoading.innerHTML = "An error occured. Please try again.";
+        popupLoading.innerHTML = translate("$anErrorOccured");
       }
       // close advanced section
       if ($(iframe).contents().find("#hide-advanced-button")[0].style.display === "") {
@@ -533,7 +544,7 @@ async function blockUser(id) {
         class: "actloading",
         style: { position: "fixed", top: "50%", left: "0", right: "0", fontSize: "16px" },
       },
-      "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>'
+      translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>'
     );
     const popupMask = create("div", {
       class: "fancybox-overlay",
@@ -661,7 +672,7 @@ const loadingDivMask = create("div", {
   style: { background: "var(--color-background)", opacity: "1", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "11" },
 });
 
-function addLoading(type = "add", text = "Loading", circle = 1, force = 0) {
+function addLoading(type = "add", text = translate("$loading"), circle = 1, force = 0) {
   const contWrap = document.querySelector("#contentWrapper");
   if (contWrap) {
     if (force) {
@@ -740,23 +751,23 @@ async function compressLocalForageDB(...dbNames) {
 
 //Time Calculate
 function nativeTimeElement(e) {
-  let $ = new Date(1e3 * e);
-  if (isNaN($.valueOf())) return "Now";
-  return (function e() {
-    let r = Math.round(new Date().valueOf() / 1e3) - Math.round($.valueOf() / 1e3);
-    if (0 === r) return "Now";
-    if (1 === r) return "1 second ago";
-    if (r < 60) return r + " seconds ago";
-    if (r < 120) return "1 minute ago";
-    if (r < 3600) return Math.floor(r / 60) + " minutes ago";
-    else if (r < 7200) return "1 hour ago";
-    else if (r < 86400) return Math.floor(r / 3600) + " hours ago";
-    else if (r < 172800) return "1 day ago";
-    else if (r < 604800) return Math.floor(r / 86400) + " days ago";
-    else if (r < 1209600) return "1 week ago";
-    else if (r < 2419200) return Math.floor(r / 604800) + " weeks ago";
-    else if (r < 29030400) return Math.floor(r / 2419200) + " months ago";
-    else return Math.floor(r / 29030400) + " years ago";
+  let date = new Date(1e3 * e);
+  if (isNaN(date.valueOf())) return translate("$now");
+  return (function () {
+    let r = Math.round(new Date().valueOf() / 1e3) - Math.round(date.valueOf() / 1e3);
+    if (r === 0) return translate("$now");
+    if (r === 1) return translate("$secondAgo");
+    if (r < 60) return translate("$secondsAgo", r);
+    if (r < 120) return translate("$minuteAgo");
+    if (r < 3600) return translate("$minutesAgo", Math.floor(r / 60));
+    if (r < 7200) return translate("$hourAgo");
+    if (r < 86400) return translate("$hoursAgo", Math.floor(r / 3600));
+    if (r < 172800) return translate("$dayAgo");
+    if (r < 604800) return translate("$daysAgo", Math.floor(r / 86400));
+    if (r < 1209600) return translate("$weekAgo");
+    if (r < 2419200) return translate("$weeksAgo", Math.floor(r / 604800));
+    if (r < 29030400) return translate("$monthsAgo", Math.floor(r / 2419200));
+    return translate("$yearsAgo", Math.floor(r / 29030400));
   })();
 }
 
@@ -913,13 +924,32 @@ function aniMangaAddClass(main, name) {
 
 // Create MalClean List Divs
 function createListDiv(title, buttons) {
-  let btns = create("div", { class: "mainListBtnsDiv" });
-  for (let x = 0; x < buttons.length; x++) {
-    let mainDiv = create("div", { class: "mainListBtnDiv", id: buttons[x].b.id + "Option" });
-    $(mainDiv).append(buttons[x].b, "<h3>" + buttons[x].t + "</h3>", buttons[x]?.s);
+  const btns = create("div", { class: "mainListBtnsDiv" });
+
+  buttons.forEach((button) => {
+    const mainDiv = create("div", {
+      class: "mainListBtnDiv",
+      id: `${button.b.id}Option`,
+    });
+
+    const elements = [button.b, `<h3>${button.t}</h3>`];
+    if (button.s) elements.push(button.s);
+    $(mainDiv).append(...elements);
     btns.append(mainDiv);
-  }
-  let div = create("div", { class: "malCleanSettingContainer", id: title.trim().replace(/[\W_]+/, "-") }, '<div class="malCleanSettingHeader"><h2>' + title + "</h2></div>");
+  });
+
+  const div = create(
+    "div",
+    {
+      class: "malCleanSettingContainer",
+      id: title
+        .trim()
+        .toLowerCase()
+        .replace(/[\W_]+/g, "-"),
+    },
+    `<div class="malCleanSettingHeader"><h2>${title}</h2></div>`
+  );
+
   div.append(btns);
   return div;
 }
@@ -1417,7 +1447,7 @@ async function addSCEditor(source) {
     resizeWidth: false,
     startInSourceMode: true,
     autoUpdate: true,
-    plugins: 'undo',
+    plugins: "undo",
     toolbar: "bold,italic,underline,strike|size,center,right,colorpick|bulletlist,orderedlist|code,quote,spoiler|image,link,youtube|video,iframe,div",
     allowIFrame: true,
     allowedIframeUrls: [],
@@ -1869,7 +1899,7 @@ async function getMalBadges(url) {
       class: "actloading",
       style: { position: "relative", left: "0px", right: "0px", fontSize: "14px", height: "120px", alignContent: "center", zIndex: "2" },
     },
-    "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome;word-break: break-word;"></i>'
+    translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome;word-break: break-word;"></i>'
   );
   if (!svar.modernLayout) {
     $([badgesIframe, badgesDivIframeInner, badgesDivInner]).addClass("defaultMal");
@@ -1966,4 +1996,51 @@ async function processProfilePage(html, regex) {
     }
   }
   return null;
+}
+
+function decodeAndParseBase64(data, sanitize) {
+  if (!data) return null;
+  try {
+    let base64Url = data.replace(/_/g, "/").replace(/-/g, "+");
+    while (base64Url.length % 4 !== 0) {
+      base64Url += "=";
+    }
+    const decompressed = LZString.decompressFromBase64(base64Url);
+    if (!decompressed) throw new Error("Decompression failed");
+    const parsed = JSON.parse(decompressed);
+    if (sanitize) {
+      function sanitizeObject(obj, sanitize) {
+        if (typeof obj === "string") {
+          return DOMPurify.sanitize(obj, sanitize);
+        } else if (Array.isArray(obj)) {
+          return obj.map((item) => sanitizeObject(item, sanitize));
+        } else if (typeof obj === "object" && obj !== null) {
+          const sanitizedObj = {};
+          for (const key in obj) {
+            sanitizedObj[key] = sanitizeObject(obj[key], sanitize);
+          }
+          return sanitizedObj;
+        }
+        return obj;
+      }
+      return sanitizeObject(parsed, sanitize);
+    }
+    return parsed;
+  } catch (error) {
+    console.error("An error occurred while processing the custom profile data:", error);
+    return null;
+  }
+}
+
+function encodeAndBase64(data) {
+  if (!data) return null;
+  try {
+    const stringify = JSON.stringify(data);
+    const base64 = LZString.compressToBase64(stringify);
+    const urlSafeBase64 = base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    return urlSafeBase64;
+  } catch (error) {
+    console.error(`An error occurred while processing the custom profile data:`, error);
+    return null;
+  }
 }

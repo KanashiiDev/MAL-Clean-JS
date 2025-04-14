@@ -430,7 +430,7 @@ async function loadAniSong() {
         let AniSongsFooter = create(
           "div",
           { class: "anisongs-footer", style: { textAlign: "right", marginRight: "5px" } },
-          "Themes provided from " + '<a href="https://animethemes.moe/">AnimeThemes.moe</a><br>' + "Last Update: " + lastCheck + " "
+          translate("$anisongProvider", '<a href="https://animethemes.moe/">AnimeThemes.moe</a><br>') + translate("$anisongLastUpdate") + " " + lastCheck + " "
         );
         AniSongsFooter.append(AniSongsReCheck);
         AniSongsReCheck.onclick = () => {

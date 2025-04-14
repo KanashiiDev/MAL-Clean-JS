@@ -12,11 +12,11 @@ if (svar.replaceList) {
       section.id = `status-section-${animeData.status}`;
       section.className = "status-section";
       const statusTextMap = {
-        1: isManga ? "Reading" : "Watching",
-        2: "Completed",
-        3: "Paused",
-        4: "Dropped",
-        6: "Planning",
+        1: isManga ? translate("$listReading") : translate("$listWatching"),
+        2: translate("$listCompleted"),
+        3: translate("$listPaused"),
+        4: translate("$listDropped"),
+        6: translate("$listPlanning"),
       };
       // Create the section header
       const sectionHeader = document.createElement("h3");
@@ -29,10 +29,11 @@ if (svar.replaceList) {
       listHeadRow.className = "list-head row";
 
       // Create and append columns for the list head
-      ["title", "score", "progress", "type"].forEach((colName) => {
+      [[translate("$listSelectTitle"),"title"], [translate("$listSelectScore"),"score"],
+      [translate("$listSelectProgress"),"progress"], [translate("$listSelectType"),"type"]].forEach((colName) => {
         const colDiv = document.createElement("div");
-        colDiv.className = colName;
-        colDiv.textContent = colName.charAt(0).toUpperCase() + colName.slice(1);
+        colDiv.className = colName[1];
+        colDiv.textContent = colName[0];
         listHeadRow.appendChild(colDiv);
       });
       // Append list head row to the section
@@ -155,7 +156,7 @@ if (svar.replaceList) {
         class: "listLoading",
         style: { position: "absolute", top: "100%", left: "0", right: "0", fontSize: "16px" },
       },
-      "Loading" + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>'
+      translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>'
     );
     const listEntries = create("div", { class: "list-entries" });
     contRight.append(listLoading, listEntries);
@@ -237,7 +238,7 @@ if (svar.replaceList) {
 
     //List Filter
     const listFilter = create("div", { id: "filter" });
-    listFilter.innerHTML = '<label for="filter-input"></label><input type="text" id="filter-input" placeholder="Filter"><h3>Lists</h3>';
+    listFilter.innerHTML = `<label for="filter-input"></label><input type="text" id="filter-input" placeholder="Filter"><h3>${translate("$listLists")}</h3>`;
     const goBack = create("a", { class: "filterLists-back fa fa-arrow-left" });
     goBack.onclick = () => {
       if (svar.modernLayout) {
@@ -282,27 +283,27 @@ if (svar.replaceList) {
         }
       });
     }
-    const a_all = create("a", { class: "filterLists" }, "All");
+    const a_all = create("a", { class: "filterLists" }, translate("$listAll"));
     a_all.onclick = () => {
       hideOtherSections("all");
     };
-    const a_watching = create("a", { class: "filterLists" }, isManga ? "Reading" : "Watching");
+    const a_watching = create("a", { class: "filterLists" }, isManga ? translate("$listReading") : translate("$listWatching"));
     a_watching.onclick = () => {
       hideOtherSections("status-section-1");
     };
-    const a_completed = create("a", { class: "filterLists" }, "Completed");
+    const a_completed = create("a", { class: "filterLists" }, translate("$listCompleted"));
     a_completed.onclick = () => {
       hideOtherSections("status-section-2");
     };
-    const a_planning = create("a", { class: "filterLists" }, "Planning");
+    const a_planning = create("a", { class: "filterLists" }, translate("$listPlanning"));
     a_planning.onclick = () => {
       hideOtherSections("status-section-6");
     };
-    const a_paused = create("a", { class: "filterLists" }, "Paused");
+    const a_paused = create("a", { class: "filterLists" }, translate("$listPaused"));
     a_paused.onclick = () => {
       hideOtherSections("status-section-3");
     };
-    const a_dropped = create("a", { class: "filterLists" }, "Dropped");
+    const a_dropped = create("a", { class: "filterLists" }, translate("$listDropped"));
     a_dropped.onclick = () => {
       hideOtherSections("status-section-4");
     };
@@ -353,19 +354,31 @@ if (svar.replaceList) {
 
     //Genres Filter
     const genresFilter = create("div", { class: "filterList_GenresFilter" });
-    genresFilter.innerHTML =
-      '<button class="genreDropBtn">Select Genres</button><div class="maljs-dropdown-content" id="maljs-dropdown-content">' +
-      '<label><input type="checkbox" class="genre-filter" value="1" title="Action"> Action</label><label><input type="checkbox" class="genre-filter" value="2" title="Adventure">Adventure</label>' +
-      '<label><input type="checkbox" class="genre-filter" value="5" title="Avant Garde"> Avant Garde</label><label><input type="checkbox" class="genre-filter" value="46" title="Award Winning"> Award Winning</label>' +
-      '<label><input type="checkbox" class="genre-filter" value="28" title="Boys Love"> Boys Love</label>' +
-      '<label><input type="checkbox" class="genre-filter" value="4" title="Comedy"> Comedy</label>' +
-      '<label><input type="checkbox" class="genre-filter" value="8" title="Drama"> Drama</label><label><input type="checkbox" class="genre-filter" value="9" title="Ecchi"> Ecchi</label>' +
-      '<label><input type="checkbox" class="genre-filter" value="10" title="Fantasy"> Fantasy</label><label><input type="checkbox" class="genre-filter" value="12" title="Hentai"> Hentai</label>' +
-      '<label><input type="checkbox" class="genre-filter" value="26" title="Girls Love"> Girls Love</label><label><input type="checkbox" class="genre-filter" value="47" title="Gourmet"> Gourmet</label>' +
-      '<label><input type="checkbox" class="genre-filter" value="14" title="Horror"> Horror</label><label><input type="checkbox" class="genre-filter" value="7" title="Mystery"> Mystery</label>' +
-      '<label><input type="checkbox" class="genre-filter" value="22" title="Romance"> Romance</label><label><input type="checkbox" class="genre-filter" value="24" title="Sci-Fi"> Sci-Fi</label>' +
-      '<label><input type="checkbox" class="genre-filter" value="36" title="Slice of Life"> Slice of Life</label><label><input type="checkbox" class="genre-filter" value="30" title="Sports"> Sports</label>' +
-      '<label><input type="checkbox" class="genre-filter" value="37" title="Supernatural"> Supernatural</label><label><input type="checkbox" class="genre-filter" value="41" title="Suspense"> Suspense</label></div>';
+    genresFilter.innerHTML = genresFilter.innerHTML = `
+    <button class="genreDropBtn">${translate("$listSelectGenres")}</button>
+    <div class="maljs-dropdown-content" id="maljs-dropdown-content">
+    <label><input type="checkbox" class="genre-filter" value="1" title="Action"> Action</label>
+    <label><input type="checkbox" class="genre-filter" value="2" title="Adventure"> Adventure</label>
+    <label><input type="checkbox" class="genre-filter" value="5" title="Avant Garde"> Avant Garde</label>
+    <label><input type="checkbox" class="genre-filter" value="46" title="Award Winning"> Award Winning</label>
+    <label><input type="checkbox" class="genre-filter" value="28" title="Boys Love"> Boys Love</label>
+    <label><input type="checkbox" class="genre-filter" value="4" title="Comedy"> Comedy</label>
+    <label><input type="checkbox" class="genre-filter" value="8" title="Drama"> Drama</label>
+    <label><input type="checkbox" class="genre-filter" value="9" title="Ecchi"> Ecchi</label>
+    <label><input type="checkbox" class="genre-filter" value="10" title="Fantasy"> Fantasy</label>
+    <label><input type="checkbox" class="genre-filter" value="12" title="Hentai"> Hentai</label>
+    <label><input type="checkbox" class="genre-filter" value="26" title="Girls Love"> Girls Love</label>
+    <label><input type="checkbox" class="genre-filter" value="47" title="Gourmet"> Gourmet</label>
+    <label><input type="checkbox" class="genre-filter" value="14" title="Horror"> Horror</label>
+    <label><input type="checkbox" class="genre-filter" value="7" title="Mystery"> Mystery</label>
+    <label><input type="checkbox" class="genre-filter" value="22" title="Romance"> Romance</label>
+    <label><input type="checkbox" class="genre-filter" value="24" title="Sci-Fi"> Sci-Fi</label>
+    <label><input type="checkbox" class="genre-filter" value="36" title="Slice of Life"> Slice of Life</label>
+    <label><input type="checkbox" class="genre-filter" value="30" title="Sports"> Sports</label>
+    <label><input type="checkbox" class="genre-filter" value="37" title="Supernatural"> Supernatural</label>
+    <label><input type="checkbox" class="genre-filter" value="41" title="Suspense"> Suspense</label>
+    </div>`;
+
     listFilter.appendChild(genresFilter);
     // Genres Dropdown Function
     $(".genreDropBtn").click(function () {
@@ -396,7 +409,7 @@ if (svar.replaceList) {
           ? Array.from(checkboxes)
               .filter((checkbox) => checkbox.checked)
               .map((checkbox) => checkbox.title)
-          : "Select Genres"
+          : translate("$listSelectGenres")
       );
     });
 
@@ -414,7 +427,7 @@ if (svar.replaceList) {
       canAddYearFilter = 1;
     }
     if (canAddYearFilter) {
-      $(yearFilter).prepend("<h3>Year</h3>");
+      $(yearFilter).prepend(`<h3>${translate("$listYear")}</h3>`);
       $(yearFilter).prepend($(yearFilterClear));
       listFilter.appendChild(yearFilter);
       const $yearFilterSlider = $("#year-filter-slider");
@@ -456,9 +469,9 @@ if (svar.replaceList) {
     const sortFilter = create("div", { class: "filterList_SortFilter" });
     sortFilter.innerHTML = `
   <div class="sort-container" style="display: -webkit-box; display: -webkit-flex; display: -ms-flexbox; display: flex; gap: 0px 10px; margin-top: 10px;">
-  <select id="sort-select" style="width:100%"><option value="title">Title</option><option value="score">Score</option>
-  <option value="progress">Progress</option><option value="startdate">Start Date</option><option value="finishdate">Finish Date</option>
-  ${isManga ? "" : `<option value="createdat">Last Added</option> <option value="updatedat">Last Updated</option>`}</select>
+  <select id="sort-select" style="width:100%"><option value="title">${translate("$listSelectTitle")}</option><option value="score">${translate("$listSelectScore")}</option>
+  <option value="progress">${translate("$listSelectProgress")}</option><option value="startdate">${translate("$listSelectStartDate")}</option><option value="finishdate">${translate("$listSelectFinishDate")}</option>
+  ${isManga ? "" : `<option value="createdat">${translate("$listSelectLastAdded")}</option> <option value="updatedat">${translate("$listSelectLastUpdated")}</option>`}</select>
   <button class="fa fa-arrow-up" id="sort-asc" style="font-family: FontAwesome; width:33px; margin-top:0"></button>
   <button class="fa fa-arrow-down" id="sort-desc" style="font-family: FontAwesome; width:33px; margin-top:0"></button></div>`;
     listFilter.appendChild(sortFilter);
@@ -552,7 +565,7 @@ if (svar.replaceList) {
     });
 
     if (tags.size > 0) {
-      $(tagsContainer).prepend("<h3>Tags</h3>");
+      $(tagsContainer).prepend(`<h3>${translate("$listTags")}</h3>`);
       $(tagsContainer).prepend($(tagsContainerClear));
     }
     // Filter function
@@ -593,45 +606,44 @@ if (svar.replaceList) {
     }
 
     // Make 3x3
-    let buttonDraw3x3 = AdvancedCreate("a", "#maljsDraw3x3", "Make 3x3");
+    let buttonDraw3x3 = AdvancedCreate("a", "#maljsDraw3x3", translate("$3x3Btn"));
     listFilter.appendChild(buttonDraw3x3);
-    buttonDraw3x3.title = "Make 3x3";
     buttonDraw3x3.onclick = function () {
       if (!document.querySelector(".maljsDisplayBox")) {
         $(".entry.row .title").css("pointer-events", "none");
-        let displayBox = createDisplayBox(false, "3x3 Maker");
+        let displayBox = createDisplayBox(false, translate("$3x3Btn"));
         let col_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
-        let col_label = AdvancedCreate("span", false, "columns", displayBox, "margin: 5px");
+        let col_label = AdvancedCreate("span", false, translate("$3x3Columns"), displayBox, "margin: 5px");
         col_input.type = "number";
         col_input.value = 3;
         col_input.step = 1;
         col_input.min = 0;
         let row_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
-        let row_label = AdvancedCreate("span", false, "rows", displayBox, "margin: 5px");
+        let row_label = AdvancedCreate("span", false, translate("$3x3Rows"), displayBox, "margin: 5px");
         AdvancedCreate("br", false, false, displayBox);
         row_input.type = "number";
         row_input.value = 3;
         row_input.step = 1;
         row_input.min = 0;
         let margin_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
-        let margin_label = AdvancedCreate("span", false, "spacing (px)", displayBox, "margin: 5px");
+        let margin_label = AdvancedCreate("span", false, translate("$3x3ImgSpacing"), displayBox, "margin: 5px");
         AdvancedCreate("br", false, false, displayBox);
         margin_input.type = "number";
         margin_input.value = 0;
         margin_input.min = 0;
         let width_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
-        let width_label = AdvancedCreate("span", false, "image width (px)", displayBox, "margin: 5px");
+        let width_label = AdvancedCreate("span", false, translate("$3x3ImgWidth"), displayBox, "margin: 5px");
         width_input.type = "number";
         width_input.value = 230;
         width_input.min = 0;
         let height_input = AdvancedCreate("input", "maljsNativeInput", false, displayBox);
-        let height_label = AdvancedCreate("span", false, "image height (px)", displayBox, "margin: 5px");
+        let height_label = AdvancedCreate("span", false, translate("$3x3ImgHeight"), displayBox, "margin: 5px");
         AdvancedCreate("br", false, false, displayBox);
         height_input.type = "number";
         height_input.value = 345;
         height_input.min = 0;
         let fitMode = AdvancedCreate("select", "maljsNativeInput", false, displayBox);
-        let fitMode_label = AdvancedCreate("span", false, "image fitting", displayBox, "margin	: 5px");
+        let fitMode_label = AdvancedCreate("span", false, translate("$3x3ImgFit"), displayBox, "margin	: 5px");
         let addOption = function (value, text) {
           let newOption = AdvancedCreate("option", false, text, fitMode);
           newOption.value = value;
@@ -642,7 +654,7 @@ if (svar.replaceList) {
         addOption("letterbox", "letterbox");
         addOption("transparent", "transparent letterbox");
 
-        let recipe = AdvancedCreate("p", false, "Click 9 media entries, then save the image below", displayBox);
+        let recipe = AdvancedCreate("p", false, translate("$3x3Desc"), displayBox);
         let linkList = [];
         let keepUpdating = true;
         let image_width = 230;

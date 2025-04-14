@@ -1,6 +1,6 @@
 //Profile Foreground Color
 let fgColorSelector = create("input", { class: "badgeInput", id: "fgcolorselector", type: "color" });
-let updateFgButton = create("button", { class: "mainbtns", id: "privateProfile" }, "Update");
+let updateFgButton = create("button", { class: "mainbtns", id: "privateProfile" }, translate("$update"));
 let removeFgButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "customFgRemove" });
 let fgColorValue = "var(--color-foreground)";
 let defaultFgColor = getComputedStyle(document.body);
@@ -13,8 +13,7 @@ fgColorSelector.addEventListener("input", (event) => {
 });
 
 updateFgButton.onclick = () => {
-  const fgBase64 = LZString.compressToBase64(JSON.stringify(fgColorValue));
-  const fgbase64url = fgBase64.replace(/\//g, "_");
+  const fgbase64url = encodeAndBase64(fgColorValue);
   editAboutPopup(`customfg/${fgbase64url}`, "fg");
 };
 
@@ -23,8 +22,8 @@ removeFgButton.onclick = () => {
 };
 
 //Private Profile
-var privateButton = create("button", { class: "mainbtns", id: "privateProfile" }, "Private");
-var removePrivateButton = create("button", { class: "mainbtns", id: "privateRemove" }, "Public");
+var privateButton = create("button", { class: "mainbtns", id: "privateProfile" }, translate("$private"));
+var removePrivateButton = create("button", { class: "mainbtns", id: "privateRemove" }, translate("$public"));
 
 privateButton.onclick = () => {
   editAboutPopup(`privateProfile/IxA=`, "private");
@@ -35,8 +34,8 @@ removePrivateButton.onclick = () => {
 };
 
 //Hide Profile Elements
-var hideProfileElButton = create("button", { class: "mainbtns", id: "hideProfileElementsButton" }, "Hide");
-var hideProfileElUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton" }, "Update");
+var hideProfileElButton = create("button", { class: "mainbtns", id: "hideProfileElementsButton" }, translate("$hide"));
+var hideProfileElUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton" }, translate("$update"));
 var removehideProfileElButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "hideProfileElementsRemove" });
 let hiddenProfileElements = [];
 let hiddenProfileElementsTemp = [];
@@ -75,7 +74,7 @@ async function clearHiddenDivs() {
     }
   });
   $(".hide-button").remove();
-  hideProfileElButton.textContent = "Hide";
+  hideProfileElButton.textContent = translate("$hide");
 }
 
 function applyHiddenDivs() {
@@ -94,7 +93,7 @@ hideProfileElButton.onclick = () => {
     window.location.href = "https://myanimelist.net/profile/" + headerUserName;
   } else {
     hiddenProfileElementsTemp = hiddenProfileElements.slice();
-    if (hideProfileElButton.textContent === "Hide") {
+    if (hideProfileElButton.textContent === translate("$hide")) {
       divIds.forEach((divId) => {
         const div = document.querySelector(divId);
         if (div) {
@@ -106,11 +105,11 @@ hideProfileElButton.onclick = () => {
         }
         if (div && !$(div).next().is(".hide-button")) {
           const hideButton = document.createElement("a");
-          hideButton.textContent = hiddenProfileElementsTemp.includes(divId) ? "Show" : "Hide";
+          hideButton.textContent = hiddenProfileElementsTemp.includes(divId) ? translate("$show") : translate("$hide");
           hideButton.className = "hide-button mal-btn primary mt8 mb8";
           div.insertAdjacentElement("afterend", hideButton);
           hideButton.addEventListener("click", () => {
-            hideButton.textContent = hideButton.textContent === "Hide" ? "Show" : "Hide";
+            hideButton.textContent = hideButton.textContent === translate("$hide") ? translate("$show") : translate("$hide");
             if (hiddenProfileElementsTemp.includes(divId)) {
               hiddenProfileElementsTemp = hiddenProfileElementsTemp.filter((className) => className !== divId);
               div.style.opacity = "1";
@@ -125,15 +124,14 @@ hideProfileElButton.onclick = () => {
       });
     } else {
       clearHiddenDivs();
-      hideProfileElButton.textContent = hideProfileElButton.textContent === "Hide" ? "Cancel" : "Hide";
+      hideProfileElButton.textContent = hideProfileElButton.textContent ===  translate("$hide") ?  translate("$cancel") : translate("$hide");
     }
-    hideProfileElButton.textContent = hideProfileElButton.textContent === "Hide" ? "Cancel" : "Hide";
+    hideProfileElButton.textContent = hideProfileElButton.textContent ===  translate("$hide") ?  translate("$cancel") :  translate("$hide");
   }
 };
 
 hideProfileElUpdateButton.onclick = () => {
-  const pfElBase64 = LZString.compressToBase64(JSON.stringify(hiddenProfileElementsTemp));
-  const pfElbase64url = pfElBase64.replace(/\//g, "_");
+  const pfElbase64url = encodeAndBase64(hiddenProfileElementsTemp);
   editAboutPopup(`hideProfileEl/${pfElbase64url}`, "hideProfileEl");
   clearHiddenDivs();
 };
@@ -143,8 +141,8 @@ removehideProfileElButton.onclick = () => {
 };
 
 //Custom Profile Elements
-var customProfileElUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton" }, "Add to Left Side");
-var customProfileElRightUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton" }, "Add to Right Side");
+var customProfileElUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton" }, translate("$addToLeftSide"));
+var customProfileElRightUpdateButton = create("button", { class: "mainbtns", id: "hideProfileElementsUpdateButton" }, translate("$addToRightSide"));
 
 customProfileElUpdateButton.onclick = () => {
   if (svar.modernLayout) {
@@ -160,16 +158,15 @@ customProfileElRightUpdateButton.onclick = () => {
 
 //Custom Profile Background
 let bgInput = create("input", { class: "bgInput", id: "bgInput" });
-bgInput.placeholder = "Paste your Background Image Url here";
-var bgButton = create("button", { class: "mainbtns", id: "custombg" }, "Update");
+bgInput.placeholder = translate("$pasteUrlHere");
+var bgButton = create("button", { class: "mainbtns", id: "custombg" }, translate("$update"));
 var bgRemoveButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "custombgRemove" });
 var bgInfo = create("p", { class: "textpb" }, "");
 
 bgButton.onclick = () => {
   bgInfo.innerText = "";
   if (bgInput.value.length > 1) {
-    const bgBase64 = LZString.compressToBase64(JSON.stringify(bgInput.value));
-    const bgbase64url = bgBase64.replace(/\//g, "_");
+    const bgbase64url = encodeAndBase64(bgInput.value);
     editAboutPopup(`custombg/${bgbase64url}`, "bg");
     bgInput.addEventListener(`focus`, () => bgInput.select());
   } else {
@@ -181,16 +178,15 @@ bgRemoveButton.onclick = () => {
 };
 
 //Custom Avatar
-var pfButton = create("button", { class: "mainbtns", id: "custompf" }, "Update");
+var pfButton = create("button", { class: "mainbtns", id: "custompf" }, translate("$update"));
 var pfRemoveButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "custompfRemove" });
 let pfInput = create("input", { class: "pfInput", id: "pfInput" });
-pfInput.placeholder = "Paste your Avatar Image Url here";
+pfInput.placeholder = translate("$pasteUrlHere");
 var pfInfo = create("p", { class: "textpb" }, "");
 pfButton.onclick = () => {
   pfInfo.innerText = "";
   if (pfInput.value.length > 1) {
-    const pfBase64 = LZString.compressToBase64(JSON.stringify(pfInput.value));
-    const pfbase64url = pfBase64.replace(/\//g, "_");
+    const pfbase64url = encodeAndBase64(pfInput.value);
     editAboutPopup(`custompf/${pfbase64url}`, "pf");
     pfInput.addEventListener(`focus`, () => pfInput.select());
   } else {
@@ -202,7 +198,7 @@ pfRemoveButton.onclick = () => {
 };
 
 //Custom CSS
-var cssButton = create("button", { class: "mainbtns", id: "customCSS" }, "Update");
+var cssButton = create("button", { class: "mainbtns", id: "customCSS" }, translate("$update"));
 var cssRemoveButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "customCSSRemove" });
 var cssInfo = create("p", { class: "textpb" }, "");
 let cssInput = create("input", { class: "cssInput", id: "cssInput" });
@@ -213,7 +209,7 @@ cssmodernLayout.onclick = () => {
   cssmodernLayoutEnabled = !cssmodernLayoutEnabled;
   cssmodernLayout.classList.toggle("btn-active", cssmodernLayoutEnabled);
 };
-cssInput.placeholder = "Paste your CSS here";
+cssInput.placeholder = translate("$typeHere");
 cssButton.onclick = () => {
   cssInfo.innerText = "";
   if (cssInput.value.length > 1) {
@@ -221,8 +217,7 @@ cssButton.onclick = () => {
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/\s*([{}:;,])\s*/g, "$1")
       .replace(/\n+/g, "");
-    const cssBase64 = LZString.compressToBase64(JSON.stringify([cssInput.value, cssmodernLayoutEnabled]));
-    const cssbase64url = cssBase64.replace(/\//g, "_");
+    const cssbase64url = encodeAndBase64([cssInput.value, cssmodernLayoutEnabled]);
     editAboutPopup(`customCSS/${cssbase64url}`, "css");
     cssInput.addEventListener(`focus`, () => cssInput.select());
   } else {
@@ -235,11 +230,11 @@ cssRemoveButton.onclick = () => {
 
 //Mal Badges
 let malBadgesInput = create("input", { class: "malBadgesInput", id: "malBadgesInput" });
-malBadgesInput.placeholder = "Paste your Mal-Badges Url Here";
-var malBadgesButton = create("button", { class: "mainbtns", id: "malBadgesBtn" }, "Update");
+malBadgesInput.placeholder = translate("$pasteUrlHere");
+var malBadgesButton = create("button", { class: "mainbtns", id: "malBadgesBtn" }, translate("$update"));
 var malBadgesRemoveButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "malBadgesRemove" });
 var malBadgesDetailButton = create("button", { class: "mainbtns", id: "malBadgesBtn", style: { height: "32px", width: "32px", verticalAlign: "middle" } });
-var malBadgesDetailButtonText = create("h3", { style: { display: "inline" } }, "Detailed Badge (Required Modern Layout)");
+var malBadgesDetailButtonText = create("h3", { style: { display: "inline" } }, translate("$malBadgesDetailed"));
 let malBadgesDetailButtonEnabled = false;
 let malBadgesInfo = create("p", { class: "textpb" }, "");
 malBadgesDetailButton.onclick = () => {
@@ -248,14 +243,14 @@ malBadgesDetailButton.onclick = () => {
 };
 
 malBadgesButton.onclick = () => {
-  if (malBadgesInput.value.length > 1) {
+  if (malBadgesInput.value.length > 1 && malBadgesInput.value.startsWith("https://")) {
     try {
       malBadgesInfo.innerText = "";
       const url = new URL(malBadgesInput.value);
-      if (url.hostname.endsWith("mal-badges.com")) {
+      let allowedHost = ["www.mal-badges.com"];
+      if (allowedHost.includes(url.hostname)) {
         const detailMode = malBadgesDetailButtonEnabled ? "?detail" : "";
-        const badgeBase64 = LZString.compressToBase64(JSON.stringify(malBadgesInput.value + detailMode));
-        const badgeBase64Url = badgeBase64.replace(/\//g, "_");
+        const badgeBase64Url = encodeAndBase64(malBadgesInput.value + detailMode);
         editAboutPopup(`malBadges/${badgeBase64Url}`, "malBadges");
         malBadgesInput.addEventListener(`focus`, () => bgInput.select());
       } else {
@@ -271,13 +266,13 @@ malBadgesRemoveButton.onclick = () => {
 };
 
 //Custom Badge
-var badgeButton = create("button", { class: "mainbtns", id: "custombadge" }, "Update");
+var badgeButton = create("button", { class: "mainbtns", id: "custombadge" }, translate("$update"));
 let badgeInput = create("input", { class: "badgeInput", id: "badgeInput" });
 let badgeColorSelector = create("input", { class: "badgeInput", id: "badgecolorselector", type: "color" });
-let badgeColorLoop = create("button", { class: "mainbtns", id: "custombadgeColorLoop" }, "Rainbow");
+let badgeColorLoop = create("button", { class: "mainbtns", id: "custombadgeColorLoop" }, translate("$rainbow"));
 let badgeColorLoopEnabled = false;
 let badgeColorValue = "#000000";
-badgeInput.placeholder = "Type your badge text here";
+badgeInput.placeholder = translate("$pasteUrlHere");
 badgeColorLoop.onclick = () => {
   badgeColorLoopEnabled = !badgeColorLoopEnabled;
   if (badgeColorLoopEnabled) {
@@ -296,8 +291,8 @@ badgeColorSelector.addEventListener("input", (event) => {
 });
 badgeButton.onclick = () => {
   if (badgeInput.value.length > 1) {
-    const badgeBase64 = LZString.compressToBase64(JSON.stringify([badgeInput.value, badgeColorValue]));
-    const badgebase64url = badgeBase64.replace(/\//g, "_");
+    const badgeValue = DOMPurify.sanitize(badgeInput.value, purifyConfig);
+    const badgebase64url = encodeAndBase64([badgeValue, badgeColorValue]);
     editAboutPopup(`custombadge/${badgebase64url}`, "badge");
     badgeInput.addEventListener(`focus`, () => badgeInput.select());
   } else {
@@ -307,7 +302,7 @@ badgeButton.onclick = () => {
 
 //Custom Profile Colors
 const createColorInput = () => create("input", { class: "customColorInput", type: "color" });
-const customColorButton = create("button", { class: "mainbtns", id: "customColorUpdate" }, "Update");
+const customColorButton = create("button", { class: "mainbtns", id: "customColorUpdate" }, translate("$update"));
 const customColorRemoveButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "customColorRemove" });
 const customColors = create("div", { class: "customColorsInside" });
 let defaultLinkColor = getComputedStyle(document.body);
@@ -356,8 +351,7 @@ customColorLabels.slice(10).forEach((label, index) => {
 customColors.append(colorAnimeStats, colorMangaStats, colorProfile);
 customColorButton.onclick = () => {
   const colors = colorSelectors.map((selector) => selector.value);
-  const customColorBase64 = LZString.compressToBase64(JSON.stringify(colors));
-  const customColorBase64Url = customColorBase64.replace(/\//g, "_");
+  const customColorBase64Url = encodeAndBase64(colors);
   editAboutPopup(`customcolors/${customColorBase64Url}`, "color");
 };
 customColorRemoveButton.onclick = () => {

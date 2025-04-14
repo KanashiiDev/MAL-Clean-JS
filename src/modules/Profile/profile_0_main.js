@@ -43,6 +43,6 @@ async function applyPrivateProfile() {
     $("#banner").hide();
     $("#content").hide();
     $("#navbar").hide();
-    addLoading("add", "Private Profile", 0, 1);
+    addLoading("add", translate("$profilePrivate"), 0, 1);
   }
 }

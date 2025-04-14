@@ -1,4 +1,4 @@
-//Currently Watching //--START--//
+//Currently Watching
 let incCount = 0;
 let incTimer;
 let incActive = 0;
@@ -180,9 +180,8 @@ if (svar.currentlyWatching && location.pathname === "/") {
     }
   }
 }
-//Currently Watching //--END--//
 
-//Currently Reading //--START--//
+//Currently Reading
 if (svar.currentlyReading && location.pathname === "/") {
   //Create Currently Reading Div
   getreading();
@@ -193,8 +192,6 @@ if (svar.currentlyReading && location.pathname === "/") {
         .widget.anime_suggestions.left div#widget-currently-reading > div.widget-slide-outer ul > li > a:hover span{opacity: 1}`;
       document.head.appendChild(s);
     }
-    let idArray = [];
-    let ep, left, infoData;
     let user = headerUserName;
     if (user) {
       const currentlyReadingDiv = create("article", { class: "widget-container left", id: "currently-reading" });

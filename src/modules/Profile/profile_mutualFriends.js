@@ -7,10 +7,11 @@ async function mutualFriends() {
   $(friendsHeader).before(mutualsButton);
   $(friendsHeader).after(mutualsDiv);
   mutualsButton.addEventListener("click", async function () {
-    if ($(mutualsButton).text() !== "Loading..") {
+    const loadingText = translate("$loading");
+    if ($(mutualsButton).text() !== loadingText) {
       mutualsButton.classList.toggle("active");
       try {
-        $(mutualsButton).text("Loading..");
+        $(mutualsButton).text(loadingText);
         if (!myFriends) {
           myFriends = await getFriends(headerUserName);
           myFriends = myFriends.map((friend) => friend.username);
@@ -18,7 +19,7 @@ async function mutualFriends() {
         if (!userFriends) {
           userFriends = await getFriends(username);
         }
-        $(mutualsButton).text("Mutual Friends");
+        $(mutualsButton).text(translate("$mutualFriends"));
         mutualsButton.classList[1] === "active" ? $(mutualsButton).css({ backgroundColor: "var(--color-foreground2)" }) : $(mutualsButton).css({ backgroundColor: "var(--color-foreground)" });
         if (!$(mutualsDiv).attr("done")) {
           userFriends.forEach((user) => {

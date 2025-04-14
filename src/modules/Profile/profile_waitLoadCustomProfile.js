@@ -26,7 +26,7 @@ async function startCustomProfile() {
     }
   }
   if (!svar.modernLayout) {
-    customProfileElUpdateButton.textContent = "Add";
+    customProfileElUpdateButton.textContent = translate("$add");
     customProfileElUpdateButton.style.width = "98%";
     customProfileElRightUpdateButton.style.display = "none";
   } else {

@@ -83,7 +83,7 @@ async function applyAl() {
         let c = l ? l - 12 : 0;
         let length = l ? l : 12;
         let head = create("h2", { class: "mt16" }, "Activity");
-        const loading = create("div", { class: "user-history-loading actloading" }, "Loading" + '<i class="fa fa-circle-o-notch fa-spin malCleanLoader"></i>');
+        const loading = create("div", { class: "user-history-loading actloading" }, translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin malCleanLoader"></i>');
         if (!l) {
           const html = await fetch("https://myanimelist.net/history/" + username)
             .then((response) => response.text())

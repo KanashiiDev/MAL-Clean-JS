@@ -22,12 +22,12 @@ async function colorFromCover() {
     }
     if (!m) {
       if (!defaultMal) {
-        styleSheet2.innerText = styles2;
+        styleSheet2.innerText = colorFromCoverCSS;
         document.head.appendChild(styleSheet2);
       }
       const coverLocalForage = localforage.createInstance({ name: "MalJS", storeName: "cover" });
       const colorThief = new ColorThief();
-      let img, dominantColor, palette, paletteFetched, listenerAdded, coverCache;
+      let img, palette, paletteFetched, listenerAdded, coverCache;
       let colors = [];
       let img2 = new Image();
 

@@ -2,15 +2,13 @@ async function buildFavSongs(data) {
   if (!data) return;
   const parts = data.split("/");
   const favarray = [];
-  
+
   try {
     for (let i = 0; i < parts.length; i++) {
       if (parts[i] === "favSongEntry" && parts[i + 1]) {
-        const base64 = parts[i + 1].replace(/_/g, "/");
-        const lzbase64 = LZString.decompressFromBase64(base64);
-        if (lzbase64) {
-          const dec = JSON.parse(lzbase64);
-          favarray.push(dec);
+        const data = decodeAndParseBase64(parts[i + 1]);
+        if (data) {
+          favarray.push(data);
         }
       }
     }
@@ -20,7 +18,7 @@ async function buildFavSongs(data) {
   }
 
   if (!favarray.length) return;
-  
+
   let opGroup = create("div", { id: "op-group" });
   let edGroup = create("div", { id: "ed-group" });
   let FavContent = create("div", { class: "favThemes", id: "favThemes" });
@@ -46,8 +44,8 @@ async function buildFavSongs(data) {
     arr.forEach((item) => {
       const favSongContainer = create("div", { class: "fav-theme-container", type: item.themeType });
       favSongContainer.innerHTML = `
-        <div class="fa fa-sort sortFavSong"order=${index} title="Sort"></div>
-        <div class="fa fa-x removeFavSong" order=${index} title="Remove"></div>
+        <div class="fa fa-sort sortFavSong"order=${index} title="${translate("$sort")}"></div>
+        <div class="fa fa-x removeFavSong" order=${index} title="${translate("$remove")}""></div>
         <div class="fav-theme-inner">
         <a href='https://myanimelist.net/anime/${item.animeUrl}/'>
         ${`<img src="${item.animeImage ? item.animeImage : "https://cdn.myanimelist.net/r/42x62/images/questionmark_23.gif?s=f7dcbc4a4603d18356d3dfef8abd655c"}" class="anime-image" alt="${

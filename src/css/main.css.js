@@ -506,7 +506,7 @@ input#year-filter-slider {
 }
 
 .filterListsDiv {
-    width: 70px;
+    width: auto;
     display: block;
     margin-top: -5px
 }
@@ -1237,6 +1237,7 @@ font-family: "Font Awesome 6 Pro";
 }
 
 .malCleanSettingPopup .settingContainer.input input,
+.malCleanSettingPopup .settingContainer.input select,
 #customAddContainerInside input#header-input,
 #customAddContainerInside textarea#content-input {
     width: 95%;
@@ -1246,6 +1247,11 @@ font-family: "Font Awesome 6 Pro";
     padding: 10px;
     border-radius: 4px;
     margin: 5px 0px
+}
+
+.malCleanSettingPopup .settingContainer.input select {
+    width: 100%;
+    max-width: 100%
 }
 
 .malCleanSettingPopup .settingContainer.input input {
@@ -1594,6 +1600,7 @@ div#custom-preview-div blockquote.spoiler {
 }
 
 .malCleanMainContainerList .malCleanSettingButtons .removeButton,
+.malCleanMainContainer .malCleanMainHeaderTitle #innerSettingsBtn,
 .malCleanMainContainer .malCleanMainHeaderTitle #reloadbtn,
 .malCleanMainContainer .malCleanMainHeaderTitle #closebtn {
     font-family: fontAwesome
@@ -1647,12 +1654,26 @@ div#custom-preview-div blockquote.spoiler {
     width: 100%;
     display: -ms-inline-grid;
     display: inline-grid;
-    -ms-grid-columns: 85% auto auto;
-    grid-template-columns: 85% auto auto;
+    -ms-grid-columns: 80% auto auto auto;
+    grid-template-columns: 80% auto auto auto;
     -webkit-box-align: center;
     -webkit-align-items: center;
     -ms-flex-align: center;
     align-items: center
+}
+
+.malCleanSettingInnerSettings.malCleanSettingPopup {
+    width: 95%
+}
+  
+.malCleanSettingInnerSettings.malCleanSettingPopup .setting-section {
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    display: -webkit-inline-box;
+    display: -webkit-inline-flex;
+    display: inline-flex;
+    gap: 10px
 }
 
 #currently-popup .dataTextButton,
@@ -1972,7 +1993,7 @@ div#badges-iframe-inner.defaultMal {
    text-align: center
 }
 `;
-let styles2 = `
+let colorFromCoverCSS = `
 .lazyloading {
   opacity: 1 !important;
 }
@@ -2014,29 +2035,6 @@ body:not(.ownlist) {
 `;
 
 //CSS MyAnimeList - Clean Main Colors
-let styles3 = `
-body,
-:root {
-    --color-background: #0c1525 !important;
-    --color-backgroundo: #0c1525 !important;
-    --color-foreground: #161f2f !important;
-    --color-foregroundOP: #161f2f !important;
-    --color-foregroundOP2: #202939 !important;
-    --color-foreground2: #202939 !important;
-    --color-foreground3: rgba(37, 46, 62, 0.3) !important;
-    --color-foreground4: #2a3343 !important;
-    --br: 5px !important;
-    --color-text: #b6b6b6;
-    --color-text-normal: #b6b6b6 !important;
-    --color-main-text-normal: #c8c8c8 !important;
-    --color-main-text-light: #a5a5a5 !important;
-    --color-main-text-op: #ffffff !important;
-    --color-link: #9fadbd;
-    --color-link2: #7992bb !important;
-    --color-text-hover: #cfcfcf !important;
-    --color-link-hover: #cee7ff !important;
-}
-`;
 let defaultColors = `
 :root,
 body {
@@ -2060,42 +2058,8 @@ body {
   --color-link2: #7992bb!important;
   --color-text-hover: #cfcfcf!important;
   --color-link-hover: #cee7ff!important
-}
+}`;
 
-${svar.scrollbarStyle ? 
-    `
-    ::-webkit-scrollbar {
-       background: 0 0
-    }
-    
-    ::-webkit-scrollbar-thumb {
-      background: var(--color-foreground2);
-      -webkit-border-radius: 3px;
-      border-radius: 3px
-    }
-    ::-webkit-scrollbar-track,
-    ::-webkit-scrollbar-corner {
-      background: var(--color-background);
-    }`
-    : ``
-}
-
-a.feed-main-button {
-  top: 0!important
-}
-
-.feed-main {
-  padding: 10px
-}
-
-.feed-main a:hover {
-  text-decoration: none!important
-}
-
-#currently-popup iframe {
-  border: 0!important
-}
-`;
 let defaultColorsLight = `
 :root,
 body {
@@ -2119,67 +2083,68 @@ body {
   --color-link2: #7992bb!important;
   --color-text-hover: #cfcfcf!important;
   --color-link-hover: #cee7ff!important
-}
+}`;
 
-${svar.scrollbarStyle ? 
-    `
+let defaultCSSFixes = `
+${
+  svar.scrollbarStyle
+    ? `
     ::-webkit-scrollbar {
-       background: 0 0
+        background: 0 0
     }
-    
     ::-webkit-scrollbar-thumb {
-      background: var(--color-foreground2);
-      -webkit-border-radius: 3px;
-      border-radius: 3px
+        background: var(--color-foreground2);
+        -webkit-border-radius: 3px;
+        border-radius: 3px
     }
     ::-webkit-scrollbar-track,
     ::-webkit-scrollbar-corner {
-      background: var(--color-background);
+        background: var(--color-background)
     }`
     : ``
 }
 
 a.feed-main-button {
-  top: 0!important
+    top: 0!important
 }
-
+  
 .feed-main {
-  padding: 10px
+    padding: 10px
 }
-
+  
 .feed-main a:hover {
-  text-decoration: none!important
+    text-decoration: none!important
+}
+  
+#currently-popup iframe {
+    border: 0!important
 }
 
-#currently-popup iframe {
-  border: 0!important
-}`;
-let defaultCSSFixes = `
 .list-entries .section-name,
 .dark-mode .page-common #horiznav_nav,
 .page-common div#horiznav_nav {
-  border-color: var(--border-color)!important
+    border-color: var(--border-color)!important
 }
 
 .profile .user-statistics .user-statistics-stats .updates {
-  padding-right:10px
+    padding-right:10px
 }
 
 .bannerHover {
-  height:90px!important
+    height:90px!important
 }
 
 .profileRightActions {
-  position: relative;
-  top: -50px
+    position: relative;
+    top: -50px
 }
 
 .widget-slide-block .widget-slide .btn-anime .link .title.color-pc-constant {
-  color: var(--color-main-text-normal)
+    color: var(--color-main-text-normal)
 }
 
 .tooltipBody {
-  padding:10px
+    padding:10px
 }
 
 .bannerDiv {
@@ -2187,25 +2152,34 @@ let defaultCSSFixes = `
 }
 `;
 
-//Create Style Elements
-let styleSheet = document.createElement("style");
-let styleSheet2 = document.createElement("style");
-let styleSheet3 = document.createElement("style");
-styles = styles.replace(/\n/g, "");
-styles2 = styles2.replace(/\n/g, "");
-styles3 = styles3.replace(/\n/g, "");
-defaultColors = defaultColors.replace(/\n/g, "");
-defaultColorsLight = defaultColorsLight.replace(/\n/g, "");
-defaultCSSFixes = defaultCSSFixes.replace(/\n/g, "");
+// Minify CSS
+const minifyCSS = (css) => {
+  if (!css.includes("/*")) {
+    return css.replace(/\s*([{}:;,])\s*/g, "$1").replace(/\n+/g, "");
+  }
+  return css
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\s*([{}:;,])\s*/g, "$1")
+    .replace(/\n+/g, "");
+};
+[styles, colorFromCoverCSS, defaultColors, defaultColorsLight, defaultCSSFixes].forEach((css, i, arr) => {
+  arr[i] = minifyCSS(css);
+});
 
-//Add CSS
-if ($("style:contains(--fg:)").length) {
-  styleSheet.innerText = styles;
-} else if ($("html").hasClass("dark-mode")) {
-  styleSheet.innerText = styles + defaultColors + defaultCSSFixes;
-  defaultMal = 1;
-} else {
-  styleSheet.innerText = styles + defaultColorsLight + defaultCSSFixes;
-  defaultMal = 1;
-}
+// Create Style Elements
+const styleSheet = document.createElement("style");
+let styleSheet2 = document.createElement("style");
 document.head.appendChild(styleSheet);
+
+// Apply Styles
+const applyTheme = () => {
+  const hasCustomTheme = $("style:contains(--fg:)").length;
+  const isDarkMode = $("html").hasClass("dark-mode");
+  let finalCSS = styles;
+  if (!hasCustomTheme) {
+    finalCSS += (isDarkMode ? defaultColors : defaultColorsLight) + defaultCSSFixes;
+    defaultMal = 1;
+  }
+  styleSheet.textContent = finalCSS;
+};
+applyTheme();

@@ -21,6 +21,7 @@ const isMainProfilePage = /\/profile\/.*\/\w/gm.test(current) ? 0 : 1;
 var stLink = create("a", { class: "malCleanSettingLink", id: "malCleanSettingLink" }, "MalClean Settings");
 var stButton = create("li", { class: "malCleanSettingButton", id: "malCleanSettingButton" });
 
+//Default Settings (not for userModules)
 let svar = {
   animeBg: true,
   charBg: true,
@@ -28,7 +29,7 @@ let svar = {
   customCharacterCover: true,
   newComments: false,
   profileNewComments: false,
-  moreFavs: false,
+  moreFavs: true,
   moreFavsMode: true,
   peopleHeader: true,
   animeHeader: true,
@@ -47,9 +48,6 @@ let svar = {
   autoModernLayout: false,
   animeInfo: true,
   embed: true,
-  embedTTL: 2592000000,
-  relationTTL: 604800000,
-  tagTTL: 604800000,
   currentlyWatching: true,
   currentlyReading: true,
   recentlyAddedAnime: true,
@@ -71,12 +69,12 @@ let svar = {
   moveBadges: false,
   clubComments: false,
   scrollbarStyle: false,
+  currentLanguage: "English"
 };
 
 svar.save = function () {
   localStorage.setItem("maljsSettings", JSON.stringify(svar));
 };
-
 let svarSettings = null;
 
 try {
@@ -94,9 +92,13 @@ if (!svarSettings) {
 
 function getSettings() {
   Object.keys(svar).forEach((setting) => {
-    const btn = window[`${setting}Btn`];
-    if (btn && typeof svar[setting] !== "undefined" && ((setting !== "headerSlide" && setting !== "headerOpacity") || !defaultMal) && btn.classList && !btn.classList.contains("disabled")) {
-      btn.classList.toggle("btn-active", svar[setting]);
+    const btnId = setting.endsWith("Btn") ? setting : setting + "Btn";
+    const btn = document.getElementById(btnId);
+
+    const isExcluded = (setting === "headerSlide" || setting === "headerOpacity") && defaultMal;
+
+    if (btn && typeof svar[setting] !== "undefined" && !isExcluded && btn.classList && !btn.classList.contains("disabled")) {
+      btn.classList.toggle("btn-active", !!svar[setting]);
     }
   });
 }
@@ -105,3 +107,21 @@ if (typeof jQuery === "undefined") {
   console.error("Mal-Clean-JS: jQuery not found, stopping...");
   throw new Error("Mal-Clean-JS: jQuery not found");
 }
+
+
+const purifyConfig = {
+  FORBID_TAGS: ["script", "object", "embed", "frame", "frameset"],
+  FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onmouseenter", "onmouseleave", "srcdoc"],
+  ADD_TAGS: ["b", "i", "u", "strong", "em", "a", "img", "div", "span", "p", "ul", "ol", "li", "br", "hr", "h1", "h2", "h3", "h4", "h5", "h6",
+    "table", "thead", "tbody", "tr", "td", "th", "video", "audio", "iframe", "source", "blockquote", "pre", "code"],
+  ADD_ATTR: [ "frameborder", "sandbox", "allow", "href", "src", "alt", "title", "width", "height", "controls", "loop", "autoplay", "muted",
+    "class", "id", "style", "target", "rel","colspan", "rowspan"],
+  SAFE_FOR_JQUERY: true,
+  KEEP_CONTENT: false,
+  ALLOW_UNKNOWN_PROTOCOLS: false,
+};
+
+const purifyConfigText = {
+  ALLOWED_TAGS: [],
+  ALLOWED_ATTR: [],
+};

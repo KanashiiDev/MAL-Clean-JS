@@ -26,6 +26,39 @@ closeButton.onclick = () => {
   closeDiv();
 };
 
+// MalClean Inner Settings
+const innerSettingsButton = create("button", { active: "0", class: "mainbtns fa fa-gear", id: "innerSettingsBtn" });
+const settingDiv = create("div", { class: "malCleanSettingInnerSettings malCleanSettingPopup", style: { display: "none" } });
+innerSettingsButton.addEventListener("click", () => {
+  const target = document.querySelector("div.malCleanMainHeader > div.malCleanMainHeaderTitle");
+  const isActive = innerSettingsButton.getAttribute("active") === "1";
+
+  if (!settingDiv.children.length) {
+    settingDiv.append(createSettingSection(translate("$languageSelector"), initLanguageSelector()));
+  }
+
+  if (isActive) {
+    $(settingDiv).slideUp();
+    innerSettingsButton.setAttribute("active", "0");
+  } else {
+    target.insertAdjacentElement("afterend", settingDiv);
+    $(settingDiv).slideDown();
+    innerSettingsButton.setAttribute("active", "1");
+  }
+});
+
+// MalClean Inner Settings - Create Setting
+function createSettingSection(title, ...contents) {
+  const section = document.createElement("div");
+  section.className = "setting-section";
+
+  const label = document.createElement("p");
+  label.textContent = title;
+
+  section.append(label, ...contents);
+  return section;
+}
+
 //MalClean Settings - Reload Button
 var reloadButton = create("button", { class: "mainbtns fa fa-refresh", id: "reloadbtn" });
 reloadButton.onclick = () => {
@@ -49,20 +82,32 @@ function disableButton(button, title) {
 }
 
 // MalClean Settings - Buttons Config
-const buttonsConfig = Object.keys(svar).map((setting) => ({
-  setting: setting,
-  id: setting + "Btn",
-  text: null,
-  enabled: svar[setting],
-}));
-buttonsConfig.push({ setting: "removeAllCustom", id: "removeAllCustomBtn", text: "Remove All Custom Profile Settings" });
+function getButtonsConfig() {
+  const config = Object.keys(svar).map((setting) => ({
+    setting,
+    id: setting.endsWith("Btn") ? setting : setting + "Btn",
+    text: null,
+    enabled: svar[setting],
+  }));
 
-if (!defaultMal) {
-  buttonsConfig.push({ id: "headerSlideBtn", setting: "headerSlide" }, { id: "headerOpacityBtn", setting: "headerOpacity" });
-} else {
-  svar.headerSlide = 0;
-  svar.headerOpacity = 0;
+  // Special Buttons
+  config.push({
+    setting: "removeAllCustom",
+    id: "removeAllCustomBtn",
+    text: translate("$removeAllCustomSettings"),
+    enabled: true,
+  });
+
+  if (!defaultMal) {
+    config.push({ id: "headerSlideBtn", setting: "headerSlide", text: null, enabled: true }, { id: "headerOpacityBtn", setting: "headerOpacity", text: null, enabled: true });
+  } else {
+    svar.headerSlide = 0;
+    svar.headerOpacity = 0;
+  }
+
+  return config;
 }
+
 // MalClean Settings - Create Buttons
 function createButton({ id, setting, text }) {
   const button = create("button", { class: "mainbtns", id });
@@ -75,7 +120,7 @@ function createButton({ id, setting, text }) {
         await localforage.dropInstance({ name: "MalJS" });
         await editAboutPopup(`...`, "removeAll");
       }
-    } else if (setting !== "removeAllCustom" || setting !== "save") {
+    } else if (setting !== "removeAllCustom" && setting !== "save") {
       svar[setting] = !svar[setting];
       svar.save();
       getSettings();
@@ -89,7 +134,7 @@ function createButton({ id, setting, text }) {
 function createCustomSettingDiv(title, description, elementsToAppend, buttonsToAppend, buttonsWidth, infoToAppend, svar = "0", forProfile) {
   const div = create(
     "div",
-    { class: "malCleanSettingContainer", id: (forProfile ? 'Profile' : 'default') },
+    { class: "malCleanSettingContainer", id: forProfile ? "Profile" : "default" },
     `<div class="malCleanSettingHeader">
        <h2>${title}</h2>
        <h3>${description}</h3>
@@ -127,7 +172,7 @@ function createCustomSettingDiv(title, description, elementsToAppend, buttonsToA
       }
     }
   } else {
-    const profileBtn = create("button", { class: "mainbtns", id: "backToProfile", style: { width: "98%" } }, "Back to My Profile");
+    const profileBtn = create("button", { class: "mainbtns", id: "backToProfile", style: { width: "98%" } }, translate("$backToMyProfile"));
     profileBtn.onclick = () => {
       window.location.href = "https://myanimelist.net/profile/" + headerUserName;
     };
@@ -138,51 +183,139 @@ function createCustomSettingDiv(title, description, elementsToAppend, buttonsToA
   return div;
 }
 
+//MalClean Settings - Create Settings Dropdown Elements
+function initSetting(settingKey, type, defaultValue) {
+  if (svar[settingKey] === undefined) {
+    svar[settingKey] = type === "ttl" ? daysToTTL(defaultValue) : defaultValue;
+    svar.save();
+  }
+}
+
+function createInputSetting(settingKey, text) {
+  const container = create("div", { class: "settingContainer input" });
+  const input = create("input", { class: `${settingKey}Input`, placeholder: "Input" });
+  input.value = svar[settingKey];
+
+  input.addEventListener(
+    "input",
+    debounce((e) => {
+      svar[settingKey] = e.target.value;
+      svar.save();
+    }, 300)
+  );
+
+  $(container).append(`<h3>${text}</h3>`, input);
+  return container;
+}
+
+function createTTLSetting(settingKey, text) {
+  const container = create("div", { class: "settingContainer input" });
+  const input = create("input", { class: `${settingKey}Input`, placeholder: "Days (Number)" });
+  input.value = daysToTTL(svar[settingKey], 1);
+
+  input.addEventListener(
+    "input",
+    debounce((e) => {
+      svar[settingKey] = daysToTTL(e.target.value);
+      svar.save();
+    }, 300)
+  );
+
+  $(container).append(`<h3>${text}</h3>`, input);
+  return container;
+}
+
+function createOptionSetting(settingKey, text) {
+  const container = create("div", { class: "settingContainer svar" });
+  const buttons = getButtonsConfig().reduce((acc, { id, setting, text }) => {
+    acc[id] = createButton({ id, setting, text });
+    return acc;
+  }, {});
+
+  const btn = buttons[settingKey + "Btn"];
+  if (!btn) {
+    console.warn(`No button found for settingKey: ${settingKey}`);
+    return null;
+  }
+
+  $(container).append(btn, `<h3>${text}</h3>`);
+  return container;
+}
+
+function createSelectSetting(settingKey, text, options = [], defaultValue) {
+  const container = create("div", { class: "settingContainer input" });
+  const label = create("h3", {}, text);
+  const select = create("select", { class: `${settingKey}Select` });
+
+  options.forEach((opt) => {
+    const optionEl = create("option", { value: opt.value }, opt.label);
+    if (svar[settingKey] === opt.value || (svar[settingKey] === undefined && opt.value === defaultValue)) {
+      optionEl.selected = true;
+    }
+    select.appendChild(optionEl);
+  });
+
+  select.addEventListener("change", (e) => {
+    svar[settingKey] = e.target.value;
+    svar.save();
+  });
+
+  container.appendChild(label);
+  container.appendChild(select);
+
+  return container;
+}
+
 //MalClean Settings - Create Settings Dropdown
-function createSettingDropdown(parentElement, type, svar, settingKey, text) {
+async function createSettingDropdown(parentElement, type, settingKey, defaultValue = true, text, options = []) {
+  if (typeof parentElement === "string" && !parentElement.endsWith("Btn")) {
+    parentElement += "Btn";
+  }
+
+  initSetting(settingKey, type, defaultValue);
+
   let settingDiv;
-  let settingContainer = create("div", { class: "settingContainer" });
-  let hasSettings = document.querySelector(`${parentElement} .malCleanSettingPopup`);
-  if (!hasSettings) {
-    let settingButton = create("a", { active: "0", class: "fa fa-gear" });
+  const existingSettings = document.querySelector(`${parentElement}Option .malCleanSettingPopup`);
+
+  if (!existingSettings) {
+    const settingButton = create("a", { active: "0", class: "fa fa-gear" });
     settingDiv = create("div", { class: "malCleanSettingPopup", style: { display: "none" } });
+
     settingButton.onclick = () => {
       const active = $(settingButton).attr("active");
       if (active === "0") {
         $(settingDiv).slideDown();
         $(settingButton).attr("active", "1");
-        if (type === "svar") getSettings();
+        if (type === "option") getSettings();
       } else {
         $(settingDiv).slideUp();
         $(settingButton).attr("active", "0");
       }
     };
 
-    $(parentElement).append(settingButton);
+    $(`${parentElement}Option`).append(settingButton);
     $(settingButton).parent().append(settingDiv);
   }
-  let targetDiv = hasSettings || settingDiv;
-  if (type === "svar") {
-    // Svar Settings
-    const buttons = buttonsConfig.reduce((acc, { id, setting, text }) => {
-      acc[id] = createButton({ id, setting, text });
-      return acc;
-    }, {});
-    settingContainer.classList.add("svar");
-    $(settingContainer).append(buttons[settingKey], `<h3>${text}</h3>`);
-    $(targetDiv).append(settingContainer);
-  } else if (type === "ttl") {
-    // TTL Settings
-    let settingInput = create("input", { class: `${settingKey}Input`, placeholder: "Days (Number)" });
-    if (svar[settingKey]) settingInput.value = daysToTTL(svar[settingKey], 1);
-    settingContainer.classList.add("input");
-    $(settingContainer).append(`<h3>How often should the ${text} data be updated? (Days)</h3>`, settingInput);
-    $(targetDiv).append(settingContainer);
 
-    settingInput.addEventListener("input", (event) => {
-      const ttl = daysToTTL(event.target.value);
-      svar[settingKey] = ttl;
-      svar.save();
-    });
+  const targetDiv = existingSettings || settingDiv;
+  let settingUI = null;
+
+  switch (type) {
+    case "input":
+      settingUI = createInputSetting(settingKey, text);
+      break;
+    case "ttl":
+      settingUI = createTTLSetting(settingKey, text);
+      break;
+    case "option":
+      settingUI = createOptionSetting(settingKey, text);
+      break;
+    case "select":
+      settingUI = createSelectSetting(settingKey, text, options);
+      break;
+  }
+
+  if (settingUI) {
+    $(targetDiv).append(settingUI);
   }
 }

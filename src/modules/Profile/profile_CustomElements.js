@@ -12,27 +12,27 @@ async function createCustomDiv(appLoc, header, content, editData) {
     const newDiv = create("div", { id: "customAddContainerInside" });
     const btnsDiv = create("div", { id: "customAddContainerInsideButtons", style: { display: "block", textAlignLast: "center" } });
     if (isRight) cont.classList.add("right");
-    const closeButton = create("button", { class: "mainbtns btn-active-def", id: "closeButton", style: { width: "45px", float: "right", marginTop: "-5px" } }, "Close");
+    const closeButton = create("button", { class: "mainbtns btn-active-def", id: "closeButton", style: { width: "45px", float: "right", marginTop: "-5px" } }, translate("$close"));
     closeButton.addEventListener("click", function () {
       cont.remove();
     });
     newDiv.appendChild(closeButton);
-    $(newDiv).append("<h4>" + (appLoc && appLoc !== "right" ? "Edit" : "Add Custom") + " Profile Element" + "</h4>");
+    $(newDiv).append("<h4>" + (appLoc && appLoc !== "right" ? translate("$edit") : translate("$addCustom")) + " " + translate("$profileElement") + "</h4>");
 
     // Header
     const headerInput = create("input", { id: "header-input" });
-    headerInput.setAttribute("placeholder", "Add Title here");
+    headerInput.setAttribute("placeholder", translate("$addTitleHere"));
     headerInput.value = header ? header : null;
     newDiv.appendChild(headerInput);
 
     // Content
     const contentInput = create("textarea", { id: "content-input" });
-    contentInput.setAttribute("placeholder", "Add Content Here");
+    contentInput.setAttribute("placeholder", translate("$addContentHere"));
     contentInput.value = content ? content : null;
     newDiv.appendChild(contentInput);
 
     // Preview Button
-    const previewButton = create("button", { class: "mainbtns btn-active-def", id: "previewButton", style: { width: "48%" } }, "Preview");
+    const previewButton = create("button", { class: "mainbtns btn-active-def", id: "previewButton", style: { width: "48%" } }, translate("$preview"));
     previewButton.addEventListener("click", function () {
       if (!document.querySelector("#custom-preview-div")) {
         const previewDiv = create("div", { id: "custom-preview-div" });
@@ -40,75 +40,10 @@ async function createCustomDiv(appLoc, header, content, editData) {
       }
       addSCEditorCommands();
       scParserActions("content-input", "bbRefresh");
-      const purifyConfig = {
-        FORBID_TAGS: ["script", "object", "embed", "frame", "frameset"],
-        FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onmouseenter", "onmouseleave", "srcdoc"],
-        ADD_TAGS: [
-          "b",
-          "i",
-          "u",
-          "strong",
-          "em",
-          "a",
-          "img",
-          "div",
-          "span",
-          "p",
-          "ul",
-          "ol",
-          "li",
-          "br",
-          "hr",
-          "h1",
-          "h2",
-          "h3",
-          "h4",
-          "h5",
-          "h6",
-          "table",
-          "thead",
-          "tbody",
-          "tr",
-          "td",
-          "th",
-          "video",
-          "audio",
-          "iframe",
-          "source",
-          "blockquote",
-          "pre",
-          "code",
-        ],
-        ADD_ATTR: [
-          "frameborder",
-          "sandbox",
-          "allow",
-          "href",
-          "src",
-          "alt",
-          "title",
-          "width",
-          "height",
-          "controls",
-          "loop",
-          "autoplay",
-          "muted",
-          "class",
-          "id",
-          "style",
-          "target",
-          "rel",
-          "colspan",
-          "rowspan",
-        ],
-        SAFE_FOR_JQUERY: true,
-        KEEP_CONTENT: false,
-        ALLOW_UNKNOWN_PROTOCOLS: false,
-      };
-      const headerText = DOMPurify.sanitize(headerInput.value) || "No Title";
+      const headerText = DOMPurify.sanitize(headerInput.value) || translate("$noTitle");
       const contentText = DOMPurify.sanitize(scParserActions("content-input", "fromBBGetVal"), purifyConfig);
       document.querySelector("#custom-preview-div").innerHTML = `
-      <h2>Preview</h2>
+      <h2>${translate("$preview")}</h2>
       ${
         isRight && svar.modernLayout
           ? `<h4 style="border: 0;margin: 15px 0 4px 4px;">${headerText}</h4>`
@@ -119,7 +54,7 @@ async function createCustomDiv(appLoc, header, content, editData) {
     btnsDiv.appendChild(previewButton);
 
     // Add Button
-    const addButton = create("button", { class: "mainbtns btn-active-def", id: "addButton", style: { width: "48%" } }, appLoc && appLoc !== "right" ? "Edit" : "Add");
+    const addButton = create("button", { class: "mainbtns btn-active-def", id: "addButton", style: { width: "48%" } }, appLoc && appLoc !== "right" ? translate("$edit") : translate("$add"));
     addButton.addEventListener("click", function () {
       scParserActions("content-input", "bbRefresh");
       const headerText = headerInput.value;
@@ -168,10 +103,10 @@ async function buildCustomElements(data) {
   for (let i = 0; i < parts.length; i++) {
     if (parts[i] === "customProfileEl") {
       if (i + 1 < parts.length) {
-        const base64 = parts[i + 1].replace(/_/g, "/");
-        const lzbase64 = LZString.decompressFromBase64(base64);
-        let dec = JSON.parse(lzbase64);
-        favarray.push(dec);
+        const data = decodeAndParseBase64(parts[i + 1]);
+        if (data) {
+          favarray.push(data);
+        }
       }
     }
   }
@@ -206,9 +141,9 @@ async function buildCustomElements(data) {
       const customElContainer = create("div", { class: "custom-el-container" });
       if (isRight) customElContainer.classList.add("right");
       customElContainer.innerHTML = `
-      <div class="fa fa-pen editCustomEl" order="${index}" title="Edit"></div>
-      <div class="fa fa-sort sortCustomEl" order="${index}" title="Sort"></div>
-      <div class="fa fa-x removeCustomEl" order="${index}" title="Remove"></div>
+      <div class="fa fa-pen editCustomEl" order="${index}" title="${translate("$edit")}"></div>
+      <div class="fa fa-sort sortCustomEl" order="${index}" title="${translate("sort")}"></div>
+      <div class="fa fa-x removeCustomEl" order="${index}" title="${translate("$remove")}"></div>
       ${
         isRight && svar.modernLayout
           ? `<h4 class="custom-el-header" style="border: 0;margin: 15px 0 4px 4px;">${item.header}</h4>`
