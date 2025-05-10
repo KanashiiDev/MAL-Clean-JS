@@ -63,8 +63,8 @@ async function applyAl() {
     .user-profile .user-badges .user-badge:hover,.user-profile .user-friends .icon-friend:hover,.user-profile .user-friends .icon-friend:active{opacity:1!important}
     .dark-mode .user-profile .user-badges .user-badge,.user-profile .user-badges .user-badge {${defaultMal ? "margin:2px!important" : "margin: 4px!important"}}
     .max{max-height:99999px!important}`;
-    var fixstylesheet = document.createElement("style");
-    fixstylesheet.innerText = fixstyle.replace(/\n/g, "");
+
+    var fixstylesheet = create("style", { id: "modernlayoutfix" }, fixstyle.replace(/\n/g, ""));
     document.head.appendChild(fixstylesheet);
     document.body.style.setProperty("background", "var(--color-background)", "important");
     document.body.style.setProperty("--color-foreground", "var(--color-foregroundOP)", "important");
@@ -137,13 +137,13 @@ async function applyAl() {
           if (titleImageMap[title]) {
             oldimg = titleImageMap[title];
             historylink = create("a", { class: "user-history-cover-link", href: url });
-            historyimg = create("img", { class: "user-history-cover", alt: titleText, src: oldimg });
+            historyimg = create("img", { class: "user-history-cover lazyload", alt: titleText, src: "https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif", ["data-src"]: oldimg });
             wait = 99; // If already exists, reduce wait time
           } else {
             wait = 999; // If new title, increase wait time
             await getimg(url);
             historylink = create("a", { class: "user-history-cover-link", href: url });
-            historyimg = create("img", { class: "user-history-cover", alt: titleText, src: oldimg });
+            historyimg = create("img", { class: "user-history-cover lazyload", alt: titleText, src: "https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif", ["data-src"]: oldimg });
           }
           historylink.append(historyimg);
           dat.append(historylink, name);
@@ -389,9 +389,7 @@ async function applyAl() {
       }
       let title = btnFav.getAttribute("data-title");
       if (title) {
-        let tt = document.createElement("div");
-        tt.className = "favTooltip";
-        tt.textContent = title;
+        let tt = create("div", { class: "favTooltip" }, title);
         btnFav.prepend(tt);
         btnFav.tagName === "A" || (btnFav.classList[0] && btnFav.classList[0] === "user-badge") ? (tt.style.marginTop = "-5px") : "";
         tt.style.top = -tt.offsetHeight - 4 + "px";

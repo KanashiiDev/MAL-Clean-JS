@@ -16,6 +16,14 @@ function debounce(func, delay) {
   };
 }
 
+//Image Check
+function isImageLoadable(url, callback) {
+  const img = new Image();
+  img.onload = () => callback(true);
+  img.onerror = () => callback(false);
+  img.src = url;
+}
+
 //Simple Create Element Shorthand Function
 function create(e, t, n) {
   if (!e) throw SyntaxError("'tag' not defined");
@@ -773,15 +781,18 @@ function nativeTimeElement(e) {
 
 //Fix Date for Modern Anime/Manga List option
 function parseDate(dateString, string) {
-  const parts = dateString.split("-");
-  let day = parts[0];
-  let month = parts[1];
-  let yearSuffix = parts[2];
-  const currentYear = new Date().getFullYear();
-  const currentYearSuffix = (currentYear % 100) + 4;
-  let year = parseInt(yearSuffix, 10) > currentYearSuffix ? "19" + yearSuffix : "20" + yearSuffix;
-  const fromString = { month: parseInt(month, 10), day: parseInt(day, 10), year: parseInt(year, 10) };
-  return string ? fromString : new Date(`${year}-${month}-${day}`).getTime();
+  if (dateString) {
+    const parts = dateString.split("-");
+    let day = parts[0];
+    let month = parts[1];
+    let yearSuffix = parts[2];
+    const currentYear = new Date().getFullYear();
+    const currentYearSuffix = (currentYear % 100) + 4;
+    let year = parseInt(yearSuffix, 10) > currentYearSuffix ? "19" + yearSuffix : "20" + yearSuffix;
+    const fromString = { month: parseInt(month, 10), day: parseInt(day, 10), year: parseInt(year, 10) };
+    return string ? fromString : new Date(`${year}-${month}-${day}`).getTime();
+  }
+  return null;
 }
 
 //Set Element Shorthand Function
@@ -901,6 +912,16 @@ function rgbToHex(rgb) {
   let result = rgb.match(/\d+/g);
   if (!result || result.length < 3) return rgb;
   return "#" + ((1 << 24) + (parseInt(result[0]) << 16) + (parseInt(result[1]) << 8) + parseInt(result[2])).toString(16).slice(1).toUpperCase();
+}
+
+//Hex to Rgb
+function hexToRgb(hex) {
+  hex = hex.replace("#", "");
+  const bigint = parseInt(hex, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `${r}, ${g}, ${b}`;
 }
 
 //Days to TTL
@@ -1566,20 +1587,14 @@ async function getRecentlyAdded(type, page) {
 async function buildRecentlyAddedList(list, appLoc) {
   for (let x = 1; x < list.length; x++) {
     let rDiv = create("li", { class: "btn-anime" });
-    rDiv.innerHTML =
-      '<i class="fa fa-info-circle" style="font-family: &quot;Font Awesome 6 Pro&quot;; position: absolute; right: 3px; top: 3px; padding: 4px; opacity: 0; transition: 0.4s; z-index: 20;"></i>' +
-      '<a class="link" href=' +
-      list[x].url +
-      ">" +
-      '<img width="124" height="170" class="lazyloaded" src=' +
-      list[x].img +
-      ">" +
-      '<span class="recently-added-type">' +
-      list[x].type +
-      "</span>" +
-      '<span class="title js-color-pc-constant color-pc-constant">' +
-      list[x].title +
-      "</span></a>";
+    rDiv.innerHTML = `
+      <i class="fa fa-info-circle" style="font-family: 'Font Awesome 6 Pro'; position: absolute; right: 3px; top: 3px; padding: 4px; opacity: 0; transition: 0.4s; z-index: 20;"></i>
+      <a class="link" href="${list[x].url}">
+        <img width="124" height="170" class="lazyload" src="https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif" data-src="${list[x].img}">
+        <span class="recently-added-type">${list[x].type}</span>
+        <span class="title js-color-pc-constant color-pc-constant">${list[x].title}</span>
+      </a>
+    `;
     document.querySelector(appLoc).append(rDiv);
   }
 }
@@ -1825,10 +1840,27 @@ async function getBlogContent() {
         const doc = parser.parseFromString(text, "text/html");
         const blogContent = doc.querySelector(".blog_detail_content_wrapper");
         if (blogContent) {
+          blogContent.querySelectorAll("img").forEach((img) => {
+            const src = img.getAttribute("src");
+            if (src) {
+              img.setAttribute("data-src", src);
+              img.removeAttribute("src");
+              img.classList.add("lazyload");
+            }
+          });
+
           td.setAttribute("class", "blogMainWide");
           const targetDiv = td.querySelector("div:nth-child(2)");
           if (targetDiv) {
-            const newDiv = create("div", { class: "blog_detail_content_wrapper", style: { width: "auto", maxHeight: "500px", overflow: "auto", margin: "10px 0px" } });
+            const newDiv = create("div", {
+              class: "blog_detail_content_wrapper",
+              style: {
+                width: "auto",
+                maxHeight: "500px",
+                overflow: "auto",
+                margin: "10px 0px",
+              },
+            });
             newDiv.innerHTML = blogContent.innerHTML;
             targetDiv.parentNode.insertBefore(newDiv, targetDiv.nextSibling);
           }

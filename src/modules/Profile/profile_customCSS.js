@@ -2,13 +2,19 @@ async function findCustomCSS() {
   if (!customCSS) return;
 
   let customCSSData = Array.isArray(customCSS) ? customCSS[0] : customCSS;
-  let customCSSAl = Array.isArray(customCSS) ? customCSS[1] : null;
+  let customCSSModern = Array.isArray(customCSS) ? customCSS[1] : null;
 
-  if (!customCSSAl) {
-    const styleElement = document.createElement("style");
-    styleElement.textContent = `
-    #currently-popup, .malCleanMainHeader, .malCleanMainContainer { background: #121212 !important;}
-    #currently-popup .dataTextButton,.mainbtns {background-color: var(--color-foreground)!important;}`;
+  if (svar.customCSS && customCSSModern) {
+    svar.autoModernLayout = false;
+  }
+
+  if (customCSSData) {
+    const styleElement = create(
+      "style",
+      { id: "customCSSFix" },
+      `#currently-popup, .malCleanMainHeader, .malCleanMainContainer { background: #121212 !important;}
+      #currently-popup .dataTextButton,.mainbtns {background-color: var(--color-foreground)!important;}`
+    );
 
     document.head.appendChild(styleElement);
     document.querySelectorAll("style").forEach((style) => {
@@ -19,8 +25,7 @@ async function findCustomCSS() {
   }
 
   if (styles) {
-    let styleSheet = document.createElement("style");
-    styleSheet.innerText = styles;
+    let styleSheet = create("style", { id: "customCSS" }, styles);
     document.head.appendChild(styleSheet);
   }
   if ($("html").hasClass("dark-mode")) {
@@ -38,8 +43,7 @@ async function findCustomCSS() {
       let cssLink = create("link", { rel: "stylesheet", type: "text/css", href: customCSS });
       document.head.appendChild(cssLink);
     } else if (customCSSData.length < 1e6) {
-      let css = document.createElement("style");
-      css.innerText = customCSSData;
+      let css = create("style", { id: "customCSS" }, customCSSData);
       document.head.appendChild(css);
     }
   }

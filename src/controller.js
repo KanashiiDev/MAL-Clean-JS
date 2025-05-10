@@ -50,8 +50,7 @@ const context = {
     log: console.log,
     injectCSS: (css) => {
       try {
-        const style = document.createElement("style");
-        style.textContent = minifyCSS(css);
+        const style = create("style", { id: " userModuleCSS" }, minifyCSS(css));
         document.head.append(style);
         return true;
       } catch (e) {

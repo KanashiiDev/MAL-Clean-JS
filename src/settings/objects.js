@@ -104,9 +104,7 @@ hideProfileElButton.onclick = () => {
           }
         }
         if (div && !$(div).next().is(".hide-button")) {
-          const hideButton = document.createElement("a");
-          hideButton.textContent = hiddenProfileElementsTemp.includes(divId) ? translate("$show") : translate("$hide");
-          hideButton.className = "hide-button mal-btn primary mt8 mb8";
+          const hideButton = create("a", { class: "hide-button mal-btn primary mt8 mb8" }, hiddenProfileElementsTemp.includes(divId) ? translate("$show") : translate("$hide"));
           div.insertAdjacentElement("afterend", hideButton);
           hideButton.addEventListener("click", () => {
             hideButton.textContent = hideButton.textContent === translate("$hide") ? translate("$show") : translate("$hide");
@@ -124,9 +122,9 @@ hideProfileElButton.onclick = () => {
       });
     } else {
       clearHiddenDivs();
-      hideProfileElButton.textContent = hideProfileElButton.textContent ===  translate("$hide") ?  translate("$cancel") : translate("$hide");
+      hideProfileElButton.textContent = hideProfileElButton.textContent === translate("$hide") ? translate("$cancel") : translate("$hide");
     }
-    hideProfileElButton.textContent = hideProfileElButton.textContent ===  translate("$hide") ?  translate("$cancel") :  translate("$hide");
+    hideProfileElButton.textContent = hideProfileElButton.textContent === translate("$hide") ? translate("$cancel") : translate("$hide");
   }
 };
 
@@ -161,12 +159,52 @@ let bgInput = create("input", { class: "bgInput", id: "bgInput" });
 bgInput.placeholder = translate("$pasteUrlHere");
 var bgButton = create("button", { class: "mainbtns", id: "custombg" }, translate("$update"));
 var bgRemoveButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "custombgRemove" });
+let defaultBgUrl;
 var bgInfo = create("p", { class: "textpb" }, "");
+function updateBannerBackground(url) {
+  const bannerBg = document.querySelector("#banner");
+  if (!defaultBgUrl) {
+    const computedStyle = getComputedStyle(bannerBg);
+    defaultBgUrl = computedStyle.backgroundImage;
+  }
+  bgInfo.innerText = "";
+  isImageLoadable(url, (isValid) => {
+    if (!isValid) {
+      if (bgInput.value.length > 0) {
+        bgInfo.innerText = "Invalid image URL.";
+      }
+      bannerBg.style.backgroundImage = defaultBgUrl;
+      return;
+    }
+    bannerBg.style.backgroundImage = `url("${url}")`;
+  });
+}
+const debouncedBgUpdate = debounce((event) => {
+  const url = event.target.value.trim();
+  if (url.startsWith("javascript:") || url.startsWith("data:")) {
+    bgInfo.innerText = "Dangerous URL detected.";
+    return;
+  }
+  updateBannerBackground(url);
+}, 500);
+
+bgInput.addEventListener("input", debouncedBgUpdate);
+
+let bgShadowColorSelector = create("input", { class: "badgeInput", id: "bgShadowColorSelector", type: "color" });
+let bgShadowColorValue = "rgba(6,13,34,0)";
+bgShadowColorSelector.addEventListener("input", (event) => {
+  const hexColor = event.target.value;
+  bgShadowColorValue = hexToRgb(hexColor);
+  shadow.setAttribute(
+    "style",
+    `background: linear-gradient(180deg, rgba(${bgShadowColorValue}, 0) 40%, rgba(${bgShadowColorValue}, .6)); height: 100%; left: 0; position: absolute; top: 0; width: 100%;`
+  );
+});
 
 bgButton.onclick = () => {
   bgInfo.innerText = "";
   if (bgInput.value.length > 1) {
-    const bgbase64url = encodeAndBase64(bgInput.value);
+    const bgbase64url = encodeAndBase64([bgInput.value, bgShadowColorValue]);
     editAboutPopup(`custombg/${bgbase64url}`, "bg");
     bgInput.addEventListener(`focus`, () => bgInput.select());
   } else {
@@ -183,6 +221,34 @@ var pfRemoveButton = create("button", { class: "mainbtns fa fa-trash removeButto
 let pfInput = create("input", { class: "pfInput", id: "pfInput" });
 pfInput.placeholder = translate("$pasteUrlHere");
 var pfInfo = create("p", { class: "textpb" }, "");
+let defaultFgUrl;
+function updatePfAvatar(url) {
+  const fgAvatar = document.querySelector(".user-image.mb8 .lazyloaded");
+  if (!defaultFgUrl) {
+    defaultFgUrl = fgAvatar.src;
+  }
+  pfInfo.innerText = "";
+  isImageLoadable(url, (isValid) => {
+    if (!isValid) {
+      if (pfInput.value.length > 0) {
+        pfInfo.innerText = "Invalid image URL.";
+      }
+      fgAvatar.src = defaultFgUrl;
+      return;
+    }
+    fgAvatar.src = url;
+  });
+}
+const debouncedPfUpdate = debounce((event) => {
+  const url = event.target.value.trim();
+  if (url.startsWith("javascript:") || url.startsWith("data:")) {
+    pfInfo.innerText = "Dangerous URL detected.";
+    return;
+  }
+  updatePfAvatar(url);
+}, 500);
+
+pfInput.addEventListener("input", debouncedPfUpdate);
 pfButton.onclick = () => {
   pfInfo.innerText = "";
   if (pfInput.value.length > 1) {

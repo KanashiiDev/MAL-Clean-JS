@@ -8,9 +8,7 @@ if (svar.replaceList) {
     let section = document.getElementById(`status-section-${animeData.status}`);
     if (!section) {
       // If section doesn't exist, create a new section
-      section = document.createElement("div");
-      section.id = `status-section-${animeData.status}`;
-      section.className = "status-section";
+      section = create("div", { class: "status-section", id: `status-section-${animeData.status}` });
       const statusTextMap = {
         1: isManga ? translate("$listReading") : translate("$listWatching"),
         2: translate("$listCompleted"),
@@ -19,21 +17,20 @@ if (svar.replaceList) {
         6: translate("$listPlanning"),
       };
       // Create the section header
-      const sectionHeader = document.createElement("h3");
-      sectionHeader.className = "section-name";
-      sectionHeader.textContent = `${statusTextMap[animeData.status]}`;
+      const sectionHeader = create("h3", { class: "section-name" }, `${statusTextMap[animeData.status]}`);
       section.appendChild(sectionHeader);
 
       // Create the list head row
-      const listHeadRow = document.createElement("div");
-      listHeadRow.className = "list-head row";
+      const listHeadRow = create("div", { class: "list-head row" });
 
       // Create and append columns for the list head
-      [[translate("$listSelectTitle"),"title"], [translate("$listSelectScore"),"score"],
-      [translate("$listSelectProgress"),"progress"], [translate("$listSelectType"),"type"]].forEach((colName) => {
-        const colDiv = document.createElement("div");
-        colDiv.className = colName[1];
-        colDiv.textContent = colName[0];
+      [
+        [translate("$listSelectTitle"), "title"],
+        [translate("$listSelectScore"), "score"],
+        [translate("$listSelectProgress"), "progress"],
+        [translate("$listSelectType"), "type"],
+      ].forEach((colName) => {
+        const colDiv = create("div", { class: colName[1] }, colName[0]);
         listHeadRow.appendChild(colDiv);
       });
       // Append list head row to the section
@@ -43,7 +40,7 @@ if (svar.replaceList) {
     }
     const entryRow = create("div", { class: "entry row" });
     const coverDiv = create("div", { class: "cover" });
-    const imageDiv = create("img", { class: "image lazyload", alt: animeData.title, src: animeData.imageUrl });
+    const imageDiv = create("img", { class: "image lazyload", alt: animeData.title, src: "https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif", ["data-src"]: animeData.imageUrl });
     if (animeData.airingStatus == 1 && svar.listAiringStatus) {
       const airingDot = create("span", { class: "airing-dot" });
       coverDiv.append(airingDot);
@@ -470,7 +467,9 @@ if (svar.replaceList) {
     sortFilter.innerHTML = `
   <div class="sort-container" style="display: -webkit-box; display: -webkit-flex; display: -ms-flexbox; display: flex; gap: 0px 10px; margin-top: 10px;">
   <select id="sort-select" style="width:100%"><option value="title">${translate("$listSelectTitle")}</option><option value="score">${translate("$listSelectScore")}</option>
-  <option value="progress">${translate("$listSelectProgress")}</option><option value="startdate">${translate("$listSelectStartDate")}</option><option value="finishdate">${translate("$listSelectFinishDate")}</option>
+  <option value="progress">${translate("$listSelectProgress")}</option><option value="startdate">${translate("$listSelectStartDate")}</option><option value="finishdate">${translate(
+      "$listSelectFinishDate"
+    )}</option>
   ${isManga ? "" : `<option value="createdat">${translate("$listSelectLastAdded")}</option> <option value="updatedat">${translate("$listSelectLastUpdated")}</option>`}</select>
   <button class="fa fa-arrow-up" id="sort-asc" style="font-family: FontAwesome; width:33px; margin-top:0"></button>
   <button class="fa fa-arrow-down" id="sort-desc" style="font-family: FontAwesome; width:33px; margin-top:0"></button></div>`;
@@ -478,38 +477,53 @@ if (svar.replaceList) {
     const sortSelect = document.getElementById("sort-select");
     const sortAsc = document.getElementById("sort-asc");
     const sortDesc = document.getElementById("sort-desc");
+
     function getValue(entry, criterion) {
       switch (criterion) {
         case "score": {
-          const score = entry.querySelector(".score")?.textContent;
-          return score ? parseInt(score, 10) : -Infinity;
+          const score = entry.querySelector(".score")?.textContent?.trim();
+          const parsed = parseInt(score, 10);
+          return isNaN(parsed) ? -Infinity : parsed;
         }
         case "title": {
-          return entry.querySelector(".title")?.textContent.trim();
+          const title = entry.querySelector(".title")?.textContent?.trim();
+          return title ?? "";
         }
         case "startdate": {
           const startdate = entry.getAttribute("startdate");
-          return startdate ? parseDate(startdate) : -Infinity;
+          if (!startdate) return -Infinity;
+          const parsed = parseDate(startdate);
+          return parsed != null ? parsed : -Infinity;
         }
         case "finishdate": {
           const finishdate = entry.getAttribute("finishdate");
-          return finishdate ? parseDate(finishdate) : -Infinity;
+          if (!finishdate) return -Infinity;
+          const parsed = parseDate(finishdate);
+          return parsed != null ? parsed : -Infinity;
         }
         case "createdat": {
-          const createdat = entry.getAttribute("createdat");
-          return createdat ? parseInt(createdat, 10) : -Infinity;
+          const createdatAttr = entry.getAttribute("createdat");
+          if (!createdatAttr) return -Infinity;
+          const parsed = parseInt(createdatAttr, 10);
+          return isNaN(parsed) ? -Infinity : parsed;
         }
         case "updatedat": {
-          const updatedat = entry.getAttribute("updatedat");
-          return updatedat ? parseInt(updatedat, 10) : -Infinity;
+          const updatedatAttr = entry.getAttribute("updatedat");
+          if (!updatedatAttr) return -Infinity;
+          const parsed = parseInt(updatedatAttr, 10);
+          return isNaN(parsed) ? -Infinity : parsed;
         }
         case "progress": {
-          return parseInt(entry.getAttribute("progress"), 10);
+          const progressAttr = entry.getAttribute("progress");
+          if (!progressAttr) return -Infinity;
+          const parsed = parseInt(progressAttr, 10);
+          return isNaN(parsed) ? -Infinity : parsed;
         }
         default:
           return "";
       }
     }
+
     function sortEntriesInSection(section, criterion, order) {
       const entries = Array.from(section.querySelectorAll(".entry"));
       const compare = (a, b) => {
@@ -584,9 +598,7 @@ if (svar.replaceList) {
     }
     // Create tag links
     tags.forEach((tag) => {
-      const link = document.createElement("a");
-      link.className = "tag-link";
-      link.textContent = tag;
+      const link = create("a", { class: "tag-link" }, tag);
       link.onclick = () => {
         $(".tag-link.clicked").attr("class", "tag-link");
         $(link).attr("class", "tag-link clicked");

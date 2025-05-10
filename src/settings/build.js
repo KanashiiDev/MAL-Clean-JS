@@ -65,8 +65,8 @@ async function createDiv() {
     translate("$customBannerTitle", modernBtn),
     translate("$customBannerDesc"),
     null,
-    [bgInput, bgButton, bgRemoveButton],
-    ["65% 25% 10%"],
+    [bgInput, bgShadowColorSelector, bgButton, bgRemoveButton],
+    ["50% 15% 25% 10%"],
     [bgInfo],
     svar.modernLayout,
     "profile"
@@ -242,6 +242,9 @@ async function createDiv() {
   } else {
     disableButton("profileHeaderBtn", translate("$disableModernProfileWarn"));
   }
+
+  //Add Tooltip to buttons
+  tooltipButton("replaceListBtn", translate("$modernAnimeMangaListWarn"));
 
   //Navigation
   const navButtons = mainInner.querySelectorAll(".malCleanMainHeaderNav button");

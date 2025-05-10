@@ -66,6 +66,7 @@ let svar = {
   profileAnimeGenre: true,
   profileMangaGenre: false,
   profileRemoveLeftSide: false,
+  profileBannerGradient: true,
   moveBadges: false,
   clubComments: false,
   scrollbarStyle: false,

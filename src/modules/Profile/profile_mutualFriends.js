@@ -27,19 +27,20 @@ async function mutualFriends() {
               $(".boxlist-container.friend.mb16, .mt4.mb8").hide();
               $(mutualsDiv).show();
               if (myFriends.includes(user.username)) {
-                const mutualsBox = create("div", { class: "boxlist col-3", style: { minHeight: "48px" } });
-                mutualsBox.innerHTML =
-                  '<div class="di-tc"><a href="' +
-                  user.url +
-                  '">' +
-                  '<img class="image profile-w48 lazyloaded" src="' +
-                  user.images.jpg.image_url +
-                  '" alt="Profile Image"></a></div>' +
-                  '<div class="di-tc va-t pl8 data"><div class="title"><a href="' +
-                  user.url +
-                  '">' +
-                  user.username +
-                  "</a></div></div>";
+                const mutualsBox = create("div", {
+                  class: "boxlist col-3",
+                  style: { minHeight: "48px" },
+                });
+                mutualsBox.innerHTML = `
+                <div class="di-tc"><a href="${user.url}">
+                <img class="image profile-w48 lazyload"src="https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif" data-src="${user.images.jpg.image_url}" alt="Profile Image">
+                </a></div>
+                <div class="di-tc va-t pl8 data">
+                <div class="title">
+                <a href="${user.url}">${user.username}</a>
+                </div>
+                </div>
+                `;
                 mutualsDiv.append(mutualsBox);
               }
             }

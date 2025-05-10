@@ -452,8 +452,8 @@ input#year-filter-slider {
     -webkit-border-radius: var(--border-radius);
     border-radius: var(--border-radius);
     min-width: 160px;
-    -webkit-box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    -webkit-box-shadow: 0px 8px 16px 0px var(--shadow-color);
+    box-shadow: 0px 8px 16px 0px var(--shadow-color);
     z-index: 1;
     height: 175px;
     overflow: auto
@@ -551,7 +551,8 @@ input#year-filter-slider {
     background-color: rgb(var(--color-foreground));
     border: solid 1px;
     border-radius: 4px;
-    box-shadow: black 2px 2px 20px;
+    -webkit-box-shadow: 0 0 15px var(--shadow-color) !important;
+    box-shadow: 0 0 15px var(--shadow-color) !important;
     background: var(--color-background);
     height: 85%;
 }
@@ -807,6 +808,7 @@ input.maljsNativeInput {
     margin-bottom: -10px
 }
 
+.mainbtns.tooltip .title-note-inner, 
 .mainbtns.disabled .title-note-inner, 
 .list-entries .title-note-inner {
     display:none;
@@ -814,16 +816,21 @@ input.maljsNativeInput {
     background: var(--color-foreground2);
     padding: 10px;
     margin: -26px 0 0 20px;
-    max-width: 315px;
-    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
-    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+    max-width: 420px;
+    -webkit-box-shadow: 0 0 10px var(--shadow-color) !important;
+    box-shadow: 0 0 10px var(--shadow-color) !important;
     border: var(--border) solid var(--border-color);
     -webkit-border-radius: var(--border-radius);
             border-radius: var(--border-radius)
 }
 
 .mainbtns.disabled .title-note-inner {
-    width: 275px;
+  background: #633232
+}
+
+.mainbtns.tooltip:hover .title-note-inner,
+.mainbtns.disabled .title-note-inner {
+    width: 420px;
     left: 12px
 }
 
@@ -831,7 +838,7 @@ input.maljsNativeInput {
     width: 20px;
     margin: 0 -15px 0 5px
 }
-
+.mainbtns.tooltip:hover .title-note-inner,
 .mainbtns.disabled:hover .title-note-inner,
 .list-entries .user-note:hover .title-note-inner {
     display:block
@@ -1804,7 +1811,7 @@ body .malCleanMainContainerList .malCleanSettingButtons input {
 .malCleanMainContainer .malCleanSettingContainer h2 {
     background: var(--color-foreground2);
     border-radius: var(--br);
-    padding: 5px
+    padding: 5px!important
 }
 
 .malCleanMainContainer .malCleanSettingContainer h3 {
@@ -2167,8 +2174,8 @@ const minifyCSS = (css) => {
 });
 
 // Create Style Elements
-const styleSheet = document.createElement("style");
-let styleSheet2 = document.createElement("style");
+let styleSheet = create("style", { id: "malCleanMainCSS" });
+let styleSheet2 = create("style", { id: "colorFromCoverCSS" });
 document.head.appendChild(styleSheet);
 
 // Apply Styles

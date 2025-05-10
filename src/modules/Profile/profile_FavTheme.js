@@ -35,8 +35,7 @@ async function buildFavSongs(data) {
   }
 
   if ((customCSS && customCSS.constructor === Array && customCSS[1]) || (customCSS && customCSS.constructor !== Array) || svar.modernLayout) {
-    const favbg = document.createElement("style");
-    favbg.textContent = `.favThemes .fav-theme-container {background: var(--color-foreground);}`;
+    const favbg = create("style", { id: "favbg" }, `.favThemes .fav-theme-container {background: var(--color-foreground);}`);
     document.head.appendChild(favbg);
   }
 
@@ -48,9 +47,9 @@ async function buildFavSongs(data) {
         <div class="fa fa-x removeFavSong" order=${index} title="${translate("$remove")}""></div>
         <div class="fav-theme-inner">
         <a href='https://myanimelist.net/anime/${item.animeUrl}/'>
-        ${`<img src="${item.animeImage ? item.animeImage : "https://cdn.myanimelist.net/r/42x62/images/questionmark_23.gif?s=f7dcbc4a4603d18356d3dfef8abd655c"}" class="anime-image" alt="${
-          item.animeTitle
-        }">`}</a>
+        ${`<img src="https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif" data-src="${
+          item.animeImage ? item.animeImage : "https://cdn.myanimelist.net/r/42x62/images/questionmark_23.gif"
+        }" class="anime-image lazyload" alt="${item.animeTitle}">`}</a>
         <div class="fav-theme-header">
         <h2>${item.animeTitle}</h2>
         <a class="favThemeSongTitle" style="cursor:pointer">${item.songTitle.replace(/(\(eps \d.*\))/, "")}</a>

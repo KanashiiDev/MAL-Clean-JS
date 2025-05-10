@@ -1,10 +1,23 @@
 async function on_load() {
-  //Replace anime.php
-  const phpUrl = window.location.href;
-  if (phpUrl.includes("/anime.php?id=")) {
-    const newUrl = phpUrl.replace("/anime.php?id=", "/anime/");
-    window.location.href = newUrl + "/";
+  //Change anime.php and manga.php URLs.
+  function replacePHPUrls() {
+    const currentUrl = window.location.href;
+    const url = new URL(currentUrl);
+
+    if (url.pathname === "/anime.php" || url.pathname === "/manga.php") {
+      const id = url.searchParams.get("id");
+      if (id) {
+        const type = url.pathname.includes("anime") ? "anime" : "manga";
+        const newUrl = `${url.origin}/${type}/${id}/`;
+
+        if (currentUrl !== newUrl) {
+          window.location.replace(newUrl);
+        }
+      }
+    }
   }
+  replacePHPUrls();
+
   //Add MalClean Settings to header dropdown
   let pfHeader = $('li:contains("Account Settings")')[0];
   if (!pfHeader) {

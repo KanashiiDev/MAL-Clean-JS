@@ -9,9 +9,12 @@ if (svar.currentlyWatching && location.pathname === "/") {
   getWatching();
   async function getWatching() {
     if (svar.airingDate) {
-      let s = document.createElement("style");
-      s.innerText = `.widget.anime_suggestions.left #widget-currently-watching > div.widget-slide-outer ul > li > a span{opacity: 0;transition: .4s}
-        .widget.anime_suggestions.left div#widget-currently-watching > div.widget-slide-outer ul > li > a:hover span{opacity: 1}`;
+      let s = create(
+        "style",
+        { id: "currentlyAiringStyle" },
+        `.widget.anime_suggestions.left #widget-currently-watching > div.widget-slide-outer ul > li > a span{opacity: 0;transition: .4s}
+        .widget.anime_suggestions.left div#widget-currently-watching > div.widget-slide-outer ul > li > a:hover span{opacity: 1}`
+      );
       document.head.appendChild(s);
     }
     let idArray = [];
@@ -96,7 +99,9 @@ if (svar.currentlyWatching && location.pathname === "/") {
                 // create watching anime div
                 let wDiv = create("li", { class: "btn-anime" });
                 wDiv.innerHTML = `<a class="link" href="${list[x].anime_url}">
-                <img width="124" height="170" class="lazyloaded" src="${list[x].anime_image_path}" alt="${list[x].anime_title}">
+                <img width="124" height="170" class="lazyload" src="https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif" data-src="${list[x].anime_image_path}" alt="${
+                  list[x].anime_title
+                }">
                 <span class="title js-color-pc-constant color-pc-constant">${list[x].anime_title}</span>${nextep ? nextep : ""}</a>`;
                 wDiv.appendChild(ib);
                 wDiv.appendChild(increaseButton);
@@ -187,9 +192,12 @@ if (svar.currentlyReading && location.pathname === "/") {
   getreading();
   async function getreading() {
     if (svar.airingDate) {
-      let s = document.createElement("style");
-      s.innerText = `.widget.anime_suggestions.left #widget-currently-reading > div.widget-slide-outer ul > li > a span{opacity: 0;transition: .4s}
-        .widget.anime_suggestions.left div#widget-currently-reading > div.widget-slide-outer ul > li > a:hover span{opacity: 1}`;
+      let s = create(
+        "style",
+        { id: "currentlyReadingStyle" },
+        `.widget.anime_suggestions.left #widget-currently-reading > div.widget-slide-outer ul > li > a span{opacity: 0;transition: .4s}
+        .widget.anime_suggestions.left div#widget-currently-reading > div.widget-slide-outer ul > li > a:hover span{opacity: 1}`
+      );
       document.head.appendChild(s);
     }
     let user = headerUserName;
@@ -248,7 +256,7 @@ if (svar.currentlyReading && location.pathname === "/") {
                 // Create Reading Manga Div
                 let rDiv = create("li", { class: "btn-anime" });
                 rDiv.innerHTML = `<a class="link" href="${list[x].manga_url}">
-                <img width="124" height="170" class="lazyloaded" src="${list[x].manga_image_path}" alt="${list[x].manga_title}" alt="${list[x].manga_title}">
+                <img width="124" height="170" class="lazyload" src="https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif" data-src="${list[x].manga_image_path}" alt="${list[x].manga_title}" alt="${list[x].manga_title}">
                 <span class="title js-color-pc-constant color-pc-constant">${list[x].manga_title}</span>${nextchap}</a>`;
                 rDiv.appendChild(ib);
                 rDiv.appendChild(increaseButton);

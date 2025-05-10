@@ -49,12 +49,8 @@ innerSettingsButton.addEventListener("click", () => {
 
 // MalClean Inner Settings - Create Setting
 function createSettingSection(title, ...contents) {
-  const section = document.createElement("div");
-  section.className = "setting-section";
-
-  const label = document.createElement("p");
-  label.textContent = title;
-
+  const section = create("div", { class: "setting-section" });
+  const label = create("p", { class: "setting-section-text" }, title);
   section.append(label, ...contents);
   return section;
 }
@@ -79,6 +75,16 @@ function disableButton(button, title) {
     .addClass("disabled")
     .removeClass("btn-active")
     .append(tooltip);
+}
+
+//MalClean Settings - Tooltip Buttons
+function tooltipButton(button, title) {
+  const tooltip = create("div", { class: "tooltip title-note-inner" });
+  tooltip.innerText = title;
+  const btn = $("#" + button);
+  if (!btn.hasClass("disabled")) {
+    btn.addClass("tooltip").append(tooltip);
+  }
 }
 
 // MalClean Settings - Buttons Config

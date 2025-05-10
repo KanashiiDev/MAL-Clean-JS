@@ -204,9 +204,8 @@ function pageFixes(page) {
   }
   if (page === "character") {
     let regex = /(Member Favorites).*/g;
-    let match = document.createElement("p");
     let fav = document.querySelector("#content > table > tbody > tr > td.borderClass");
-    match.innerText = fav.innerText.match(regex);
+    let match = create("p", { id: "memberTotalFavs" }, fav.innerText.match(regex));
     fav.innerHTML = fav.innerHTML.replace(regex, "");
     if (match) {
       document.querySelector("#v-favorite").insertAdjacentElement("beforebegin", match);

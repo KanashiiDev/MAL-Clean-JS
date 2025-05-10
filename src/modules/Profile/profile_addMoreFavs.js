@@ -146,7 +146,7 @@ async function loadMoreFavs(force = "0", storeType = "character", aboutData = nu
     const boxListText = boxlistDetails !== "People" && boxlistDetails !== "Company" ? boxlistDetails : "";
     let type = create("span", { class: "users" }, boxListText);
     if (isMainProfilePage) typeText = typeText === "people" ? "person" : typeText;
-    const img = create("img", { class: "image lazyloaded", src: value.defaultImageSrc, width: "70", height: typeText === "company" ? "70" : "110", border: "0", alt: value.title[0] });
+    const img = create("img", { class: "image lazyload", src:"https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif", ["data-src"]: value.defaultImageSrc, width: "70", height: typeText === "company" ? "70" : "110", border: "0", alt: value.title[0] });
     boxListText ? link.append(title, type, img) : link.append(title, img);
     container.append(link);
     let parent = $(`#${typeText}_favorites .fav-slide`).length ? $(`#${typeText}_favorites .fav-slide`) : $(`.favs.${typeText}`);
@@ -154,7 +154,7 @@ async function loadMoreFavs(force = "0", storeType = "character", aboutData = nu
     if (location.pathname === `/profile/${username}/favorites`) {
       const boxlist = `<div class="boxlist col-4">
       <div class="di-tc">
-      <a href="${value.url}"><img class="image profile-w48 lazyloaded" src="${value.defaultImageSrc}" alt="${titleText}"></a>
+      <a href="${value.url}"><img class="image profile-w48 lazyload" src="https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif" data-src="https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif" data-src="${value.defaultImageSrc}" alt="${titleText}"></a>
       </div>
       <div class="di-tc va-t pl8 data">
       <div class="title"><a href="${value.url}">${titleText}</a></div>

@@ -29,11 +29,16 @@ async function findCustomAbout() {
       if (bgData && bgData !== "...") {
         try {
           custombg = decodeAndParseBase64(bgData, purifyConfigText);
+          const customBgUrl = Array.isArray(custombg) ? custombg[0] : custombg;
           banner.setAttribute(
             "style",
-            `background-color: var(--color-foreground); background: url(${custombg}); background-position: 50% 35%; 
+            `background-color: var(--color-foreground); background: url(${customBgUrl}); background-position: 50% 35%; 
             background-repeat: no-repeat; background-size: cover; height: 330px; position: relative;`
           );
+          //bg Shadow
+          if (Array.isArray(custombg) && custombg[1]) {
+            shadow.setAttribute("style", `background: linear-gradient(180deg,rgba(${custombg[1]},0) 40%,rgba(${custombg[1]},.6)); height: 100%;left: 0;position: absolute;top: 0;width: 100%;`);
+          }
           customModernLayoutFounded = 1;
         } catch (error) {
           console.error("An error occurred while processing the custom profile banner: ", error);

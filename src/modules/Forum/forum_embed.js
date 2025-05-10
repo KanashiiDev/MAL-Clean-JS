@@ -67,18 +67,19 @@ if (svar.embed && /\/(forum)\/.?topicid([\w-]+)?\/?/.test(location.href)) {
       if (imgdata) {
         const publishedYear = data.data.published?.prop?.from?.year;
         const airedYear = data.data.aired?.prop?.from?.year;
-        const genres = document.createElement("div");
-        genres.classList.add("genres");
-        genres.innerHTML = data.data.genres
-          ? data.data.genres
-              .filter((node) => node.name !== "Award Winning")
-              .map((node) => node.name)
-              .toString()
-              .split(",")
-              .join(", ")
-          : "";
-        const details = document.createElement("div");
-        details.classList.add("details");
+        const genres = create(
+          "div",
+          { class: "genres" },
+          data.data.genres
+            ? data.data.genres
+                .filter((node) => node.name !== "Award Winning")
+                .map((node) => node.name)
+                .toString()
+                .split(",")
+                .join(", ")
+            : ""
+        );
+        const details = create("div", { class: "details" });
         const detailsArray = [];
         if (data.data.type) {
           detailsArray.push(data.data.type);
@@ -99,22 +100,14 @@ if (svar.embed && /\/(forum)\/.?topicid([\w-]+)?\/?/.test(location.href)) {
         }
         const detailsArrayLast = detailsArray.length > 0 ? detailsArray[detailsArray.length - 1].toString() : "";
         details.innerHTML = detailsArrayLast.includes("score") ? detailsArray.slice(0, -1).join(" · ") + detailsArray.slice(-1) : detailsArray.join(" · ");
-        const dat = document.createElement("div");
-        dat.classList.add("embed-container");
-        dat.innerHTML = "<a></a>";
-        const namediv = document.createElement("div");
-        namediv.classList.add("embed-inner");
-        const name = document.createElement("a");
-        name.innerText = data.data.title;
-        name.classList.add("embed-title");
+        const dat = create("div", { class: "embed-container" }, "<a></a>");
+        const namediv = create("div", { class: "embed-inner" });
+        const name = create("a", { class: "embed-title" }, data.data.title);
         if (data.data.type && ["Manga", "Manhwa", "Novel"].includes(data.data.type)) {
           name.style = "color: #92d493!important;";
         }
         name.href = data.data.url;
-        const historyimg = document.createElement("a");
-        historyimg.classList.add("embed-image");
-        historyimg.style.backgroundImage = `url(${imgdata})`;
-        historyimg.href = data.data.url;
+        const historyimg = create("a", { class: "embed-image", style: { backgroundImage: `url(${imgdata})` }, href: data.data.url });
         data.data.genres.length > 0 ? (genres.style.display = "block") : dat.classList.add("no-genre");
         namediv.append(name, genres, details);
         dat.appendChild(historyimg);

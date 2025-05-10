@@ -67,7 +67,6 @@ async function changeForeground(color) {
     .page-common .btn-form-submit,.dark-mode .page-common #topSearchText, .page-common #topSearchText
     {background-color: var(--color-foreground2) !important;}
     .dark-mode .page-common .header-notification-item:hover,.page-common .header-notification-item:hover
-    ${defaultMal ? `,.dark-mode .page-common #searchBar.searchBar #topSearchButon,.page-common #searchBar.searchBar #topSearchButon` : ``}
     {background-color: var(--color-foreground4) !important;}
     html .page-common #contentWrapper, .dark-mode .page-common #contentWrapper
     {padding: 10px 0 0 0!important;}
