@@ -3,9 +3,18 @@ async function findCustomCSS() {
 
   let customCSSData = Array.isArray(customCSS) ? customCSS[0] : customCSS;
   let customCSSModern = Array.isArray(customCSS) ? customCSS[1] : null;
+  let customCSSMini = Array.isArray(customCSS) ? customCSS[2] : null;
 
   if (svar.customCSS && customCSSModern) {
     svar.autoModernLayout = false;
+    svar.modernLayout = true;
+    defaultMal = false;
+  }
+
+  if (svar.customCSS && !customCSSModern) {
+    svar.autoModernLayout = true;
+    svar.modernLayout = false;
+    defaultMal = true;
   }
 
   if (customCSSData) {
@@ -17,23 +26,29 @@ async function findCustomCSS() {
     );
 
     document.head.appendChild(styleElement);
-    document.querySelectorAll("style").forEach((style) => {
-      if (style.innerHTML.includes("--fg:") || style.innerHTML.includes("--color-foreground2:")) {
-        style.innerHTML = "";
-      }
-    });
+    if (!customCSSMini) {
+      document.querySelectorAll("style").forEach((style) => {
+        if (style.innerHTML.includes("--fg:") || style.innerHTML.includes("--color-foreground2:")) {
+          style.innerHTML = "";
+        }
+      });
+    }
   }
 
   if (styles) {
-    let styleSheet = create("style", { id: "customCSS" }, styles);
-    document.head.appendChild(styleSheet);
+    let customCSSMain = create("style", { id: "customCSSMain" }, styles);
+    document.head.appendChild(customCSSMain);
   }
-  if ($("html").hasClass("dark-mode")) {
-    styleSheet.innerText = styles + defaultColors + defaultCSSFixes;
-    defaultMal = 1;
+  if (!customCSSMini) {
+    if ($("html").hasClass("dark-mode")) {
+      customCSSMain.innerText = styles + defaultColors + defaultCSSFixes;
+      defaultMal = 1;
+    } else {
+      customCSSMain.innerText = styles + defaultColorsLight + defaultCSSFixes;
+      defaultMal = 1;
+    }
   } else {
-    styleSheet.innerText = styles + defaultColorsLight + defaultCSSFixes;
-    defaultMal = 1;
+    $("style#customCSSFix").remove();
   }
 
   function injectCustomCSS() {

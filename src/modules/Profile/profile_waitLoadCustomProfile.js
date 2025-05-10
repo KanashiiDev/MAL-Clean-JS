@@ -15,7 +15,7 @@ async function imgLoad() {
 async function startCustomProfile() {
   await imgLoad();
   await findCustomAbout();
-  await applyAl();
+  await applyModernLayout();
 
   if (svar.profileHeader && !svar.modernLayout) {
     let title = document.querySelector("#contentWrapper h1");

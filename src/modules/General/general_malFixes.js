@@ -494,3 +494,6 @@ if (location.href === "https://myanimelist.net/anime.php" || location.href === "
   });
   $(".genre-list-col:empty").remove();
 }
+
+// Footer Block Fix
+$("#footer-block").css("max-width", "100%");

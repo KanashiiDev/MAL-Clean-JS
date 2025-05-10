@@ -128,6 +128,8 @@
     "$malBadgesDetailed": "Detailed Badge (Required Modern Profile Layout)",
     "$customCSSTitle": "Custom CSS",
     "$customCSSDesc": "Add custom css to your profile. This will be visible to users with Mal-Clean-JS.",
+    "$customCSSModern": "For Modern Profile Layout",
+    "$customCSSMini": "For minor changes (Keep styles)",
     "$customColorsTitle": "Custom Profile Colors",
     "$customColorsDesc": "Change profile colors. This will be visible to users with Mal-Clean-JS.",
     "$privateProfileTitle": "Profile Privacy",

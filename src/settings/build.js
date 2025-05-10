@@ -102,7 +102,7 @@ async function createDiv() {
     null,
     [cssInput, cssButton, cssRemoveButton],
     ["65% 25% 10%"],
-    [cssmodernLayout, cssmodernLayoutText, cssInfo],
+    [cssmodernLayout, cssmodernLayoutText, '<br>', cssMini, cssMiniText, cssInfo],
     1,
     "profile"
   );
@@ -222,8 +222,12 @@ async function createDiv() {
       }
     }
   });
-
-  getSettings();
+  $("#autoModernLayoutBtn").on("click", async function () {
+    svar.modernLayout = !svar.autoModernLayout;
+    svar.save();
+    getSettings();
+  });
+    getSettings();
 
   //Disable Buttons
   if (defaultMal) {

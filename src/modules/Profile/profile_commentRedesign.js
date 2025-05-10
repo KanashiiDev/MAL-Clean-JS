@@ -1,7 +1,7 @@
 async function newProfileComments(profile) {
   let mainCont = profile ? $("#lastcomment") : $("#content");
   if (profile) {
-    mainCont.css("max-width", "810px");
+    mainCont.css("max-width", "818px");
   } else {
     $('#content div:not(.borderClass):contains("Pages ")').hide();
   }

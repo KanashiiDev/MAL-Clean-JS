@@ -43,7 +43,7 @@ let svar = {
   characterHeader: true,
   characterNameAlt: true,
   profileHeader: false,
-  customCSS: false,
+  customCSS: true,
   modernLayout: false,
   autoModernLayout: false,
   animeInfo: true,

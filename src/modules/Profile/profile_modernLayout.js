@@ -1,4 +1,4 @@
-async function applyAl() {
+async function applyModernLayout() {
   if (svar.modernLayout) {
     //CSS Fix for Modern Profile Layout
     let fixstyle = `
@@ -64,7 +64,7 @@ async function applyAl() {
     .dark-mode .user-profile .user-badges .user-badge,.user-profile .user-badges .user-badge {${defaultMal ? "margin:2px!important" : "margin: 4px!important"}}
     .max{max-height:99999px!important}`;
 
-    var fixstylesheet = create("style", { id: "modernlayoutfix" }, fixstyle.replace(/\n/g, ""));
+    var fixstylesheet = create("style", { id: "modernLayoutCSSFix" }, fixstyle.replace(/\n/g, ""));
     document.head.appendChild(fixstylesheet);
     document.body.style.setProperty("background", "var(--color-background)", "important");
     document.body.style.setProperty("--color-foreground", "var(--color-foregroundOP)", "important");
@@ -234,7 +234,7 @@ async function applyAl() {
     set(1, ".user-image .btn-detail-add-picture", { sa: { 0: "display: flex;flex-direction: column;justify-content: center;" } });
     document.querySelector(".user-image").setAttribute("style", "top: 99px;left: 99px;position: relative;");
     avatar.setAttribute("style", "display: flex;height: inherit;align-items: flex-end;position: relative;width:500px;");
-    name.css({ "font-size": "2rem", "font-weight": "800", left: "35px", top: "-35px", color: "var(--color-main-text-op)", opacity: ".93" });
+    name.css({ "font-size": "1.5rem", "font-weight": "800", left: "35px", top: "-35px", color: "var(--color-main-text-op)", opacity: ".93" });
     name.html(name.html().replace(/'s Profile/g, "\n"));
     avatar.append(name[0]);
     set(2, "#container span.profile-team-title.js-profile-team-title", { sl: { top: "18px" } });
@@ -265,13 +265,13 @@ async function applyAl() {
     set(2, ".user-function.mb8 a", { sal: { 0: "border:none!important;box-shadow:none!important" } });
     set(2, ".user-function.mb8 span", { sal: { 0: "border:none!important;box-shadow:none!important" } });
 
-    if (set(1, ".content-container", { sa: { 0: "display: grid!important;grid-template-columns: 33% auto;margin-top: 20px;justify-content: center;" } })) {
+    if (set(1, ".content-container", { sa: { 0: `display: grid!important;grid-template-columns: 33% auto;${defaultMal ? "gap:10px" : ""};margin-top: 20px;justify-content: center;` } })) {
       set(1, ".container-left", { sa: { 0: "width:auto" } });
       set(1, ".container-right", { sa: { 0: "width:auto;min-width:800px" } });
     }
 
     if (set(1, "#content > table > tbody > tr > td.profile_leftcell", { sa: { 0: "width:auto" } })) {
-      set(1, "#content > table > tbody > tr", { sa: { 0: "display: grid!important;grid-template-columns: 33% auto;margin-top: 10px;justify-content: center;" } });
+      set(1, "#content > table > tbody > tr", { sa: { 0: `display: grid!important;grid-template-columns: 33% auto;${defaultMal ? "gap:10px" : ""};margin-top: 10px;justify-content: center;` } });
       set(1, "#content > table > tbody > tr > td.pl8", { sa: { 0: "width: auto;position:relative;min-width:800px" } });
     }
     if (!isMainProfilePage && svar.profileRemoveLeftSide) {
@@ -294,7 +294,7 @@ async function applyAl() {
       .querySelector("#contentWrapper")
       .setAttribute(
         "style",
-        "width: 1375px;max-width: 1375px!important;min-width:500px; margin: auto;top: -40px;transition:.6s;opacity:1;top: -40px!important;border:0!important;box-shadow:none!important"
+        `width: 1375px;max-width: 1375px!important;min-width:500px; margin: auto;transition:.6s;opacity:1;${defaultMal ? "top: -30px!important" : "top: -40px!important"};border:0!important;box-shadow:none!important`
       );
     let more = document.querySelector(".btn-truncate.js-btn-truncate");
     if (more) {
@@ -306,7 +306,7 @@ async function applyAl() {
       let mangaUpdates = document.querySelector("#statistics .updates.manga");
       let animeStats = document.querySelector("#statistics .stats.anime");
       let animeUpdates = document.querySelector("#statistics .updates.anime");
-      s.setAttribute("style", "width: 810px");
+      s.setAttribute("style", "width: 818px");
       s.children[1].append(mangaStats);
       s.children[2].prepend(animeUpdates);
       s.prepend(document.querySelector("#statistics > div:nth-child(2)"));

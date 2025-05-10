@@ -46,6 +46,10 @@ async function changeForeground(color) {
     let customColors = `:root, body {${cArr.join("\n")}}
     .dark-mode .page-common #headerSmall,.page-common #headerSmall,html .page-common #contentWrapper, .dark-mode .page-common #contentWrapper,.dark-mode .page-common #content
     {background-color: var(--color-background)!important}
+    #currently-popup, .malCleanMainHeader, .malCleanMainContainer,
+    #currently-popup .dataTextButton,.mainbtns,
+    html .page-common .incrementalSearchResultList .list,
+    html .page-common .incrementalSearchResultList,
     .dark-mode .profile.statistics .content-container .container-right .chart-wrapper>.filter,.dark-mode .mal-alert,.dark-mode .mal-alert.danger,.dark-mode .profile.statistics .chart-container-rf .right .filter,
     .dark-mode .mal-alert.secondary,.dark-mode .sceditor-container,.dark-mode .head-config,.dark-mode .profile .navi .tabs .btn-tab,.dark-mode .profile .boxlist-container .boxlist,
     .dark-mode .sceditor-container iframe,.dark-mode .sceditor-container textarea,.dark-mode .user-profile .user-status li,.dark-mode .user-profile .user-status li:nth-of-type(even),
@@ -62,10 +66,13 @@ async function changeForeground(color) {
     .page-common .content-container * {border-color:var(--border-color)!important}
     .dark-mode .page-common #searchBar.searchBar #topSearchText,.page-common #searchBar.searchBar #topSearchText
     {border-left: var(--border-color) 1px solid;}
+    html .page-common .incrementalSearchResultList .list.separator,
+    html .page-common .incrementalSearchResultList .list.focus,
     .dark-mode .page-common .header-notification-dropdown .header-notification-dropdown-inner .header-notification-view-all a,.page-common .header-notification-dropdown .header-notification-dropdown-inner .header-notification-view-all a,
     .dark-mode .page-common #searchBar.searchBar #topSearchValue,.page-common #searchBar.searchBar #topSearchValue,.user-profile .user-button .btn-profile-submit,.dark-mode .page-common .btn-form-submit,
     .page-common .btn-form-submit,.dark-mode .page-common #topSearchText, .page-common #topSearchText
     {background-color: var(--color-foreground2) !important;}
+    html .page-common #top-search-bar.color-pc-constant .incrementalSearchResultList .list.list-bottom,
     .dark-mode .page-common .header-notification-item:hover,.page-common .header-notification-item:hover
     {background-color: var(--color-foreground4) !important;}
     html .page-common #contentWrapper, .dark-mode .page-common #contentWrapper

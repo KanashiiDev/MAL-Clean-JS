@@ -129,6 +129,8 @@
     "$malBadgesDetailed": "Detaylandırılmış Badge (Modern Profil Düzeni Gerektirir)",
     "$customCSSTitle": "Özel CSS",
     "$customCSSDesc": "Profilinize özel css ekleyin. Bu, Mal-Clean-JS'e sahip kullanıcılar tarafından görülebilecektir.",
+    "$customCSSModern": "Modern Profil Düzeni için",
+    "$customCSSMini": "Küçük değişiklikler için (Stilleri koru)",
     "$customColorsTitle": "Özel Profil Renkleri",
     "$customColorsDesc": "Profil renklerini değiştirin. Bu, Mal-Clean-JS'e sahip kullanıcılara görünür olacaktır.",
     "$privateProfileTitle": "Profil Gizliliği",

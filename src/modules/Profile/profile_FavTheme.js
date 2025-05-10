@@ -35,7 +35,7 @@ async function buildFavSongs(data) {
   }
 
   if ((customCSS && customCSS.constructor === Array && customCSS[1]) || (customCSS && customCSS.constructor !== Array) || svar.modernLayout) {
-    const favbg = create("style", { id: "favbg" }, `.favThemes .fav-theme-container {background: var(--color-foreground);}`);
+    const favbg = create("style", { id: "favThemeCSS" }, `.favThemes .fav-theme-container {background: var(--color-foreground);}`);
     document.head.appendChild(favbg);
   }
 

@@ -79,16 +79,13 @@ async function findCustomAbout() {
         }
       }
     }
-    if (customModernLayoutFounded && !svar.autoModernLayout) {
-      svar.modernLayout = true;
+    if (customModernLayoutFounded) {
+      svar.modernLayout = !svar.autoModernLayout;
     }
-    if (
-      (svar.customCSS && customCSS && customCSS.constructor === Array && !customCSS[1]) ||
-      (svar.customCSS && customCSS && customCSS.constructor !== Array) ||
-      (svar.modernLayout && customModernLayoutFounded && svar.autoModernLayout)
-    ) {
-      svar.modernLayout = false;
+    if (svar.customCSS && Array.isArray(customCSS)) {
+      svar.modernLayout = !!customCSS[1];
     }
+
     if (colorMatch && svar.modernLayout) {
       const colorData = colorMatch[0].replace(profileRegex.colors, "$2");
       if (colorData !== "...") {

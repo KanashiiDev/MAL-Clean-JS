@@ -171,7 +171,11 @@ function createCustomSettingDiv(title, description, elementsToAppend, buttonsToA
       }
       if (infoToAppend && Array.isArray(infoToAppend)) {
         infoToAppend.forEach((info) => {
-          infoDiv.append(info);
+          if (info === "<br>") {
+            infoDiv.append(document.createElement("br"));
+          } else {
+            infoDiv.append(info);
+          }
         });
       } else {
         infoDiv.remove();

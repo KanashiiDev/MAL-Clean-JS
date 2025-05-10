@@ -549,7 +549,7 @@ input#year-filter-slider {
     z-index: 9999;
     padding: 20px;
     background-color: rgb(var(--color-foreground));
-    border: solid 1px;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     -webkit-box-shadow: 0 0 15px var(--shadow-color) !important;
     box-shadow: 0 0 15px var(--shadow-color) !important;
@@ -671,6 +671,7 @@ input.maljsNativeInput {
 }
 
 .list-entries .row {
+    border-color: var(--border-color);
     display: flex;
     -webkit-box-pack: justify;
     -webkit-justify-content: space-between;
@@ -785,7 +786,7 @@ input.maljsNativeInput {
 }
 
 .list-entries .section-name {
-    border-bottom: 1px solid!important;
+    border-bottom: 1px solid var(--border-color)!important;
     padding: 10px!important;
     margin: 0!important;
     margin-bottom: 0!important;

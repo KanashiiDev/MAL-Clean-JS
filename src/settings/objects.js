@@ -5,12 +5,14 @@ let removeFgButton = create("button", { class: "mainbtns fa fa-trash removeButto
 let fgColorValue = "var(--color-foreground)";
 let defaultFgColor = getComputedStyle(document.body);
 defaultFgColor = defaultFgColor.getPropertyValue("--color-foreground");
-fgColorSelector.value = defaultFgColor;
+fgColorSelector.value = defaultFgColor.trim();
 
-fgColorSelector.addEventListener("input", (event) => {
+const debouncedFgUpdate = debounce((event) => {
   fgColorValue = event.target.value;
   changeForeground(fgColorValue);
-});
+}, 500);
+
+fgColorSelector.addEventListener("input", debouncedFgUpdate);
 
 updateFgButton.onclick = () => {
   const fgbase64url = encodeAndBase64(fgColorValue);
@@ -181,10 +183,6 @@ function updateBannerBackground(url) {
 }
 const debouncedBgUpdate = debounce((event) => {
   const url = event.target.value.trim();
-  if (url.startsWith("javascript:") || url.startsWith("data:")) {
-    bgInfo.innerText = "Dangerous URL detected.";
-    return;
-  }
   updateBannerBackground(url);
 }, 500);
 
@@ -241,10 +239,6 @@ function updatePfAvatar(url) {
 }
 const debouncedPfUpdate = debounce((event) => {
   const url = event.target.value.trim();
-  if (url.startsWith("javascript:") || url.startsWith("data:")) {
-    pfInfo.innerText = "Dangerous URL detected.";
-    return;
-  }
   updatePfAvatar(url);
 }, 500);
 
@@ -268,13 +262,23 @@ var cssButton = create("button", { class: "mainbtns", id: "customCSS" }, transla
 var cssRemoveButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "customCSSRemove" });
 var cssInfo = create("p", { class: "textpb" }, "");
 let cssInput = create("input", { class: "cssInput", id: "cssInput" });
+
 var cssmodernLayout = create("button", { class: "mainbtns", id: "cssmodernLayout", style: { height: "32px", width: "32px", verticalAlign: "middle" } });
-var cssmodernLayoutText = create("h3", { style: { display: "inline" } }, "Custom CSS + Modern Profile Layout");
+var cssmodernLayoutText = create("h3", { style: { display: "inline" } }, translate("$customCSSModern"));
 let cssmodernLayoutEnabled = false;
 cssmodernLayout.onclick = () => {
   cssmodernLayoutEnabled = !cssmodernLayoutEnabled;
   cssmodernLayout.classList.toggle("btn-active", cssmodernLayoutEnabled);
 };
+
+var cssMini = create("button", { class: "mainbtns", id: "cssMini", style: { height: "32px", width: "32px", verticalAlign: "middle" } });
+var cssMiniText = create("h3", { style: { display: "inline" } }, translate("$customCSSMini"));
+let cssMiniEnabled = false;
+cssMini.onclick = () => {
+  cssMiniEnabled = !cssMiniEnabled;
+  cssMini.classList.toggle("btn-active", cssMiniEnabled);
+};
+
 cssInput.placeholder = translate("$typeHere");
 cssButton.onclick = () => {
   cssInfo.innerText = "";
@@ -283,7 +287,7 @@ cssButton.onclick = () => {
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/\s*([{}:;,])\s*/g, "$1")
       .replace(/\n+/g, "");
-    const cssbase64url = encodeAndBase64([cssInput.value, cssmodernLayoutEnabled]);
+    const cssbase64url = encodeAndBase64([cssInput.value, cssmodernLayoutEnabled, cssMiniEnabled]);
     editAboutPopup(`customCSS/${cssbase64url}`, "css");
     cssInput.addEventListener(`focus`, () => cssInput.select());
   } else {
@@ -382,10 +386,13 @@ let colorValues;
 const colorSelectors = Array.from({ length: customColorLabels.length }, (_, index) => {
   const colorInput = createColorInput();
   colorInput.value = customColorsDefault[index];
-  colorInput.addEventListener("input", (event) => {
+
+  const debouncedCustomColorUpdate = debounce((event) => {
     colorValues = colorSelectors.map((selector) => selector.value);
     applyCustomColors(colorValues);
-  });
+  }, 500);
+
+  colorInput.addEventListener("input", debouncedCustomColorUpdate);
   return colorInput;
 });
 const colorAnimeStats = create("div", { class: "colorGroup" }, "<b>Anime Stats</b>");
