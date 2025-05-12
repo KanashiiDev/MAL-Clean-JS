@@ -1357,6 +1357,27 @@ div#custom-preview-div blockquote.spoiler {
     cursor: pointer
 }
 
+.currentlyGrid {
+    width:100%!important;
+    gap: 12px;
+    display: -ms-grid;
+    display: grid!important;
+    -ms-grid-columns: 1fr 10px 1fr 10px 1fr 10px 1fr 10px 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    justify-items: start
+}
+
+.currentlyGrid6Column {
+    gap: 15px;
+    -ms-grid-columns: 1fr 10px 1fr 10px 1fr 10px 1fr 10px 1fr  10px 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+}
+
+.currentlyGrid6Column img.lazyloaded {
+    width: 100px;
+    height: 146px
+}
+
 .airingInfo {
     color: var(--color-text);
     transition: .4s;
@@ -1389,7 +1410,8 @@ div#custom-preview-div blockquote.spoiler {
     background: var(--color-foregroundOP2);
     padding: 2px 4px !important;
     border-radius: 5px;
-    width: auto !important
+    width: auto!important;
+    max-width: calc(100% - 34px)!important
 }
 
 .airingInfo div:first-child:after {
@@ -1406,17 +1428,17 @@ div#custom-preview-div blockquote.spoiler {
     opacity: 0;
 }
 
-.widget-slide-block:hover #current-left-recently-added-anime.active,
-.widget-slide-block:hover #current-left-recently-added-manga.active,
-.widget-slide-block:hover #current-left-manga.active,
-.widget-slide-block:hover #current-left.active {
+.widget-slide-block:hover #currently-left-recently-added-anime.active,
+.widget-slide-block:hover #currently-left-recently-added-manga.active,
+.widget-slide-block:hover #currently-left-manga.active,
+.widget-slide-block:hover #currently-left.active {
     left: 0 !important;
     opacity: 1 !important
 }
-.widget-slide-block:hover #current-right-recently-added-anime.active,
-.widget-slide-block:hover #current-right-recently-added-manga.active,
-.widget-slide-block:hover #current-right-manga.active,
-.widget-slide-block:hover #current-right.active {
+.widget-slide-block:hover #currently-right-recently-added-anime.active,
+.widget-slide-block:hover #currently-right-recently-added-manga.active,
+.widget-slide-block:hover #currently-right-manga.active,
+.widget-slide-block:hover #currently-right.active {
     right: 0 !important;
     opacity: 1 !important
 }
@@ -1597,6 +1619,16 @@ div#custom-preview-div blockquote.spoiler {
 .malCleanSettingPopup .settingContainer.svar {
     -ms-grid-columns: 35px auto;
     grid-template-columns: 35px auto
+}
+
+.malCleanSettingPopup .settingContainer.slider {
+     display: -webkit-box;
+     display: -webkit-flex;
+     display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    gap: 5px
 }
 
 .mainListBtnDiv .fa-gear {
@@ -1783,6 +1815,66 @@ div#custom-preview-div blockquote.spoiler {
 
 .customColorsInside .colorGroup .colorOption input{
     cursor: pointer
+}
+.user-history-title {
+    width: 80%;
+    -webkit-align-self: center;
+    -ms-flex-item-align: center;
+    -ms-grid-row-align: center;
+    align-self: center
+}
+
+.user-history-date {
+    width:25%;
+    text-align: right
+}
+  
+.user-history-cover-link {
+     margin-left: -10px;
+     height: 70px;
+     width:50px;
+     margin-top: -10px;
+     margin-right: 10px;
+     padding-right: 5px
+}
+
+.user-history-cover {
+    background-size:cover;
+    height: 70px;
+    width:50px;
+    object-fit: cover;
+    -webkit-border-top-right-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    -webkit-border-bottom-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important
+}
+
+.user-history {
+    height: 50px;
+    background-color: var(--color-foreground);
+    margin: 10px 5px;
+    padding: 10px;
+    border:var(--border) solid var(--border-color);
+    -webkit-border-radius: var(--br);
+    border-radius: var(--br);
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-pack: justify;
+    -webkit-justify-content: space-between;
+    -ms-flex-pack: justify;
+    justify-content: space-between;
+    overflow: hidden
+}
+
+.user-history-main .loadmore {
+    cursor: pointer;
+    background: var(--color-foreground);
+    border-radius: var(--border-radius);
+    margin-bottom: 25px;
+    z-index: 2;
+    position: relative
 }
 
 body .malCleanMainContainerList .malCleanSettingButtons {

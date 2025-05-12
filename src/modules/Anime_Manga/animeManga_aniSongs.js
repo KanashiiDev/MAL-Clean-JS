@@ -1,4 +1,3 @@
-/* eslint-disable no-use-before-define */
 async function loadAniSong() {
   if (svar.animeSongs) {
     //Anisongs for MAL

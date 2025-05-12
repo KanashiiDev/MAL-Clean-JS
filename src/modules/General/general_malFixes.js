@@ -277,6 +277,9 @@ function pageFixes(page) {
       //Cleanup
       $.trim($(".characterDiv").contents().not($(".description")).not($(".VoiceActorsDiv")).not($("#horiznav_nav")).not($(".breadcrumb")).not($("h2")).not($("table")).remove());
       $(".description").children().not($("li")).not($("input")).not($("span.spoiler_content")).remove();
+      if ($(".description") && $(".description").text().length === 0) {
+        $(".description").remove();
+      }
 
       //Fix Spoilers
       let spofix = document.querySelectorAll(".spoiler_content > input");

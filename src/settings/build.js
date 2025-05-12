@@ -147,6 +147,7 @@ async function createDiv() {
       { b: buttons["animeInfoBtn"], t: translate("$animeInfoSetting") },
       { b: buttons["currentlyWatchingBtn"], t: translate("$showCurrentlyWatchingAnime") },
       { b: buttons["currentlyReadingBtn"], t: translate("$showCurrentlyReadingManga") },
+      { b: buttons["currentlyGridBtn"], t: translate("$addCurrentlyGrid") },
       { b: buttons["airingDateBtn"], t: translate("$addEpisodeCountdown") },
       { b: buttons["autoAddDateBtn"], t: translate("$autoAddDates") },
       { b: buttons["recentlyAddedAnimeBtn"], t: translate("$showRecentlyAddedAnime") },
@@ -210,6 +211,8 @@ async function createDiv() {
   createSettingDropdown("#animeRelationBtn", "ttl", "relationTTL", 7, translate("$ddRelationTTL"));
   createSettingDropdown("#modernLayoutBtn", "option", "autoModernLayout", false, translate("$ddAutoModernLayout"));
   createSettingDropdown("#animeBannerBtn", "option", "animeBannerMove", false, translate("$ddAnimeBannerMove"));
+  createSettingDropdown("#currentlyGridBtn", "option", "currentlyGrid6Column", false, translate("$addCurrentlyGrid6Column"));
+  createSettingDropdown("#currentlyGridBtn", "option", "currentlyGridAccordion", false, translate("$addCurrentlyGridAccordion"));
   runModulesDropdown();
 
   $(".malCleanSettingButtons input").attr("style", "height: 38px;padding: 0 6px!important");
@@ -240,7 +243,6 @@ async function createDiv() {
     disableButton("headerOpacityBtn", translate("$mcUserStyleModernReqWarn"));
     disableButton("profileRemoveLeftSideBtn", translate("$modernProfileWarn"));
     disableButton("moveBadgesBtn", translate("$modernProfileWarn"));
-    disableButton("actHistoryBtn", translate("$modernProfileWarn"));
     disableButton("profileAnimeGenreBtn", translate("$modernProfileWarn"));
     disableButton("profileMangaGenreBtn", translate("$modernProfileWarn"));
   } else {

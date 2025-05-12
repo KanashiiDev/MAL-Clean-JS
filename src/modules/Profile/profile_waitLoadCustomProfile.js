@@ -44,6 +44,20 @@ async function startCustomProfile() {
       }
     }
   }
+
+  //hide if about me is empty.
+  const aboutDiv = document.querySelector(".user-profile-about");
+  if (aboutDiv) {
+    const links = aboutDiv.querySelectorAll("a");
+    const onlyLink = links.length === 1 ? links[0] : null;
+    const hrefIncludesMalclean = onlyLink?.href?.includes("malcleansettings");
+    if (onlyLink && hrefIncludesMalclean) {
+      const textContent = aboutDiv.textContent.trim();
+      if (!textContent || textContent === onlyLink.textContent.trim()) {
+        aboutDiv.style.display = "none";
+      }
+    }
+  }
   await delay(1000);
   addLoading("forceRemove");
 }

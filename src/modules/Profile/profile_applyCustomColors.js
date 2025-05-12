@@ -53,7 +53,8 @@ async function applyCustomColors(customcolors) {
   #myanimelist #top-search-bar.color-pc-constant #topSearchButon:hover,#myanimelist .header-message-button:hover .icon,#myanimelist .header-notification-button:hover .icon,
   #myanimelist #menu #topSearchText:hover:not(:focus-within) + #topSearchButon i:before,.dark-mode .profile #myanimelist #menu #nav ul a:hover,#myanimelist #horiznav_nav.profile-nav > ul > li > a:hover,
   .profile #myanimelist #menu #nav ul a:hover {
-  color:${tinycolor(customcolors[10]).brighten(25)}!important;}`;
+  color:${tinycolor(customcolors[10]).brighten(25)}!important;}
+  span.di-ib.po-r{color:${customcolors[11]}!important}`;
   if (!styleElement) {
     styleElement = create("style", { id: "customProfileColors" });
     document.head.appendChild(styleElement);

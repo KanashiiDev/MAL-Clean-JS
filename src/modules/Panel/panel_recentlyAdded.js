@@ -16,8 +16,8 @@ if (svar.recentlyAddedAnime && location.pathname === "/") {
         '<option value="Special">Special</option><option value="Music">Music</option><option value="CM">CM</option><option value="PV">PV</option></select></div>' +
         '<div class="widget-content"><div class="mt4">' +
         '<div class="widget-slide-block" id="widget-recently-added-anime">' +
-        '<div id="current-left-recently-added-anime" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div>' +
-        '<div id="current-right-recently-added-anime" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;">' +
+        '<div id="currently-left-recently-added-anime" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div>' +
+        '<div id="currently-right-recently-added-anime" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;">' +
         '<span class="btn-inner" style="display: none;"></span></div><div class="widget-slide-outer">' +
         '<ul class="widget-slide js-widget-slide recent-anime" data-slide="4" style="width: 720px; margin-left: 0px;-webkit-transition:margin-left 0.4s ease-in-out;transition:margin-left 0.4s ease-in-out"></ul>' +
         "</div></div></div></div></div>";
@@ -57,7 +57,7 @@ if (svar.recentlyAddedAnime && location.pathname === "/") {
         buildRecentlyAddedList(list, "#widget-recently-added-anime ul");
         document.querySelector("#recently-added-anime > div > div.widget-header > i").remove();
         document.querySelector("#widget-recently-added-anime > div.widget-slide-outer > ul").children.length > 5
-          ? document.querySelector("#current-right-recently-added-anime").classList.add("active")
+          ? document.querySelector("#currently-right-recently-added-anime").classList.add("active")
           : "";
 
         let animeItemsBackup = Array.from(document.querySelectorAll("#widget-recently-added-anime ul .btn-anime"));
@@ -68,7 +68,7 @@ if (svar.recentlyAddedAnime && location.pathname === "/") {
         const slider = document.querySelector(".widget-slide.js-widget-slide.recent-anime");
         slider.append(loadMoreButton);
         filterRecentlyAdded(animeItemsBackup, ["TV", "Movie"]);
-        updateRecentlyAddedSliders(slider, "#current-left-recently-added-anime", "#current-right-recently-added-anime");
+        updateRecentlyAddedSliders(slider, "#currently-left-recently-added-anime", "#currently-right-recently-added-anime");
 
         loadMoreButton.addEventListener("click", async function () {
           if (loadMoreButton.innerHTML === "Load More") {
@@ -84,7 +84,7 @@ if (svar.recentlyAddedAnime && location.pathname === "/") {
             document.getElementById("recently-added-anime").setAttribute("page", pageCount);
             animeItemsBackup = Array.from(document.querySelectorAll("#widget-recently-added-anime ul .btn-anime"));
             filterRecentlyAdded(animeItemsBackup, selectedType);
-            updateRecentlyAddedSliders(slider, "#current-left-recently-added-anime", "#current-right-recently-added-anime");
+            updateRecentlyAddedSliders(slider, "#currently-left-recently-added-anime", "#currently-right-recently-added-anime");
             slider.append(loadMoreButton);
             document.querySelector("#widget-recently-added-anime ul").style.width = 138 * document.querySelectorAll("#widget-recently-added-anime ul .btn-anime").length + 138 + "px";
             await delay(1000);
@@ -106,38 +106,38 @@ if (svar.recentlyAddedAnime && location.pathname === "/") {
             filterRecentlyAdded(animeItems, selectedType);
           }
           document.querySelector("#widget-recently-added-anime ul").style.width = 138 * document.querySelectorAll("#widget-recently-added-anime ul .btn-anime").length + 138 + "px";
-          updateRecentlyAddedSliders(slider, "#current-left-recently-added-anime", "#current-right-recently-added-anime");
+          updateRecentlyAddedSliders(slider, "#currently-left-recently-added-anime", "#currently-right-recently-added-anime");
           slider.append(loadMoreButton);
         });
 
         // Slider Left
-        document.querySelector("#current-left-recently-added-anime").addEventListener("click", function () {
+        document.querySelector("#currently-left-recently-added-anime").addEventListener("click", function () {
           const slider = document.querySelector(".widget-slide.js-widget-slide.recent-anime");
           const slideWidth = slider.children[0].offsetWidth + 12;
           if (parseInt(slider.style.marginLeft) < 0) {
             slider.style.marginLeft = parseInt(slider.style.marginLeft) + slideWidth + "px";
             document.querySelector("#widget-recently-added-anime > div.widget-slide-outer > ul").children.length > 5
-              ? document.querySelector("#current-right-recently-added-anime").classList.add("active")
+              ? document.querySelector("#currently-right-recently-added-anime").classList.add("active")
               : "";
           }
           if (parseInt(slider.style.marginLeft) > 0) {
             slider.style.marginLeft = -slideWidth + "px";
           }
           if (parseInt(slider.style.marginLeft) === 0) {
-            document.querySelector("#current-left-recently-added-anime").classList.remove("active");
+            document.querySelector("#currently-left-recently-added-anime").classList.remove("active");
           }
         });
 
         // Slider Right
-        document.querySelector("#current-right-recently-added-anime").addEventListener("click", function () {
+        document.querySelector("#currently-right-recently-added-anime").addEventListener("click", function () {
           const slider = document.querySelector(".widget-slide.js-widget-slide.recent-anime");
           const slideWidth = slider.children[0].offsetWidth + 12;
           if (parseInt(slider.style.marginLeft) > -slideWidth * (slider.children.length - 5)) {
             slider.style.marginLeft = parseInt(slider.style.marginLeft) - slideWidth + "px";
-            document.querySelector("#current-left-recently-added-anime").classList.add("active");
+            document.querySelector("#currently-left-recently-added-anime").classList.add("active");
           }
           if (parseInt(slider.style.marginLeft) === -slideWidth * (slider.children.length - 5)) {
-            document.querySelector("#current-right-recently-added-anime").classList.remove("active");
+            document.querySelector("#currently-right-recently-added-anime").classList.remove("active");
           }
         });
       }
@@ -164,8 +164,8 @@ if (svar.recentlyAddedManga && location.pathname === "/") {
         '<option value="Manhwa">Manhwa</option><option value="Manhua">Manhua</option></select></div>' +
         '<div class="widget-content"><div class="mt4">' +
         '<div class="widget-slide-block" id="widget-recently-added-manga">' +
-        '<div id="current-left-recently-added-manga" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div>' +
-        '<div id="current-right-recently-added-manga" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;">' +
+        '<div id="currently-left-recently-added-manga" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div>' +
+        '<div id="currently-right-recently-added-manga" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;">' +
         '<span class="btn-inner" style="display: none;"></span></div><div class="widget-slide-outer">' +
         '<ul class="widget-slide js-widget-slide recent-manga" data-slide="4" style="width: 720px; margin-left: 0px;-webkit-transition:margin-left 0.4s ease-in-out;transition:margin-left 0.4s ease-in-out"></ul>' +
         "</div></div></div></div></div>";
@@ -207,7 +207,7 @@ if (svar.recentlyAddedManga && location.pathname === "/") {
         buildRecentlyAddedList(list, "#widget-recently-added-manga ul");
         document.querySelector("#recently-added-manga > div > div.widget-header > i").remove();
         document.querySelector("#widget-recently-added-manga > div.widget-slide-outer > ul").children.length > 5
-          ? document.querySelector("#current-right-recently-added-manga").classList.add("active")
+          ? document.querySelector("#currently-right-recently-added-manga").classList.add("active")
           : "";
 
         let mangaItemsBackup = Array.from(document.querySelectorAll("#widget-recently-added-manga ul .btn-anime"));
@@ -218,7 +218,7 @@ if (svar.recentlyAddedManga && location.pathname === "/") {
         const slider = document.querySelector(".widget-slide.js-widget-slide.recent-manga");
         slider.append(loadMoreButton);
         filterRecentlyAdded(mangaItemsBackup, ["Manga"]);
-        updateRecentlyAddedSliders(slider, "#current-left-recently-added-manga", "#current-right-recently-added-manga");
+        updateRecentlyAddedSliders(slider, "#currently-left-recently-added-manga", "#currently-right-recently-added-manga");
 
         loadMoreButton.addEventListener("click", async function () {
           if (loadMoreButton.innerHTML === "Load More") {
@@ -233,7 +233,7 @@ if (svar.recentlyAddedManga && location.pathname === "/") {
             document.getElementById("recently-added-manga").setAttribute("page", pageCount);
             mangaItemsBackup = Array.from(document.querySelectorAll("#widget-recently-added-manga ul .btn-anime"));
             filterRecentlyAdded(mangaItemsBackup, selectedType);
-            updateRecentlyAddedSliders(slider, "#current-left-recently-added-manga", "#current-right-recently-added-manga");
+            updateRecentlyAddedSliders(slider, "#currently-left-recently-added-manga", "#currently-right-recently-added-manga");
             slider.append(loadMoreButton);
             document.querySelector("#widget-recently-added-manga ul").style.width = 138 * document.querySelectorAll("#widget-recently-added-manga ul .btn-anime").length + 138 + "px";
             await delay(1000);
@@ -253,38 +253,38 @@ if (svar.recentlyAddedManga && location.pathname === "/") {
             filterRecentlyAdded(mangaItems, selectedType);
           }
           document.querySelector("#widget-recently-added-manga ul").style.width = 138 * document.querySelectorAll("#widget-recently-added-manga ul .btn-anime").length + 138 + "px";
-          updateRecentlyAddedSliders(slider, "#current-left-recently-added-manga", "#current-right-recently-added-manga");
+          updateRecentlyAddedSliders(slider, "#currently-left-recently-added-manga", "#currently-right-recently-added-manga");
           slider.append(loadMoreButton);
         });
 
         // Slider Left
-        document.querySelector("#current-left-recently-added-manga").addEventListener("click", function () {
+        document.querySelector("#currently-left-recently-added-manga").addEventListener("click", function () {
           const slider = document.querySelector(".widget-slide.js-widget-slide.recent-manga");
           const slideWidth = slider.children[0].offsetWidth + 12;
           if (parseInt(slider.style.marginLeft) < 0) {
             slider.style.marginLeft = parseInt(slider.style.marginLeft) + slideWidth + "px";
             document.querySelector("#widget-recently-added-manga > div.widget-slide-outer > ul").children.length > 5
-              ? document.querySelector("#current-right-recently-added-manga").classList.add("active")
+              ? document.querySelector("#currently-right-recently-added-manga").classList.add("active")
               : "";
           }
           if (parseInt(slider.style.marginLeft) > 0) {
             slider.style.marginLeft = -slideWidth + "px";
           }
           if (parseInt(slider.style.marginLeft) === 0) {
-            document.querySelector("#current-left-recently-added-manga").classList.remove("active");
+            document.querySelector("#currently-left-recently-added-manga").classList.remove("active");
           }
         });
 
         // Slider Right
-        document.querySelector("#current-right-recently-added-manga").addEventListener("click", function () {
+        document.querySelector("#currently-right-recently-added-manga").addEventListener("click", function () {
           const slider = document.querySelector(".widget-slide.js-widget-slide.recent-manga");
           const slideWidth = slider.children[0].offsetWidth + 12;
           if (parseInt(slider.style.marginLeft) > -slideWidth * (slider.children.length - 5)) {
             slider.style.marginLeft = parseInt(slider.style.marginLeft) - slideWidth + "px";
-            document.querySelector("#current-left-recently-added-manga").classList.add("active");
+            document.querySelector("#currently-left-recently-added-manga").classList.add("active");
           }
           if (parseInt(slider.style.marginLeft) === -slideWidth * (slider.children.length - 5)) {
-            document.querySelector("#current-right-recently-added-manga").classList.remove("active");
+            document.querySelector("#currently-right-recently-added-manga").classList.remove("active");
           }
         });
       }

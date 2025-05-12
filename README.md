@@ -44,14 +44,53 @@ Made for the <a href="https://userstyles.world/style/10678/myanimelist-clean">My
 <li>Add Activity History <a href="https://files.catbox.moe/ywq9dy.png">[IMAGE]</a></li>
 <li>Redesign Profile Comments <a href="https://files.catbox.moe/k45hbx.png">[IMAGE]</a></li></details></p>
 
-## Build from source
+# Build from Source
+Follow these steps to build the project from source:
 
-"src/" contains a makefile, run "make" there.
-Requires make, m4 and basic shell utilities
+1. **Install Dependencies**: Make sure all required dependencies are installed by running the following command in your terminal: `npm install`
 
-Will build the userscript in src/build/
+2. **Start the Build Process**: To begin the build process, run the following command: `npm run build`. This will compile the project and place the output in the `src/build/` directory.
 
-## Copyright
+3. **Output**: After the build is complete, the userscript will be available in the `src/build/` folder.
+
+---
+
+# Adding a New Language
+
+To add a new language to **MAL-Clean-JS**, follow these steps:
+
+1. **Create a Language File**: In the `src/data/languages/` folder, create a new `.json` file based on the structure of `English.json`.
+
+2. **Build the Script**: After creating your language file, run the `npm run build` script to bundle your changes and create the updated userscript.
+
+3. **Test Your Language File**: Make sure to test your language file locally to verify it works as expected.
+
+4. **Submit a Pull Request**: If you would like to contribute your language file back to the project, feel free to submit a pull request!
+
+---
+
+# Adding a New Module
+
+To add your own custom user module to **MAL-Clean-JS**, please follow the instructions in the detailed guide linked below:
+
+### Steps to Add a Custom User Module
+
+1. **Read the Guide**: Start by visiting our detailed guide on how to add a user module:
+   [How to Add User Module](https://github.com/KanashiiDev/MAL-Clean-JS/blob/main/src/howToAddUserModule.js).
+
+2. **Create Your Module**: After reviewing the guide, you can create your own custom module. A user module might include any functionality that you want to enhance or extend within the script.
+
+3. **Test Your Module**: Make sure to test your module locally to verify it works as expected.
+
+4. **Build the Script**: After adding your custom module, run the `npm run build` script to bundle your changes and create the updated userscript.
+
+5. **Submit a Pull Request**: If you'd like to contribute your module back to the project, feel free to submit a pull request!
+
+By following the steps in the guide, you can easily integrate your user module into **MAL-Clean-JS**.
+
+---
+
+# Copyright
 
 Copyright (C) 2023-2025 KanashiiDev and the Mal-Clean-JS contributors
 

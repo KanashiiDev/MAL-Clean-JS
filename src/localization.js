@@ -1,12 +1,7 @@
 // localization.js
 class LocalizationManager {
   constructor() {
-      this.languages = {
-          "English": m4_include(data/languages/English.json),
-          "Turkish": m4_include(data/languages/Turkish.json),
-          "$raw_keys": m4_include(data/languages/raw_keys.json)
-      };
-      
+      this.languages = __LANGUAGE_JSON__;
       this._initializeRawKeys();
       this._validateCurrentLanguage();
   }

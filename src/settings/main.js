@@ -201,6 +201,7 @@ function initSetting(settingKey, type, defaultValue) {
   }
 }
 
+// Function to create Input settings
 function createInputSetting(settingKey, text) {
   const container = create("div", { class: "settingContainer input" });
   const input = create("input", { class: `${settingKey}Input`, placeholder: "Input" });
@@ -218,6 +219,7 @@ function createInputSetting(settingKey, text) {
   return container;
 }
 
+// Function to create ttl settings
 function createTTLSetting(settingKey, text) {
   const container = create("div", { class: "settingContainer input" });
   const input = create("input", { class: `${settingKey}Input`, placeholder: "Days (Number)" });
@@ -235,8 +237,9 @@ function createTTLSetting(settingKey, text) {
   return container;
 }
 
+// Function to create option settings
 function createOptionSetting(settingKey, text) {
-  const container = create("div", { class: "settingContainer svar" });
+  const container = create("div", { class: "settingContainer svar", id: "settingContainer-" + settingKey });
   const buttons = getButtonsConfig().reduce((acc, { id, setting, text }) => {
     acc[id] = createButton({ id, setting, text });
     return acc;
@@ -252,6 +255,7 @@ function createOptionSetting(settingKey, text) {
   return container;
 }
 
+// Function to create select settings
 function createSelectSetting(settingKey, text, options = [], defaultValue) {
   const container = create("div", { class: "settingContainer input" });
   const label = create("h3", {}, text);
@@ -274,6 +278,42 @@ function createSelectSetting(settingKey, text, options = [], defaultValue) {
   container.appendChild(select);
 
   return container;
+}
+
+// Function to create slider settings
+function createSliderSetting(settingKey, text, options = [], defaultValue) {
+  const [min, max] = options;
+
+  const sliderWrapper = create("div", { class: "settingContainer slider" });
+  const sliderLabel = create("label", { for: settingKey }, text);
+  const sliderInput = create("input", {
+    type: "range",
+    id: settingKey,
+    name: settingKey,
+    min: min,
+    max: max,
+    value: defaultValue,
+    class: "sliderInput",
+  });
+
+  const debouncedUpdate = debounce((event) => {
+    svar[settingKey] = event.target.value;
+    svar.save();
+  }, 500);
+
+  sliderInput.addEventListener("change", debouncedUpdate);
+
+  const sliderValueDisplay = create("span", { class: "sliderValue" }, defaultValue);
+
+  sliderInput.oninput = function () {
+    sliderValueDisplay.textContent = sliderInput.value;
+  };
+
+  sliderWrapper.append(sliderLabel);
+  sliderWrapper.append(sliderInput);
+  sliderWrapper.append(sliderValueDisplay);
+
+  return sliderWrapper;
 }
 
 //MalClean Settings - Create Settings Dropdown
@@ -322,6 +362,9 @@ async function createSettingDropdown(parentElement, type, settingKey, defaultVal
       break;
     case "select":
       settingUI = createSelectSetting(settingKey, text, options);
+      break;
+    case "slider":
+      settingUI = createSliderSetting(settingKey, text, options, defaultValue);
       break;
   }
 

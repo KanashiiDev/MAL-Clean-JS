@@ -4,6 +4,60 @@ let incTimer;
 let incActive = 0;
 let lastClickTime = 0;
 const debounceDelay = 400;
+const collapsedHeight = svar.currentlyGrid6Column ? 318 : 358;
+
+function htmlTemplate(type) {
+  const typeText = type === "anime" ? "watching" : "reading";
+  const typeTranslate = type === "anime" ? translate("$currentlyWatching") : translate("$currentlyReading");
+  const text = `<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span>
+      <h2 class="index_h2_seo"><a href="https://myanimelist.net/${type}list/${headerUserName}?status=1">${typeTranslate}</a></h2>
+      <i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative; margin-left:5px; font-size:12px; font-family:FontAwesome"></i></div>
+      <div class="widget-content"><div class="mt4"><div class="widget-slide-block" id="widget-currently-${typeText}">
+      <div id="currently-left${type === "manga" ? "-manga" : ""}" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div>
+      <div id="currently-right${type === "manga" ? "-manga" : ""}" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;"><span class="btn-inner" style="display: none;"></span></div>
+      <div class="widget-slide-outer">
+      <ul class="widget-slide js-widget-slide ${type === "manga" ? "manga" : ""}" data-slide="4" style="width: 3984px;
+      margin-left: 0px; -webkit-transition: margin-left 0.4s ease-in-out; transition: margin-left 0.4s ease-in-out"></ul>
+      ${svar.currentlyGrid && svar.currentlyGridAccordion ? `</div><div class="accordion" style="display: none; text-align-last: center; height: 25px; margin-top: 5px; width: 100%; position: relative;">
+      <button class="toggle-button" style="height: 25px; width: 100%;overflow: hidden;background: none;border: none;cursor: pointer;">
+      <img class="toggle-icon" src="https://myanimelist.net/images/icon-pulldown2.png?v=163426320" style="position: relative; top: -35px;">
+      </button></div>`: ""}</div></div></div></div>`;
+  return text;
+}
+
+function processGridAccordion(type) {
+  if (!svar.currentlyGridAccordion) return;
+
+  const $container = $(`#widget-currently-${type}`);
+  const $main = $(`#currently-${type}`);
+  const $div = $container.find(".widget-slide");
+  const $btn = $container.find(".toggle-button");
+  const $icon = $container.find(".toggle-icon");
+
+  const isExpandable = $div[0].scrollHeight > collapsedHeight;
+  $btn.attr("data-expanded", "false");
+
+  if (isExpandable) {
+    $div.css({
+      "max-height": `${collapsedHeight}px`,
+      transition: "max-height 0.5s ease",
+    });
+    $container.find(".accordion").show();
+  }
+
+  $btn.off("click").on("click", async function () {
+    const isExpanded = $(this).attr("data-expanded") === "true";
+    $(this).attr("data-expanded", !isExpanded);
+    $div.css("max-height", !isExpanded ? `${$div[0].scrollHeight}px` : `${collapsedHeight}px`);
+    $icon.css("top", !isExpanded ? "5px" : "-35px");
+    if (isExpanded) {
+      const offset = !defaultMal ? 55 : 0;
+      const top = $main[0].getBoundingClientRect().top + window.pageYOffset - offset;
+      window.scrollTo({ top, behavior: "smooth" });
+    }
+  });
+}
+
 if (svar.currentlyWatching && location.pathname === "/") {
   //Create Currently Watching Div
   getWatching();
@@ -19,19 +73,12 @@ if (svar.currentlyWatching && location.pathname === "/") {
     }
     let idArray = [];
     let ep, left, infoData;
-    let user = headerUserName;
-    if (user) {
+
+    if (headerUserName) {
       const currentlyWatchingDiv = create("article", { class: "widget-container left", id: "currently-watching" });
-      currentlyWatchingDiv.innerHTML = `<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span>
-      <h2 class="index_h2_seo"><a href="https://myanimelist.net/animelist/${user}?status=1">Currently Watching</a></h2>
-      <i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative; margin-left:5px; font-size:12px; font-family:FontAwesome"></i></div>
-      <div class="widget-content"><div class="mt4"><div class="widget-slide-block" id="widget-currently-watching">
-      <div id="current-left" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div>
-      <div id="current-right" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;"><span class="btn-inner" style="display: none;"></span></div>
-      <div class="widget-slide-outer"><ul class="widget-slide js-widget-slide" data-slide="4" style="width: 3984px; margin-left: 0px; -webkit-transition: margin-left 0.4s ease-in-out; transition: margin-left 0.4s ease-in-out"></ul>
-      </div></div></div></div></div>`;
+      currentlyWatchingDiv.innerHTML = htmlTemplate("anime");
       //Get watching anime data from user's list
-      const html = await fetch("https://myanimelist.net/animelist/" + user + "?status=1")
+      const html = await fetch("https://myanimelist.net/animelist/" + headerUserName + "?status=1")
         .then((response) => response.text())
         .then(async (data) => {
           var newDocument = new DOMParser().parseFromString(data, "text/html");
@@ -147,38 +194,46 @@ if (svar.currentlyWatching && location.pathname === "/") {
                 });
               }
               document.querySelector("#currently-watching > div > div.widget-header > i").remove();
-              document.querySelector("#widget-currently-watching > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#current-right").classList.add("active") : "";
+              document.querySelector("#widget-currently-watching > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#currently-right").classList.add("active") : "";
             }
 
+            document.querySelector("#widget-currently-watching ul").style.width = 138 * document.querySelectorAll("#widget-currently-watching ul .btn-anime").length + "px";
+
             //Currently Watching - Slider Left
-            document.querySelector("#current-left").addEventListener("click", function () {
+            document.querySelector("#currently-left").addEventListener("click", function () {
               const slider = document.querySelector(".widget-slide");
               const slideWidth = slider.children[0].offsetWidth + 12;
               if (parseInt(slider.style.marginLeft) < 0) {
                 slider.style.marginLeft = parseInt(slider.style.marginLeft) + slideWidth + "px";
-                document.querySelector("#widget-currently-watching > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#current-right").classList.add("active") : "";
+                document.querySelector("#widget-currently-watching > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#currently-right").classList.add("active") : "";
               }
               if (parseInt(slider.style.marginLeft) > 0) {
                 slider.style.marginLeft = -slideWidth + "px";
               }
               if (parseInt(slider.style.marginLeft) === 0) {
-                document.querySelector("#current-left").classList.remove("active");
+                document.querySelector("#currently-left").classList.remove("active");
               }
             });
             //Currently Watching - Slider Right
-            document.querySelector("#current-right").addEventListener("click", function () {
+            document.querySelector("#currently-right").addEventListener("click", function () {
               const slider = document.querySelector(".widget-slide");
               const slideWidth = slider.children[0].offsetWidth + 12;
               if (parseInt(slider.style.marginLeft) > -slideWidth * (slider.children.length - 5)) {
                 slider.style.marginLeft = parseInt(slider.style.marginLeft) - slideWidth + "px";
-                document.querySelector("#current-left").classList.add("active");
+                document.querySelector("#currently-left").classList.add("active");
               }
               if (parseInt(slider.style.marginLeft) === -slideWidth * (slider.children.length - 5)) {
-                document.querySelector("#current-right").classList.remove("active");
+                document.querySelector("#currently-right").classList.remove("active");
               }
             });
             if (svar.customCover) {
               loadCustomCover(1);
+            }
+            if (svar.currentlyGrid) {
+              $("#widget-currently-watching .widget-slide").addClass(`currentlyGrid ${svar.currentlyGrid6Column ? "currentlyGrid6Column" : ""}`);
+              $("#widget-currently-watching #currently-left").remove();
+              $("#widget-currently-watching #currently-right").remove();
+              processGridAccordion("watching");
             }
           }
         });
@@ -191,28 +246,11 @@ if (svar.currentlyReading && location.pathname === "/") {
   //Create Currently Reading Div
   getreading();
   async function getreading() {
-    if (svar.airingDate) {
-      let s = create(
-        "style",
-        { id: "currentlyReadingStyle" },
-        `.widget.anime_suggestions.left #widget-currently-reading > div.widget-slide-outer ul > li > a span{opacity: 0;transition: .4s}
-        .widget.anime_suggestions.left div#widget-currently-reading > div.widget-slide-outer ul > li > a:hover span{opacity: 1}`
-      );
-      document.head.appendChild(s);
-    }
-    let user = headerUserName;
-    if (user) {
+    if (headerUserName) {
       const currentlyReadingDiv = create("article", { class: "widget-container left", id: "currently-reading" });
-      currentlyReadingDiv.innerHTML = `<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span>
-        <h2 class="index_h2_seo"><a href="https://myanimelist.net/mangalist/${user}?status=1">Currently Reading</a></h2>
-        <i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative; margin-left:5px; font-size:12px; font-family:FontAwesome"></i></div>
-        <div class="widget-content"><div class="mt4"><div class="widget-slide-block" id="widget-currently-reading">
-        <div id="current-left-manga" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div>
-        <div id="current-right-manga" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;"><span class="btn-inner" style="display: none;"></span></div>
-        <div class="widget-slide-outer"><ul class="widget-slide js-widget-slide manga" data-slide="4" style="width: 3984px; margin-left: 0px; -webkit-transition: margin-left 0.4s ease-in-out; transition: margin-left 0.4s ease-in-out"></ul>
-        </div></div></div></div></div>`;
+      currentlyReadingDiv.innerHTML = htmlTemplate("manga");
       //Get reading anime data from user's list
-      const html = await fetch("https://myanimelist.net/mangalist/" + user + "?status=1")
+      const html = await fetch("https://myanimelist.net/mangalist/" + headerUserName + "?status=1")
         .then((response) => response.text())
         .then(async (data) => {
           var newDocument = new DOMParser().parseFromString(data, "text/html");
@@ -268,38 +306,45 @@ if (svar.currentlyReading && location.pathname === "/") {
                 };
               }
               document.querySelector("#currently-reading > div > div.widget-header > i").remove();
-              document.querySelector("#widget-currently-reading > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#current-right-manga").classList.add("active") : "";
+              document.querySelector("#widget-currently-reading > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#currently-right-manga").classList.add("active") : "";
             }
-
+            document.querySelector("#widget-currently-reading ul").style.width = 138 * document.querySelectorAll("#widget-currently-reading ul .btn-anime").length + "px";
             //Currently Reading - Slider Left
-            document.querySelector("#current-left-manga").addEventListener("click", function () {
+            document.querySelector("#currently-left-manga").addEventListener("click", function () {
               const slider = document.querySelector(".widget-slide.js-widget-slide.manga");
               const slideWidth = slider.children[0].offsetWidth + 12;
               if (parseInt(slider.style.marginLeft) < 0) {
                 slider.style.marginLeft = parseInt(slider.style.marginLeft) + slideWidth + "px";
-                document.querySelector("#widget-currently-reading > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#current-right-manga").classList.add("active") : "";
+                document.querySelector("#widget-currently-reading > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#currently-right-manga").classList.add("active") : "";
               }
               if (parseInt(slider.style.marginLeft) > 0) {
                 slider.style.marginLeft = -slideWidth + "px";
               }
               if (parseInt(slider.style.marginLeft) === 0) {
-                document.querySelector("#current-left-manga").classList.remove("active");
+                document.querySelector("#currently-left-manga").classList.remove("active");
               }
             });
             //Currently Reading - Slider Right
-            document.querySelector("#current-right-manga").addEventListener("click", function () {
+            document.querySelector("#currently-right-manga").addEventListener("click", function () {
               const slider = document.querySelector(".widget-slide.js-widget-slide.manga");
               const slideWidth = slider.children[0].offsetWidth + 12;
               if (parseInt(slider.style.marginLeft) > -slideWidth * (slider.children.length - 5)) {
                 slider.style.marginLeft = parseInt(slider.style.marginLeft) - slideWidth + "px";
-                document.querySelector("#current-left-manga").classList.add("active");
+                document.querySelector("#currently-left-manga").classList.add("active");
               }
               if (parseInt(slider.style.marginLeft) === -slideWidth * (slider.children.length - 5)) {
-                document.querySelector("#current-right-manga").classList.remove("active");
+                document.querySelector("#currently-right-manga").classList.remove("active");
               }
             });
             if (svar.customCover) {
               loadCustomCover(1);
+            }
+
+            if (svar.currentlyGrid) {
+              $("#widget-currently-reading .widget-slide").addClass(`currentlyGrid ${svar.currentlyGrid6Column ? "currentlyGrid6Column" : ""}`);
+              $("#widget-currently-reading #currently-left-manga").remove();
+              $("#widget-currently-reading #currently-right-manga").remove();
+              processGridAccordion("reading");
             }
           }
         });

@@ -193,7 +193,7 @@ let bgShadowColorValue = "rgba(6,13,34,0)";
 bgShadowColorSelector.addEventListener("input", (event) => {
   const hexColor = event.target.value;
   bgShadowColorValue = hexToRgb(hexColor);
-  shadow.setAttribute(
+  $('.banner#shadow')[0].setAttribute(
     "style",
     `background: linear-gradient(180deg, rgba(${bgShadowColorValue}, 0) 40%, rgba(${bgShadowColorValue}, .6)); height: 100%; left: 0; position: absolute; top: 0; width: 100%;`
   );
@@ -378,9 +378,9 @@ const customColors = create("div", { class: "customColorsInside" });
 let defaultLinkColor = getComputedStyle(document.body);
 defaultLinkColor = defaultLinkColor.getPropertyValue("--color-link");
 
-const customColorLabels = ["Watching", "Completed", "On Hold", "Dropped", "Plan to Watch", "Reading", "Completed", "On Hold", "Dropped", "Plan to Read", "Links"];
+const customColorLabels = ["Watching", "Completed", "On Hold", "Dropped", "Plan to Watch", "Reading", "Completed", "On Hold", "Dropped", "Plan to Read", "Links", "Username"];
 
-const customColorsDefault = ["#338543", "#2d4276", "#c9a31f", "#832f30", "#747474", "#338543", "#2d4276", "#c9a31f", "#832f30", "#747474", defaultLinkColor];
+const customColorsDefault = ["#338543", "#2d4276", "#c9a31f", "#832f30", "#747474", "#338543", "#2d4276", "#c9a31f", "#832f30", "#747474", defaultLinkColor, "#ffffff"];
 
 let colorValues;
 const colorSelectors = Array.from({ length: customColorLabels.length }, (_, index) => {

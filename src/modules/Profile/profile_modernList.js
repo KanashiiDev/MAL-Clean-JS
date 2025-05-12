@@ -307,31 +307,13 @@ if (svar.replaceList) {
     const listsDiv = create("div", { class: "filterListsDiv" });
     listsDiv.append(a_all, a_watching, a_completed, a_planning, a_paused, a_dropped);
     const listCount = create("div", { class: "filterListsCount" });
-    listCount.innerHTML =
-      "(" +
-      document.querySelectorAll(".entry.row").length +
-      ")" +
-      "<br>" +
-      "(" +
-      document.querySelectorAll("#status-section-1 .entry.row").length +
-      ")" +
-      "<br>" +
-      "(" +
-      document.querySelectorAll("#status-section-2 .entry.row").length +
-      ")" +
-      "<br>" +
-      "(" +
-      document.querySelectorAll("#status-section-6 .entry.row").length +
-      ")" +
-      "<br>" +
-      "(" +
-      document.querySelectorAll("#status-section-3 .entry.row").length +
-      ")" +
-      "<br>" +
-      "(" +
-      document.querySelectorAll("#status-section-4 .entry.row").length +
-      ")";
-
+    const total = document.querySelectorAll(".entry.row").length;
+    const section1 = document.querySelectorAll("#status-section-1 .entry.row").length;
+    const section2 = document.querySelectorAll("#status-section-2 .entry.row").length;
+    const section6 = document.querySelectorAll("#status-section-6 .entry.row").length;
+    const section3 = document.querySelectorAll("#status-section-3 .entry.row").length;
+    const section4 = document.querySelectorAll("#status-section-4 .entry.row").length;
+    listCount.innerHTML = `(${total})<br>(${section1})<br>(${section2})<br>(${section6})<br>(${section3})<br>(${section4})`;
     const listsDivContainer = create("div", { class: "filterListsDivContainer" });
     listsDivContainer.append(listsDiv, listCount);
     listFilter.append(listsDivContainer);

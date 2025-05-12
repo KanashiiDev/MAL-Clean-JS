@@ -43,14 +43,6 @@ async function applyModernLayout() {
      #modern-about-me-inner > *, #modern-about-me-inner .l-mainvisual {max-width:420px!important}
     .l-listitem-list-item {-webkit-flex-basis: 64px;flex-basis: 64px;-ms-flex-preferred-size: 64px;}
     .l-listitem-5_5_items {margin-right: -25px;}
-    .user-history-title{width: 80%;-webkit-align-self: center;-ms-flex-item-align: center;-ms-grid-row-align: center;align-self: center;}
-    .user-history-date{width:25%;text-align: right;}
-    .user-history-cover-link{margin-left: -10px;height: 70px;width:50px;margin-top: -10px;margin-right: 10px;padding-right: 5px;}
-    .user-history-cover{background-size:cover;height: 70px;width:50px;object-fit: cover;
-    -webkit-border-top-right-radius: 0 !important;border-top-right-radius: 0 !important;-webkit-border-bottom-right-radius: 0 !important;border-bottom-right-radius: 0 !important;}
-    .user-history {height: 50px;background-color: var(--color-foreground);margin: 10px 5px;padding: 10px;border:var(--border) solid var(--border-color);
-    -webkit-border-radius: var(--br);border-radius: var(--br);display: -webkit-box;display: -webkit-flex;
-    display: -ms-flexbox;display: flex;-webkit-box-pack: justify;-webkit-justify-content: space-between;-ms-flex-pack: justify;justify-content: space-between;overflow: hidden;}
     #horiznav_nav .navactive {color: var(--color-text)!important;background: var(--color-foreground2)!important;padding: 5px!important;}
     .dark-mode .page-common #horiznav_nav ul li,.page-common #horiznav_nav ul li {background: 0 !important}
     .favTooltip {border: var(--border) solid var(--border-color);-webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color);box-shadow: 0 0 var(--shadow-strength) var(--shadow-color);
@@ -70,102 +62,6 @@ async function applyModernLayout() {
     document.body.style.setProperty("--color-foreground", "var(--color-foregroundOP)", "important");
     document.body.style.setProperty("--color-foreground2", "var(--color-foregroundOP2)", "important");
 
-    //Get Activity History from MAL and Cover Image from Jikan API
-    if (svar.actHistory) {
-      const titleImageMap = {};
-      let historyMain = create("div", { class: "user-history-main", id: "user-history-div" });
-      if (document.querySelector("#statistics")) {
-        document.querySelector("#statistics").insertAdjacentElement("beforeend", historyMain);
-      }
-      async function gethistory(l, item) {
-        let title, titleText, ep, date, datenew, id, url, type, historylink, historyimg, oldimg;
-        let wait = 666;
-        let c = l ? l - 12 : 0;
-        let length = l ? l : 12;
-        let head = create("h2", { class: "mt16" }, "Activity");
-        const loading = create("div", { class: "user-history-loading actloading" }, translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin malCleanLoader"></i>');
-        if (!l) {
-          const html = await fetch("https://myanimelist.net/history/" + username)
-            .then((response) => response.text())
-            .then(async (data) => {
-              let newDocument = new DOMParser().parseFromString(data, "text/html");
-              item = newDocument.querySelectorAll("#content > div.history_content_wrapper > table > tbody > tr > td.borderClass:first-child");
-            });
-        }
-
-        length = item.length < length ? item.length : length;
-        historyMain.insertAdjacentElement("afterend", loading);
-
-        for (let x = c; x < length; x++) {
-          if (x === 0) {
-            head.style.marginLeft = "5px";
-            historyMain.appendChild(head);
-          }
-          type = item[x].querySelector("a").href.split(".")[1].split("/")[1];
-          url = item[x].querySelector("a").href;
-          id = item[x].querySelector("a").href.split("=")[1];
-          title = item[x].querySelector("a").outerHTML;
-          titleText = item[x].querySelector("a").innerText.trim();
-          ep = item[x].querySelector("strong").innerText;
-          date = item[x].parentElement.children[1].innerText.split("Edit").join("");
-          datenew = date.includes("Yesterday") || date.includes("Today") || date.includes("hour") || date.includes("minutes") || date.includes("seconds") ? true : false;
-          date = datenew ? date : /\b\d{4}\b/.test(date) ? date : date + " " + new Date().getFullYear();
-          let dat = create("div", { class: "user-history" });
-          let name = create("div", { class: "user-history-title" });
-          let timestamp = new Date(date).getTime();
-          const timestampSeconds = Math.floor(timestamp / 1000);
-          let historydate = create("div", { class: "user-history-date", title: date }, datenew ? date : nativeTimeElement(timestampSeconds));
-          let apiUrl = `https://api.jikan.moe/v4/anime/${id}`;
-          if (type === "anime") {
-            name.innerHTML = "Watched episode " + ep + " of " + '<a href="' + url + '">' + title + "</a>";
-          } else {
-            apiUrl = `https://api.jikan.moe/v4/manga/${id}`;
-            name.innerHTML = "Read chapter " + ep + " of " + '<a href="' + url + '">' + title + "</a>";
-          }
-
-          // Image retrieval function
-          async function getimg(url) {
-            await fetch(apiUrl)
-              .then((response) => response.json())
-              .then((data) => {
-                oldimg = data.data?.images ? data.data.images.jpg.image_url : "https://cdn.myanimelist.net/r/42x62/images/questionmark_23.gif?s=f7dcbc4a4603d18356d3dfef8abd655c";
-                titleImageMap[title] = oldimg; // Map the title to the image
-              });
-          }
-
-          // Check if the title already exists in the map
-          if (titleImageMap[title]) {
-            oldimg = titleImageMap[title];
-            historylink = create("a", { class: "user-history-cover-link", href: url });
-            historyimg = create("img", { class: "user-history-cover lazyload", alt: titleText, src: "https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif", ["data-src"]: oldimg });
-            wait = 99; // If already exists, reduce wait time
-          } else {
-            wait = 999; // If new title, increase wait time
-            await getimg(url);
-            historylink = create("a", { class: "user-history-cover-link", href: url });
-            historyimg = create("img", { class: "user-history-cover lazyload", alt: titleText, src: "https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif", ["data-src"]: oldimg });
-          }
-          historylink.append(historyimg);
-          dat.append(historylink, name);
-          dat.append(historydate);
-          historyMain.appendChild(dat);
-          await loadCustomCover(1);
-          await delay(wait);
-        }
-        loading.remove();
-        if (item.length > length) {
-          let loadmore = create("div", { class: "loadmore" }, "Load More");
-          loadmore.onclick = () => {
-            gethistory(length + 12, item);
-            loadmore.remove();
-          };
-          historyMain.appendChild(loadmore);
-        }
-      }
-      if (document.querySelector("#statistics")) {
-        gethistory();
-      }
-    }
     //Modern Profile Layout
     let about = document.querySelector(".user-profile-about.js-truncate-outer");
     let modernabout = document.querySelector("#modern-about-me");
@@ -294,7 +190,9 @@ async function applyModernLayout() {
       .querySelector("#contentWrapper")
       .setAttribute(
         "style",
-        `width: 1375px;max-width: 1375px!important;min-width:500px; margin: auto;transition:.6s;opacity:1;${defaultMal ? "top: -30px!important" : "top: -40px!important"};border:0!important;box-shadow:none!important`
+        `width: 1375px;max-width: 1375px!important;min-width:500px; margin: auto;transition:.6s;opacity:1;${
+          defaultMal ? "top: -30px!important" : "top: -40px!important"
+        };border:0!important;box-shadow:none!important`
       );
     let more = document.querySelector(".btn-truncate.js-btn-truncate");
     if (more) {
