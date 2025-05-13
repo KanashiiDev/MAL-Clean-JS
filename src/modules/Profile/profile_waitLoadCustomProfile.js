@@ -45,19 +45,28 @@ async function startCustomProfile() {
     }
   }
 
-  //hide if about me is empty.
+  // Hide if about me is empty.
   const aboutDiv = document.querySelector(".user-profile-about");
   if (aboutDiv) {
-    const links = aboutDiv.querySelectorAll("a");
-    const onlyLink = links.length === 1 ? links[0] : null;
-    const hrefIncludesMalclean = onlyLink?.href?.includes("malcleansettings");
-    if (onlyLink && hrefIncludesMalclean) {
-      const textContent = aboutDiv.textContent.trim();
-      if (!textContent || textContent === onlyLink.textContent.trim()) {
+    const wordBreakDiv = aboutDiv.querySelector(".word-break");
+    if (wordBreakDiv) {
+      const hasOnlyMalcleanLink = () => {
+        if (wordBreakDiv.children.length !== 1 || wordBreakDiv.children[0].tagName !== "A") {
+          return false;
+        }
+        const anchor = wordBreakDiv.children[0];
+        if (!anchor.href.includes("malcleansettings")) {
+          return false;
+        }
+        const rawText = wordBreakDiv.textContent.replace(/[\s\u200B-\u200F\uFEFF]/g, "");
+        return rawText === "" || rawText.length <= 1;
+      };
+      if (hasOnlyMalcleanLink()) {
         aboutDiv.style.display = "none";
       }
     }
   }
+
   await delay(1000);
   addLoading("forceRemove");
 }
