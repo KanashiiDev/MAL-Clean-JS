@@ -62,7 +62,7 @@ reloadButton.onclick = () => {
 };
 
 //MalClean Settings - Refresh Page Button Animation
-function reloadset() {
+function reloadWarn() {
   reloadButton.setAttribute("style", "animation:reloadLoop 2.5s infinite");
 }
 
@@ -130,7 +130,7 @@ function createButton({ id, setting, text }) {
       svar[setting] = !svar[setting];
       svar.save();
       getSettings();
-      reloadset();
+      reloadWarn();
     }
   };
   return button;
@@ -198,6 +198,7 @@ function initSetting(settingKey, type, defaultValue) {
   if (svar[settingKey] === undefined) {
     svar[settingKey] = type === "ttl" ? daysToTTL(defaultValue) : defaultValue;
     svar.save();
+    reloadWarn();
   }
 }
 
@@ -212,6 +213,7 @@ function createInputSetting(settingKey, text) {
     debounce((e) => {
       svar[settingKey] = e.target.value;
       svar.save();
+      reloadWarn();
     }, 300)
   );
 
@@ -230,6 +232,7 @@ function createTTLSetting(settingKey, text) {
     debounce((e) => {
       svar[settingKey] = daysToTTL(e.target.value);
       svar.save();
+      reloadWarn();
     }, 300)
   );
 
@@ -272,6 +275,7 @@ function createSelectSetting(settingKey, text, options = [], defaultValue) {
   select.addEventListener("change", (e) => {
     svar[settingKey] = e.target.value;
     svar.save();
+    reloadWarn();
   });
 
   container.appendChild(label);
@@ -299,6 +303,7 @@ function createSliderSetting(settingKey, text, options = [], defaultValue) {
   const debouncedUpdate = debounce((event) => {
     svar[settingKey] = event.target.value;
     svar.save();
+    reloadWarn();
   }, 500);
 
   sliderInput.addEventListener("change", debouncedUpdate);
@@ -314,6 +319,178 @@ function createSliderSetting(settingKey, text, options = [], defaultValue) {
   sliderWrapper.append(sliderValueDisplay);
 
   return sliderWrapper;
+}
+
+function createRecentlyFilter(settingKey, text) {
+  const includedGenreIds = new Set();
+  const excludedGenreIds = new Set();
+
+  const filterValue = svar[settingKey];
+  if (filterValue) {
+    const decoded = decodeURIComponent(filterValue);
+    const params = new URLSearchParams(decoded);
+
+    for (const [key, value] of params.entries()) {
+      if (key === "genre[]") {
+        includedGenreIds.add(parseInt(value));
+      } else if (key === "genre_ex[]") {
+        excludedGenreIds.add(parseInt(value));
+      }
+    }
+  }
+
+  const genreList = [
+    { id: 1, name: "Action" },
+    { id: 2, name: "Adventure" },
+    { id: 5, name: "Avant Garde" },
+    { id: 46, name: "Award Winning" },
+    { id: 28, name: "Boys Love" },
+    { id: 4, name: "Comedy" },
+    { id: 8, name: "Drama" },
+    { id: 10, name: "Fantasy" },
+    { id: 26, name: "Girls Love" },
+    { id: 47, name: "Gourmet" },
+    { id: 14, name: "Horror" },
+    { id: 7, name: "Mystery" },
+    { id: 22, name: "Romance" },
+    { id: 24, name: "Sci-Fi" },
+    { id: 36, name: "Slice of Life" },
+    { id: 30, name: "Sports" },
+    { id: 37, name: "Supernatural" },
+    { id: 45, name: "Suspense" },
+    { id: 42, name: "Josei" },
+    { id: 15, name: "Kids" },
+    { id: 41, name: "Seinen" },
+    { id: 25, name: "Shoujo" },
+    { id: 27, name: "Shounen" },
+    { id: 49, name: "Erotica" },
+    { id: 9, name: "Ecchi" },
+    { id: 12, name: "Hentai" },
+  ].map((genre) => {
+    if (includedGenreIds.has(genre.id)) {
+      return { ...genre, selected: true };
+    } else if (excludedGenreIds.has(genre.id)) {
+      return { ...genre, excluded: true };
+    } else {
+      return genre;
+    }
+  });
+
+  const filterWrapper = create("div", { class: "settingContainer filter anime-search-filter" });
+  filterWrapper.setAttribute("style", "display: grid;grid-template-columns: 1fr 1fr;");
+  function createGenreFilter(containerSelector, genres) {
+    const container = containerSelector;
+    container.classList.add("category-wrapper");
+
+    const header = create("div", { class: "fs10 fw-b mb4 category-type", style: { gridColumn: "1/-1" } }, "Genres");
+    container.appendChild(header);
+    const loadingIndicator = create("div", { class: "recently-genre-indicator" });
+    const debouncedSaveGenres = debounce(() => {
+      if (svar.recentlyAddedAnime && location.pathname === "/" && settingKey === "recentlyAnimeFilter") {
+        createRecentlyAddedWidget("anime");
+      }
+
+      if (svar.recentlyAddedManga && location.pathname === "/" && settingKey === "recentlyMangaFilter") {
+        createRecentlyAddedWidget("manga");
+      }
+      loadingIndicator.remove();
+    }, 2000);
+
+    genres.forEach(({ id, name, selected, excluded }) => {
+      const span = create("span", { class: `mb4 btn-sort-order js-btn-sort-order${selected ? " selected" : excluded ? " crossed" : ""}` });
+
+      const input = create("input", { value: id, type: "checkbox", id: `genre-${id}`, name: selected ? "genre[]" : excluded ? "genre_ex[]" : "genre[]" });
+      input.style.display = "none";
+      if (selected) input.checked = true;
+
+      span.addEventListener("click", () => {
+        if (span.classList.contains("selected")) {
+          span.classList.remove("selected");
+          span.classList.add("crossed");
+          input.name = "genre_ex[]";
+        } else if (span.classList.contains("crossed")) {
+          span.classList.remove("crossed");
+          input.name = "genre[]";
+        } else {
+          span.classList.add("selected");
+          input.name = "genre[]";
+        }
+        svar[settingKey] = buildGenreUrl(svar[settingKey]);
+        svar.save();
+        if (!document.querySelector(".recently-genre-indicator")) {
+          header.append(loadingIndicator);
+        }
+        loadingIndicator.style.display = "none";
+        void loadingIndicator.offsetWidth;
+        loadingIndicator.style.display = "block";
+        debouncedSaveGenres();
+      });
+
+      const label = document.createElement("p");
+      label.textContent = `${name}`;
+
+      span.appendChild(input);
+      span.appendChild(label);
+      container.appendChild(span);
+    });
+
+    const showAll = document.createElement("a");
+    showAll.className = "show-all-btn";
+    showAll.style.display = "none";
+    showAll.textContent = "Show All";
+
+    container.appendChild(showAll);
+  }
+
+  createGenreFilter(filterWrapper, genreList);
+
+  function buildGenreUrl(existingParams = "") {
+    const includedGenres = new Set();
+    const excludedGenres = new Set();
+
+    if (existingParams) {
+      const decoded = decodeURIComponent(existingParams);
+      const params = new URLSearchParams(decoded);
+
+      for (const [key, value] of params.entries()) {
+        if (key === "genre[]") {
+          includedGenres.add(parseInt(value));
+        } else if (key === "genre_ex[]") {
+          excludedGenres.add(parseInt(value));
+        }
+      }
+    }
+
+    filterWrapper.querySelectorAll("input[type='checkbox']").forEach((checkbox) => {
+      const span = checkbox.closest("span");
+      const genreId = parseInt(checkbox.value);
+
+      if (span.classList.contains("selected")) {
+        includedGenres.add(genreId);
+        excludedGenres.delete(genreId);
+      } else if (span.classList.contains("crossed")) {
+        excludedGenres.add(genreId);
+        includedGenres.delete(genreId);
+      } else {
+        includedGenres.delete(genreId);
+        excludedGenres.delete(genreId);
+      }
+    });
+
+    const params = [];
+
+    for (const id of includedGenres) {
+      params.push(`genre%5B%5D=${id}`);
+    }
+
+    for (const id of excludedGenres) {
+      params.push(`genre_ex%5B%5D=${id}`);
+    }
+
+    return params.length ? "&" + params.join("&") : "";
+  }
+
+  return filterWrapper;
 }
 
 //MalClean Settings - Create Settings Dropdown
@@ -361,10 +538,13 @@ async function createSettingDropdown(parentElement, type, settingKey, defaultVal
       settingUI = createOptionSetting(settingKey, text);
       break;
     case "select":
-      settingUI = createSelectSetting(settingKey, text, options);
+      settingUI = createSelectSetting(settingKey, text, options, defaultValue);
       break;
     case "slider":
       settingUI = createSliderSetting(settingKey, text, options, defaultValue);
+      break;
+    case "recentlyFilter":
+      settingUI = createRecentlyFilter(settingKey, text);
       break;
   }
 

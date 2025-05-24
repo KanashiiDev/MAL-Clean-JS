@@ -13,6 +13,9 @@ const pageIsClubs = /\/(clubs)/.test(current);
 const pageIsPeople = /\/(people)\/.?([\w-]+)?\/?/.test(current);
 const pageIsNews = /\/news\/\d/.test(location.href);
 const pageIsCompany = /(anime|manga)\/(producer)\/.?([\w-]+)?\/?/.test(current);
+const pageIsTopAnime = /(topanime.php)/.test(current);
+const pageIsAnimeSeason = /(\/anime\/season)/.test(current);
+const pageIsAnimeGenre = /(\/anime\/genre\/)/.test(current);
 let blockU = create("i", { class: "fa fa-ban mt4 ml12 blockUserIcon" });
 blockU.onclick = () => {
   blockUser(username);
@@ -76,4 +79,28 @@ if (pageIsProfile) {
 
 if (svar.newComments && location.href.includes("https://myanimelist.net/comments.php")) {
   newProfileComments();
+}
+
+if (pageIsTopAnime) {
+  if (svar.hideNonJapaneseAnime) {
+    removeFromTopAnime(nonJapaneseIds);
+  }
+}
+
+if (pageIsAnimeSeason || pageIsAnimeGenre) {
+  if (svar.hideNonJapaneseAnime) {
+    removeFromAnimeSeason(nonJapaneseIds);
+  }
+}
+
+if (pageIsAniMangaPHP && document.querySelector("h1").innerHTML === "Anime Search") {
+  if (svar.hideNonJapaneseAnime) {
+    removeFromAnimeSearch(nonJapaneseIds);
+  }
+}
+
+if (location.pathname === "/") {
+  if (svar.hideNonJapaneseAnime) {
+    removeFromTopAnimeWidget(nonJapaneseIds);
+  }
 }

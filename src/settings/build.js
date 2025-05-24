@@ -102,7 +102,7 @@ async function createDiv() {
     null,
     [cssInput, cssButton, cssRemoveButton],
     ["65% 25% 10%"],
-    [cssmodernLayout, cssmodernLayoutText, '<br>', cssMini, cssMiniText, cssInfo],
+    [cssmodernLayout, cssmodernLayoutText, "<br>", cssMini, cssMiniText, cssInfo],
     1,
     "profile"
   );
@@ -152,15 +152,16 @@ async function createDiv() {
       { b: buttons["autoAddDateBtn"], t: translate("$autoAddDates") },
       { b: buttons["recentlyAddedAnimeBtn"], t: translate("$showRecentlyAddedAnime") },
       { b: buttons["recentlyAddedMangaBtn"], t: translate("$showRecentlyAddedManga") },
+      { b: buttons["recentlyGridBtn"], t: translate("$addRecentlyGrid") },
       { b: buttons["headerSlideBtn"], t: translate("$autoHideHeader") },
       { b: buttons["scrollbarStyleBtn"], t: translate("$changeScrollbarAppearance") },
+      { b: buttons["hideNonJapaneseAnimeBtn"], t: translate("$hideNonJapaneseAnime") },
     ]),
     createListDiv("Anime - Manga", [
       { b: buttons["animeBgBtn"], t: translate("$dynamicBackgroundColor") },
       { b: buttons["animeBannerBtn"], t: translate("$addAnilistBanner") },
       { b: buttons["animeTagBtn"], t: translate("$addAnilistTags") },
       { b: buttons["animeRelationBtn"], t: translate("$replaceRelations") },
-      { b: buttons["relationFilterBtn"], t: translate("$addRelationFilter") },
       { b: buttons["animeSongsBtn"], t: translate("$replaceAnimeSongs") },
       { b: buttons["editPopupBtn"], t: translate("$replaceEditDetails") },
       { b: buttons["animeInfoDesignBtn"], t: translate("$changeInfoDesign") },
@@ -209,10 +210,36 @@ async function createDiv() {
   createSettingDropdown("#embedBtn", "ttl", "embedTTL", 30, translate("$ddEmbedTTL"));
   createSettingDropdown("#animeTagBtn", "ttl", "tagTTL", 7, translate("$ddTagTTL"));
   createSettingDropdown("#animeRelationBtn", "ttl", "relationTTL", 7, translate("$ddRelationTTL"));
+  createSettingDropdown("#animeRelationBtn", "option", "relationFilter", false, translate("$addRelationFilter"));
   createSettingDropdown("#modernLayoutBtn", "option", "autoModernLayout", false, translate("$ddAutoModernLayout"));
   createSettingDropdown("#animeBannerBtn", "option", "animeBannerMove", false, translate("$ddAnimeBannerMove"));
   createSettingDropdown("#currentlyGridBtn", "option", "currentlyGrid6Column", false, translate("$addCurrentlyGrid6Column"));
   createSettingDropdown("#currentlyGridBtn", "option", "currentlyGridAccordion", false, translate("$addCurrentlyGridAccordion"));
+  createSettingDropdown("#recentlyGridBtn", "option", "recentlyGrid6Column", false, translate("$addCurrentlyGrid6Column"));
+  createSettingDropdown("#recentlyGridBtn", "option", "recentlyGridAccordion", false, translate("$addCurrentlyGridAccordion"));
+  createSettingDropdown("#recentlyAddedAnimeBtn", "recentlyFilter", "recentlyAnimeFilter", translate("$addCurrentlyGridAccordion"));
+  createSettingDropdown("#recentlyAddedMangaBtn", "recentlyFilter", "recentlyMangaFilter", translate("$addCurrentlyGridAccordion"));
+  createSettingDropdown("#recentlyAddedAnimeBtn", "select", "recentlyAnimeDefault",svar.recentlyAnimeDefault, translate("$recentlyAnimeDefault"), [
+    { value: "All", label: "All" },
+    { value: "TV,Movie", label: "TV &amp; Movie" },
+    { value: "TV", label: "TV" },
+    { value: "TV Special", label: "TV Special" },
+    { value: "Movie", label: "Movie" },
+    { value: "ONA", label: "ONA" },
+    { value: "OVA", label: "OVA" },
+    { value: "Music", label: "Music" },
+    { value: "CM", label: "CM" },
+  ]);
+  createSettingDropdown("#recentlyAddedMangaBtn", "select", "recentlyMangaDefault", svar.recentlyMangaDefault, translate("$recentlyMangaDefault"), [
+    { value: "All", label: "All" },
+    { value: "Manga", label: "Manga" },
+    { value: "One-shot", label: "One-shot" },
+    { value: "Doujinshi", label: "Doujinshi" },
+    { value: "Light Novel", label: "Light Novel" },
+    { value: "Novel", label: "Novel" },
+    { value: "Manhwa", label: "Manhwa" },
+    { value: "Manhua", label: "Manhua" },
+  ]);
   runModulesDropdown();
 
   $(".malCleanSettingButtons input").attr("style", "height: 38px;padding: 0 6px!important");
@@ -230,7 +257,7 @@ async function createDiv() {
     svar.save();
     getSettings();
   });
-    getSettings();
+  getSettings();
 
   //Disable Buttons
   if (defaultMal) {
@@ -251,6 +278,7 @@ async function createDiv() {
 
   //Add Tooltip to buttons
   tooltipButton("replaceListBtn", translate("$modernAnimeMangaListWarn"));
+  tooltipButton("hideNonJapaneseAnimeBtn", translate("$hideNonJapaneseAnimeWarn"));
 
   //Navigation
   const navButtons = mainInner.querySelectorAll(".malCleanMainHeaderNav button");

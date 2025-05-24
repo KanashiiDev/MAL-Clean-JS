@@ -845,29 +845,47 @@ input.maljsNativeInput {
     display:block
 }
 
-.relationsTarget,
-.relationsExpanded {
-    display: -webkit-box !important;
-    display: -webkit-flex !important;
-    display: -ms-flexbox !important;
-    display: flex !important;
-    -webkit-flex-wrap: wrap;
-    -ms-flex-wrap: wrap;
-    flex-wrap: wrap;
-    gap: 13.5px
+.RelatedEntriesDiv {
+    height: 45px;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-orient: horizontal;
+    -webkit-box-direction: reverse;
+    -webkit-flex-direction: row-reverse;
+    flex-direction: row-reverse;
+    -webkit-box-pack: justify;
+    -webkit-justify-content: space-between;
+    justify-content: space-between
 }
 
-.relationsExpanded {
-    padding-left: 8px
+.relationsTarget {
+    width:100%;
+    overflow:hidden;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    display: block
+}
+    
+.relationsTarget > .relationWrapper {
+    display: -ms-grid!important;
+    display: grid!important;
+    grid-template-columns: repeat(auto-fill, minmax(90px, -webkit-max-content));
+    grid-template-columns: repeat(auto-fill, minmax(90px, max-content));
+    -webkit-justify-content: space-around;
+    justify-content: space-around;
+    gap: 10px
 }
 
 .relations-accordion-button {
     text-align: right;
     cursor: pointer;
     display: block;
-    width: 85px;
-    margin-left: auto;
-    margin-right: 5px
+    float: right;
+    margin: 5px 5px 0 auto
 }
 
 .relationEntry {
@@ -879,6 +897,8 @@ input.maljsNativeInput {
     float: left;
     opacity: 1;
     width: 85px;
+    min-width:85px;
+    min-height:120px;
     overflow: hidden;
     position: relative;
     -webkit-transition-duration: .3s;
@@ -891,9 +911,11 @@ input.maljsNativeInput {
 
 .relationTitle {
     border-bottom: 2px solid;
+    -webkit-transition: .3s;
     transition: .3s;
     width: 100%;
     background: var(--color-foreground2);
+    -webkit-align-content: center;
     align-content: center;
     bottom: 0;
     height: 35px;
@@ -904,13 +926,16 @@ input.maljsNativeInput {
     position: absolute;
     text-align: center;
     opacity: .95;
+    -webkit-border-bottom-left-radius: var(--br);
     border-bottom-left-radius: var(--br);
+    -webkit-border-bottom-right-radius: var(--br);
     border-bottom-right-radius: var(--br)
 }
 
 .relationImg {
     width: 85px;
     height: 120px;
+    -webkit-transition: .3s;
     transition: .3s
 }
 
@@ -919,14 +944,20 @@ input.maljsNativeInput {
 }
 
 .relationEntry:hover .relationImg {
+    -webkit-border-top-right-radius: 0 !important;
     border-top-right-radius: 0 !important;
+    -webkit-border-bottom-right-radius: 0 !important;
     border-bottom-right-radius: 0 !important
 }
 
 .relationEntryRight:hover .relationImg {
+    -webkit-border-top-left-radius: 0 !important;
     border-top-left-radius: 0 !important;
+    -webkit-border-bottom-left-radius: 0 !important;
     border-bottom-left-radius: 0 !important;
+    -webkit-border-top-right-radius: var(--br) !important;
     border-top-right-radius: var(--br) !important;
+    -webkit-border-bottom-right-radius: var(--br) !important;
     border-bottom-right-radius: var(--br) !important
 }
 
@@ -934,38 +965,38 @@ input.maljsNativeInput {
     opacity: 0
 }
 
-.relationEntry:hover .relationDetails {
-    opacity: 1;
-    z-index: 10
-}
-
-.relationDetails:hover {
-    display: none
-}
-
 .relationDetails {
+    -webkit-transition: .3s;
     transition: .3s;
-    opacity: 0;
+    display:none;
     position: absolute;
     top: 0;
-    left: 86px;
+    left:0;
+    width: -webkit-max-content;
+    width: -moz-max-content;
     width: max-content;
     max-width: 300px;
     height: 100px;
     padding: 10px;
     background: var(--color-foregroundOP2);
     z-index: 5;
+    text-align: start;
+    -webkit-border-top-right-radius: var(--br);
     border-top-right-radius: var(--br);
-    border-bottom-right-radius: var(--br)
+    -webkit-border-bottom-right-radius: var(--br);
+    border-bottom-right-radius: var(--br);
 }
 
-.relationDetailsRight {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-    border-top-left-radius: var(--br);
+.relationDetails.relationEntryRight {
+    text-align: end;
+    -webkit-border-bottom-left-radius: var(--br);
     border-bottom-left-radius: var(--br);
-    left: inherit;
-    right: 86px
+    -webkit-border-top-left-radius: var(--br);
+    border-top-left-radius: var(--br);
+    -webkit-border-bottom-right-radius: 0;
+    border-bottom-right-radius: 0;
+    -webkit-border-top-right-radius: 0;
+    border-top-right-radius: 0
 }
 
 .relationDetailsTitle {
@@ -979,8 +1010,18 @@ input.maljsNativeInput {
     color: var(--color-main-text-normal)
 }
 
+#relation-hover-portal {
+    position: absolute;
+    z-index: 9999;
+    pointer-events: none;
+    margin: 0 !important;
+    padding: 0 !important
+}
+
 .aniTagDiv {
+    display: -ms-grid;
     display: grid;
+    -ms-grid-columns: 1fr;
     grid-template-columns: 1fr;
     grid-gap: 6px
 }
@@ -1143,7 +1184,14 @@ input.maljsNativeInput {
     margin: 10px
 }
 
-#widget-currently-watching>div.widget-slide-outer>ul>li:hover span.epBehind,
+#widget-currently-watching .btn-anime,
+#widget-currently-reading .btn-anime,
+#recently-added-anime .btn-anime,
+#recently-added-manga .btn-anime {
+    background-color: var(--color-foreground2)
+}
+
+#widget-currently-watching > div.widget-slide-outer > ul > li:hover span.epBehind,
 #recently-added-anime .btn-anime:hover i,
 #recently-added-manga .btn-anime:hover i,
 #recently-added-anime .btn-anime:hover .recently-added-type,
@@ -1154,6 +1202,13 @@ input.maljsNativeInput {
     opacity: .9 !important
 }
 
+#recently-added-anime li.btn-anime .link,
+#recently-added-manga li.btn-anime .link,
+#currently-watching li.btn-anime .link,
+#currently-reading li.btn-anime .link {
+    position:relative
+}
+
 #recently-added-anime li.btn-anime span,
 #recently-added-manga li.btn-anime span,
 #currently-watching li.btn-anime span,
@@ -1162,13 +1217,13 @@ input.maljsNativeInput {
     -webkit-transition: .3s;
     -o-transition: .3s;
     transition: .3s;
-    width: 93%;
     display: -webkit-box;
     -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.2em;
+    width: calc(100% - 9.5px);
     max-height: 4.45em
 }
 
@@ -1182,12 +1237,38 @@ input.maljsNativeInput {
 #recently-added-anime-load-more,
 #recently-added-manga-load-more {
     width: 124px;
-    height: 171.8px;
+    height: auto;
+    min-height: 101px;
     display: inline-block;
     text-align: center;
     background: var(--color-foreground2);
     align-content: center;
     cursor: pointer
+}
+
+.currently-loading-indicator {
+    background: var(--color-main-text-light)!important;
+    margin-top: -5px
+}
+
+.recently-genre-indicator {
+  height: 3px;
+  background-color: var(--color-foreground4);
+  width: 100%;
+  -webkit-animation: loadingBar 2s ease-in-out infinite;
+          animation: loadingBar 2s ease-in-out infinite;
+  grid-column: 1 / -1;
+  display: none;
+}
+
+@-webkit-keyframes loadingBar {
+  0% { -webkit-transform: scaleX(0); transform: scaleX(0); -webkit-transform-origin: left; transform-origin: left; }
+  100% { -webkit-transform: scaleX(1); transform: scaleX(1); -webkit-transform-origin: left; transform-origin: left; }
+}
+
+@keyframes loadingBar {
+  0% { -webkit-transform: scaleX(0); transform: scaleX(0); -webkit-transform-origin: left; transform-origin: left; }
+  100% { -webkit-transform: scaleX(1); transform: scaleX(1); -webkit-transform-origin: left; transform-origin: left; }
 }
 
 .editCurrently,
@@ -1357,25 +1438,25 @@ div#custom-preview-div blockquote.spoiler {
     cursor: pointer
 }
 
-.currentlyGrid {
-    width:100%!important;
-    gap: 12px;
+.currentlyGrid,
+.recentlyGrid {
+    width: 100%;
     display: -ms-grid;
     display: grid!important;
-    -ms-grid-columns: 1fr 10px 1fr 10px 1fr 10px 1fr 10px 1fr;
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
-    justify-items: start
+    justify-items: center;
 }
 
-.currentlyGrid6Column {
-    gap: 15px;
-    -ms-grid-columns: 1fr 10px 1fr 10px 1fr 10px 1fr 10px 1fr  10px 1fr;
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+.currentlyGrid6Column .btn-anime,
+.recentlyGrid6Column .btn-anime {
+    min-height: 146px;
+    max-height: 146px;
 }
 
-.currentlyGrid6Column img.lazyloaded {
+.currentlyGrid6Column img.lazyloaded,
+.recentlyGrid6Column img.lazyloaded  {
     width: 100px;
-    height: 146px
+    height: 146px;
+    max-height: 146px
 }
 
 .airingInfo {
@@ -1525,11 +1606,16 @@ div#custom-preview-div blockquote.spoiler {
     display: none;
     background-color: var(--color-foreground);
     border-radius: 5px;
-    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
-    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
-    border: var(--border) solid var(--border-color);
+    -webkit-box-shadow: 0 0 10px var(--shadow-color) !important;
+    box-shadow: 0 0 10px var(--shadow-color) !important;
+    border: 1px solid var(--border-color);
     overflow: hidden;
     margin-top: 5px
+}
+
+.tooltipBody.grid {
+    background-color: var(--color-foreground2);
+    z-index:222
 }
 
 .tooltipBody .main {

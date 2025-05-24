@@ -1,219 +1,279 @@
+const RELATION_HEIGHT_THRESHOLD = 120;
+const relationPriority = {
+  ADAPTATION: 0,
+  PREQUEL: 1,
+  SEQUEL: 2,
+  PARENT: 3,
+  ALTERNATIVE: 4,
+  SIDE_STORY: 5,
+  SUMMARY: 6,
+  SPIN_OFF: 7,
+  CHARACTER: 8,
+  OTHER: 9,
+};
+
 async function getRelations() {
-  let relationData, sortedRelations, relationHeight;
-  const relationDiv = create("div", { class: "aniTagDiv" });
-  const relationTargetExpand = create("a", { class: "relations-accordion-button" });
-  const extraRelationsDiv = create("div", { class: "relationsExpanded", style: { display: "none" } });
   const relationTarget = document.querySelector(".related-entries");
-  const relationLocalForage = localforage.createInstance({ name: "MalJS", storeName: "relations" });
-  const relationcacheTTL = svar.relationTTL;
-  let relationCache = await relationLocalForage.getItem(entryId + "-" + entryType);
-  const priorityOrder = { ADAPTATION: 0, PREQUEL: 1, SEQUEL: 2, PARENT: 3, ALTERNATIVE: 4, SIDE_STORY: 5, SUMMARY: 6, SPIN_OFF: 7, CHARACTER: 8, OTHER: 9 };
-  if (!relationCache || relationCache.time + relationcacheTTL < Date.now()) {
-    relationData = await aniAPIRequest();
-    relationData?.data.Media ? (relationData = relationData.data.Media.relations.edges.filter((node) => node.node.idMal !== null)) : null;
-    if (relationData && relationData.length > 0) {
-      // Sort by priorityOrder
-      sortedRelations = relationData.sort((a, b) => {
-        const orderA = priorityOrder[a.relationType];
-        const orderB = priorityOrder[b.relationType];
-        return orderA - orderB;
-      });
-      // Group by relationType
-      let groupedRelations = sortedRelations.reduce((acc, curr) => {
-        if (!acc[curr.relationType]) {
-          acc[curr.relationType] = [];
-        }
-        acc[curr.relationType].push(curr);
-        return acc;
-      }, {});
-      // Sort each group by year
-      for (let type in groupedRelations) {
-        groupedRelations[type].sort((a, b) => {
-          const yearA = a.node.seasonYear ?? a.node.startDate?.year ?? 0;
-          const yearB = b.node.seasonYear ?? b.node.startDate?.year ?? 0;
-          return yearA - yearB;
-        });
-      }
-      // Flatten the grouped and sorted relations into a single array
-      sortedRelations = Object.values(groupedRelations).flat();
-      // relationLocalForage Set Item
-      await relationLocalForage.setItem(entryId + "-" + entryType, {
-        relations: sortedRelations,
-        time: Date.now(),
-      });
-      relationCache = await relationLocalForage.getItem(entryId + "-" + entryType);
-    }
+  if (!relationTarget) return;
+
+  const relationStorage = localforage.createInstance({ name: "MalJS", storeName: "relations" });
+  const cacheTTL = svar.relationTTL;
+  let cache = await relationStorage.getItem(`${entryId}-${entryType}`);
+
+  if (!cache || cache.time + cacheTTL < Date.now()) {
+    cache = await fetchAndCacheRelations(relationStorage);
   }
-  if (relationCache && relationTarget) {
-    $('h2:contains("Related Entries"):last').parent().find("a").remove();
-    $('h2:contains("Related Entries"):last').text("Relations");
-    document.querySelector("#content > table > tbody > tr > td:nth-child(2) > div.rightside.js-scrollfix-bottom-rel > table").style.overflow = "visible";
-    relationTarget.classList.add("relationsTarget");
-    relationTarget.style.setProperty("padding", "10px", "important");
-    relationTarget.classList.add("spaceit-shadow");
-    relationTarget.innerHTML = relationCache.relations
-      .map((node) => {
-        const isManga = node.node.type === "MANGA";
-        const typePath = isManga ? "manga" : "anime";
-        const format = node.node.format ? (node.node.format === "NOVEL" ? (node.node.format = "LIGHT NOVEL") : node.node.format.replace("_", " ")) : node.node.type;
-        const coverImage = node.node.coverImage && node.node.coverImage.large ? node.node.coverImage.large : node.node.coverImage.medium ? node.node.coverImage.medium : "";
-        const borderColor = isManga ? "#92d493" : "#afc7ee";
-        const relationType = node.relationType.split("_").join(" ");
-        const title = node.node.title && node.node.title.romaji ? node.node.title.romaji : "";
-        const year =
-          node.node.type === "MANGA" && node.node.startDate && node.node.startDate.year
-            ? node.node.startDate.year + " · "
-            : node.node.seasonYear
-            ? node.node.seasonYear + " · "
-            : node.node.startDate && node.node.startDate.year
-            ? node.node.startDate.year + " · "
-            : "";
-        const status = node.node.status ? node.node.status.split("_").join(" ") : "";
-        return `
-      <div class='relationEntry'><a class='link' href='/${typePath}/${node.node.idMal}/'>
-      <img class='relationImg' src='${coverImage}' alt='${title}' />
+
+  if (!cache?.relations?.length) return;
+
+  renderRelations(relationTarget, cache.relations);
+  setupExpandCollapse(relationTarget);
+  setupFiltering(relationTarget);
+}
+
+async function fetchAndCacheRelations(storage) {
+  const apiResult = await aniAPIRequest();
+  let relations = apiResult?.data?.Media?.relations?.edges?.filter((r) => r.node.idMal !== null) || [];
+
+  relations.sort((a, b) => relationPriority[a.relationType] - relationPriority[b.relationType]);
+
+  const grouped = relations.reduce((acc, cur) => {
+    const type = cur.relationType;
+    acc[type] = acc[type] || [];
+    acc[type].push(cur);
+    return acc;
+  }, {});
+
+  for (const type in grouped) {
+    grouped[type].sort((a, b) => {
+      const yA = a.node.seasonYear ?? a.node.startDate?.year ?? 0;
+      const yB = b.node.seasonYear ?? b.node.startDate?.year ?? 0;
+      return yA - yB;
+    });
+  }
+
+  const sortedRelations = Object.values(grouped).flat();
+  const cache = { relations: sortedRelations, time: Date.now() };
+  await storage.setItem(entryId + "-" + entryType, cache);
+  return cache;
+}
+
+function renderRelations(container, relations) {
+  container.innerHTML = "";
+
+  relations.forEach((relation) => {
+    const relationHTML = createRelationHTML(relation);
+    container.appendChild(relationHTML);
+  });
+
+  container.classList.add("relationsTarget", "spaceit-shadow");
+  container.style.padding = "12px 4px";
+
+  const header = document.querySelector("h2");
+  if (header && header.textContent.includes("Related Entries")) {
+    header.textContent = "Relations";
+  }
+
+  setupHoverBehavior();
+}
+
+function ensureHoverPortal() {
+  if (!document.getElementById("relation-hover-portal")) {
+    const hoverPortal = create("div", { id: "relation-hover-portal" });
+    document.body.appendChild(hoverPortal);
+  }
+}
+
+function createRelationHTML(node) {
+  const isManga = node.node.type === "MANGA";
+  const typePath = isManga ? "manga" : "anime";
+  const format = node.node.format === "NOVEL" ? "LIGHT NOVEL" : node.node.format?.replace("_", " ") ?? node.node.type;
+  const cover = node.node.coverImage?.large ?? node.node.coverImage?.medium ?? "";
+  const borderColor = isManga ? "#92d493" : "#afc7ee";
+  const relationType = node.relationType.replace(/_/g, " ");
+  const title = node.node.title?.romaji ?? "";
+  const year = node.node.startDate?.year ?? node.node.seasonYear ?? "";
+  const status = node.node.status?.replace(/_/g, " ") ?? "";
+
+  const div = create("div", { class: "relationEntry" });
+
+  div.innerHTML = `
+    <a class='link' href='/${typePath}/${node.node.idMal}/'>
+      <img class='relationImg lazyload' src='https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif' data-src='${cover}' alt='${title}' />
       <span class='relationTitle' style='border-color: ${borderColor}!important;'>${relationType}</span>
       <div class='relationDetails' style='color: ${borderColor}!important;'>
-      ${relationType}
-      <br>
-      <div class='relationDetailsTitle'>${title}</div>
-      ${format} · ${year}${status}
-      </div></a></div>`;
-      })
-      .join("");
+        ${relationType}<br>
+        <div class='relationDetailsTitle'>${title}</div>
+        ${format}${year ? ` · ${year}` : ""}${status ? ` · ${status}` : ""}
+      </div>
+    </a>`;
 
-    function relationDetailsShow() {
-      $(".relationEntry").on("mouseenter", async function () {
-        const el = $(this);
-        const elDetails = $(this).find(".relationDetails");
-        const viewportWidth = window.innerWidth;
-        const divRect = elDetails[0].getBoundingClientRect();
-        const isOverflowing = divRect.left < 0 || divRect.right > viewportWidth;
-        if (isOverflowing) {
-          $(el).addClass("relationEntryRight");
-          $(elDetails).addClass("relationDetailsRight");
+  return div;
+}
+
+async function setupHoverBehavior() {
+  ensureHoverPortal();
+  $(".relationEntry").off("mouseenter mouseleave");
+  $(".relationEntry").on("mouseenter", async function () {
+    const entry = this;
+    const details = entry.querySelector(".relationDetails");
+    if (!details) return;
+
+    const portal = document.getElementById("relation-hover-portal");
+    if (!portal) return;
+
+    portal.innerHTML = "";
+    const cloned = details.cloneNode(true);
+    cloned.style.display = "block";
+    portal.appendChild(cloned);
+    positionHoverPortal(entry, portal);
+  });
+
+  function positionHoverPortal(entry, portal) {
+    const rect = entry.getBoundingClientRect();
+    const spacing = 10;
+    const scrollY = window.scrollY;
+    const scrollX = window.scrollX;
+
+    // Make the portal temporarily visible
+    portal.style.display = "block";
+    portal.style.visibility = "hidden";
+    portal.style.position = "absolute";
+    portal.style.top = "0";
+    portal.style.left = "0";
+    const contentWidth = portal.firstElementChild?.offsetWidth || 300;
+    portal.style.width = `${contentWidth}px`;
+
+    // Double RequestanimationFrame to fit layout
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const portalWidth = portal.offsetWidth || 300;
+        let left = rect.right + scrollX;
+        let top = rect.top + scrollY;
+
+        //If it does not fit to the right
+        if (left + portalWidth + 10 > window.innerWidth + scrollX) {
+          left = rect.left + scrollX - portalWidth;
+          portal.firstElementChild?.classList.add("relationEntryRight");
+          entry.classList.add("relationEntryRight");
         } else {
-          $(el).removeClass("relationEntryRight");
-          $(elDetails).removeClass("relationDetailsRight");
+          portal.firstElementChild?.classList.remove("relationEntryRight");
+          entry.classList.remove("relationEntryRight");
         }
+
+        //Don't go out of the screen
+        left = Math.max(spacing, left);
+        top = Math.max(spacing, top);
+
+        Object.assign(portal.style, {
+          top: `${top}px`,
+          left: `${left}px`,
+          visibility: "visible",
+          zIndex: 9999,
+        });
       });
-      $(".relationEntry").on("mouseleave", async function () {
-        const el = $(this);
-        const elDetails = $(this).find(".relationDetails");
-        $(el).removeClass("relationEntryRight");
-        $(elDetails).removeClass("relationDetailsRight");
-      });
-    }
-
-    relationDetailsShow();
-    if (relationTarget.clientHeight > 144) {
-      relationHeight = relationTarget.clientHeight;
-      const extraRelations = relationTarget.querySelectorAll(".relationEntry");
-      relationTargetExpand.innerHTML = '<i class="fas fa-chevron-down mr4"></i>\nShow More\n';
-      for (let i = 0; i < extraRelations.length; i++) {
-        if (relationTarget.clientHeight > 144) {
-          extraRelationsDiv.appendChild(relationTarget.querySelector(".relationEntry:last-child"));
-        }
-      }
-      relationTarget.append(extraRelationsDiv);
-      const extraDivs = Array.from(extraRelationsDiv.children);
-      const reversedDivs = extraDivs.reverse();
-      extraRelationsDiv.innerHTML = "";
-      reversedDivs.forEach((div) => extraRelationsDiv.appendChild(div));
-      relationTarget.insertAdjacentElement("afterend", relationTargetExpand);
-      relationTarget.querySelector("div:nth-child(1)").style.marginLeft = "8px";
-      extraRelationsDiv.setAttribute("style", "display:none!important");
-      relationTarget.setAttribute("style", "margin-bottom:5px;padding:12px 4px!important");
-      relationTargetExpand.addEventListener("click", function () {
-        if (document.querySelector(".relationsExpanded").style.display === "none") {
-          document.querySelector(".relationsExpanded").setAttribute("style", "display:flex!important");
-          relationTargetExpand.innerHTML = '<i class="fas fa-chevron-up mr4"></i>\nShow Less\n';
-        } else {
-          document.querySelector(".relationsExpanded").setAttribute("style", "display:none!important");
-          relationTargetExpand.innerHTML = '<i class="fas fa-chevron-down mr4"></i>\nShow More\n';
-        }
-      });
-    }
-
-    // Filter Replaced Relations
-    let filterTarget = document.querySelector(".RelatedEntriesDiv .floatRightHeader");
-    if (filterTarget && svar.relationFilter && svar.animeRelation) {
-      let filtered;
-      const relationDefault = relationTarget.innerHTML;
-      const relationFilter = create("div", { class: "relations-filter" });
-      relationFilter.innerHTML =
-        '<label for="relationFilter"></label><select id="relationFilter">' +
-        '<option value="">All</option><option value="ADAPTATION">Adaptation</option><option value="PREQUEL">Prequel</option>' +
-        '<option value="SEQUEL">Sequel</option><option value="PARENT">Parent</option><option value="ALTERNATIVE">Alternative</option><option value="SUMMARY">Summary</option>' +
-        '<option value="SIDE STORY">Side Story</option><option value="SPIN OFF">Spin Off</option><option value="CHARACTER">Character</option><option value="OTHER">Other</option></select>';
-      filterTarget.append(relationFilter);
-      extraRelationsDiv.setAttribute("style", "display: flex!important;height: 0px;overflow: hidden;");
-
-      function filterRelations(title) {
-        if (!relationFilter.children[1].value.length) {
-          relationTarget.innerHTML = relationDefault;
-          filtered = 0;
-        } else {
-          if (!filtered) {
-            relationTarget.innerHTML = relationDefault + extraRelationsDiv.innerHTML;
-            filtered = 1;
-          }
-        }
-
-        const entries = document.querySelectorAll(".relationEntry");
-        for (let i = 0; i < entries.length; i++) {
-          const entry = entries[i];
-          if (filtered) {
-            entry.style.marginLeft = "0";
-          }
-          const relationTitle = entry.querySelector(".relationTitle").textContent;
-          if (title === "" || relationTitle === title) {
-            entry.style.display = "block";
-          } else {
-            entry.style.display = "none";
-          }
-        }
-
-        if (!relationFilter.children[1].value.length) {
-          extraRelationsDiv.setAttribute("style", "display:none!important");
-          relationTargetExpand.setAttribute("style", "display:block!important");
-          relationTargetExpand.innerHTML = '<i class="fas fa-chevron-down mr4"></i>\nShow More\n';
-          if (relationHeight) {
-            relationTarget.setAttribute("style", "margin-bottom: 5px;padding: 12px 4px!important;");
-          } else {
-            relationTarget.setAttribute("style", "padding: 12px 12px!important;");
-          }
-        } else {
-          relationTargetExpand.setAttribute("style", "display:none!important");
-          relationTarget.setAttribute("style", "padding: 12px 12px!important;");
-        }
-        relationDetailsShow();
-      }
-
-      function updateFilterOptions() {
-        const options = document.querySelectorAll("#relationFilter option");
-        const titles = Array.from(document.querySelectorAll(".relationTitle")).map((el) => el.textContent);
-        for (let i = 0; i < options.length; i++) {
-          const option = options[i];
-          if (option.value !== "") {
-            if (!titles.includes(option.value)) {
-              option.remove();
-            }
-          }
-        }
-        if (document.querySelectorAll("#relationFilter option").length <= 2) {
-          document.querySelector(".relations-filter").remove();
-        } else {
-          document.querySelector(".RelatedEntriesDiv").setAttribute("style", "align-content: center;margin-bottom: 10px;");
-          document.querySelector(".RelatedEntriesDiv #related_entries").setAttribute("style", "margin-top: 10px;");
-        }
-      }
-
-      document.getElementById("relationFilter").addEventListener("change", function () {
-        filterRelations(this.value);
-      });
-      filterRelations("");
-      updateFilterOptions();
-    }
+    });
   }
+
+  $(".relationEntry").on("mouseleave", function () {
+    $("#relation-hover-portal").hide().empty();
+  });
+}
+
+function setupExpandCollapse(container) {
+  if (container.clientHeight <= RELATION_HEIGHT_THRESHOLD) return;
+  if (container.querySelector(".relationWrapper")) return;
+  const wrapper = create("div", { class: "relationWrapper" });
+  wrapper.setAttribute("style", `max-height: ${RELATION_HEIGHT_THRESHOLD}px; overflow: hidden; transition: max-height 0.4s ease; padding: 5px;`);
+
+  //Move all content into wrapper
+  while (container.firstChild) {
+    wrapper.appendChild(container.firstChild);
+  }
+  container.appendChild(wrapper);
+  const shouldShowExpand = wrapper.scrollHeight > getTotalHeight(wrapper);
+  const expandBtn = create(
+    "a",
+    { class: "relations-accordion-button", ["expanded"]: "false", style: { display: shouldShowExpand ? "block" : "none" } },
+    `<i class="fas fa-chevron-down mr4"></i> ${translate("$showMore")}`
+  );
+  expandBtn.addEventListener("click", () => {
+    if (!wrapper.style.transition) {
+      wrapper.style.transition = "max-height 0.4s ease";
+    }
+    const isExpanded = expandBtn.getAttribute("expanded") === "true";
+    if (isExpanded) {
+      wrapper.style.maxHeight = `${RELATION_HEIGHT_THRESHOLD}px`;
+      expandBtn.innerHTML = `<i class="fas fa-chevron-down mr4"></i> ${translate("$showMore")}`;
+      expandBtn.setAttribute("expanded", "false");
+    } else {
+      wrapper.style.maxHeight = `${wrapper.scrollHeight}px`;
+      expandBtn.innerHTML = `<i class="fas fa-chevron-up mr4"></i> ${translate("$showLess")}`;
+      expandBtn.setAttribute("expanded", "true");
+    }
+  });
+
+  container.insertAdjacentElement("afterend", expandBtn);
+}
+
+function setupFiltering(container) {
+  const relatedDiv = document.querySelector(".RelatedEntriesDiv");
+  const floatHeader = relatedDiv.querySelector(".floatRightHeader");
+  if (!floatHeader) return;
+
+  const filterDiv = create("div", { class: "relations-filter" });
+  const select = create("select", { id: "relationFilter" });
+  function normalizeType(str) {
+    return str
+      .toLowerCase()
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+      .trim();
+  }
+
+  const allOptions = Object.keys(relationPriority)
+    .map((type) => {
+      const label = normalizeType(type);
+
+      return `<option value="${type}">${label}</option>`;
+    })
+    .join("");
+
+  select.innerHTML = `<option value="">All</option>${allOptions}`;
+  filterDiv.appendChild(select);
+  floatHeader.appendChild(filterDiv);
+
+  const titles = Array.from(container.querySelectorAll(".relationTitle")).map((el) => el.textContent);
+
+  Array.from(select.options).forEach((option) => {
+    if (option.value !== "" && !titles.some((title) => normalizeType(title) === normalizeType(option.value))) {
+      option.remove();
+    }
+  });
+
+  select.addEventListener("change", async () => {
+    const selected = select.value;
+    const entries = container.querySelectorAll(".relationEntry");
+
+    entries.forEach((entry) => {
+      const relationTitle = entry.querySelector(".relationTitle")?.textContent ?? "";
+      const matches = selected === "" || relationTitle === selected.replace("_", " ");
+      entry.style.display = matches ? "block" : "none";
+    });
+
+    const wrapper = container.querySelector(".relationWrapper");
+    const expandBtn = document.querySelector(".relations-accordion-button");
+
+    if (wrapper && expandBtn) {
+      wrapper.style.maxHeight = `${RELATION_HEIGHT_THRESHOLD}px`;
+      expandBtn.innerHTML = `<i class="fas fa-chevron-down mr4"></i> ${translate("$showMore")}`;
+      expandBtn.setAttribute("expanded", "false");
+      wrapper.style.transition = "";
+
+      requestAnimationFrame(async () => {
+        const shouldShowExpand = wrapper.scrollHeight > getTotalHeight(wrapper);
+        expandBtn.style.display = shouldShowExpand ? "block" : "none";
+      });
+    }
+  });
 }

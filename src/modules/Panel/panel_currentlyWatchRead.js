@@ -4,7 +4,7 @@ let incTimer;
 let incActive = 0;
 let lastClickTime = 0;
 const debounceDelay = 400;
-const collapsedHeight = svar.currentlyGrid6Column ? 318 : 358;
+const collapsedHeight = svar.currentlyGrid6Column ? 315 : 370;
 
 function htmlTemplate(type) {
   const typeText = type === "anime" ? "watching" : "reading";
@@ -16,16 +16,20 @@ function htmlTemplate(type) {
       <div id="currently-left${type === "manga" ? "-manga" : ""}" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div>
       <div id="currently-right${type === "manga" ? "-manga" : ""}" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;"><span class="btn-inner" style="display: none;"></span></div>
       <div class="widget-slide-outer">
-      <ul class="widget-slide js-widget-slide ${type === "manga" ? "manga" : ""}" data-slide="4" style="width: 3984px;
+      <ul class="widget-slide js-widget-slide ${type === "manga" ? "manga" : ""}" style="width: 3984px;
       margin-left: 0px; -webkit-transition: margin-left 0.4s ease-in-out; transition: margin-left 0.4s ease-in-out"></ul>
-      ${svar.currentlyGrid && svar.currentlyGridAccordion ? `</div><div class="accordion" style="display: none; text-align-last: center; height: 25px; margin-top: 5px; width: 100%; position: relative;">
+      ${
+        svar.currentlyGrid && svar.currentlyGridAccordion
+          ? `</div><div class="accordion" style="display: none; text-align-last: center; height: 25px; margin-top: 5px; width: 100%; position: relative;">
       <button class="toggle-button" style="height: 25px; width: 100%;overflow: hidden;background: none;border: none;cursor: pointer;">
       <img class="toggle-icon" src="https://myanimelist.net/images/icon-pulldown2.png?v=163426320" style="position: relative; top: -35px;">
-      </button></div>`: ""}</div></div></div></div>`;
+      </button></div>`
+          : ""
+      }</div></div></div></div>`;
   return text;
 }
 
-function processGridAccordion(type) {
+async function processGridAccordion(type) {
   if (!svar.currentlyGridAccordion) return;
 
   const $container = $(`#widget-currently-${type}`);
@@ -33,14 +37,13 @@ function processGridAccordion(type) {
   const $div = $container.find(".widget-slide");
   const $btn = $container.find(".toggle-button");
   const $icon = $container.find(".toggle-icon");
-
   const isExpandable = $div[0].scrollHeight > collapsedHeight;
   $btn.attr("data-expanded", "false");
 
   if (isExpandable) {
     $div.css({
       "max-height": `${collapsedHeight}px`,
-      transition: "max-height 0.5s ease",
+      transition: "max-height 0.4s ease",
     });
     $container.find(".accordion").show();
   }
@@ -51,303 +54,212 @@ function processGridAccordion(type) {
     $div.css("max-height", !isExpanded ? `${$div[0].scrollHeight}px` : `${collapsedHeight}px`);
     $icon.css("top", !isExpanded ? "5px" : "-35px");
     if (isExpanded) {
-      const offset = !defaultMal ? 55 : 0;
+      const offset = !defaultMal ? 55 : 10;
       const top = $main[0].getBoundingClientRect().top + window.pageYOffset - offset;
+      await delay(400);
       window.scrollTo({ top, behavior: "smooth" });
     }
   });
 }
 
-if (svar.currentlyWatching && location.pathname === "/") {
-  //Create Currently Watching Div
-  getWatching();
-  async function getWatching() {
-    if (svar.airingDate) {
-      let s = create(
-        "style",
-        { id: "currentlyAiringStyle" },
-        `.widget.anime_suggestions.left #widget-currently-watching > div.widget-slide-outer ul > li > a span{opacity: 0;transition: .4s}
-        .widget.anime_suggestions.left div#widget-currently-watching > div.widget-slide-outer ul > li > a:hover span{opacity: 1}`
-      );
-      document.head.appendChild(s);
-    }
-    let idArray = [];
-    let ep, left, infoData;
+async function createCurrentlyWidget(type) {
+  const isAnime = type === "anime";
+  const typeText = isAnime ? "watching" : "reading";
+  const listType = isAnime ? "animelist" : "mangalist";
+  const idKey = isAnime ? "anime_id" : "manga_id";
+  const titleKey = isAnime ? "anime_title" : "manga_title";
+  const imgKey = isAnime ? "anime_image_path" : "manga_image_path";
+  const urlKey = isAnime ? "anime_url" : "manga_url";
+  const progressKey = isAnime ? "num_watched_episodes" : "num_read_chapters";
+  const totalKey = isAnime ? "anime_num_episodes" : "manga_num_chapters";
+  const widgetId = `currently-${typeText}`;
+  const sliderId = `#widget-currently-${typeText}`;
+  const leftBtnId = `currently-left${isAnime ? "" : "-manga"}`;
+  const rightBtnId = `currently-right${isAnime ? "" : "-manga"}`;
+  const defWidth = svar.currentlyGrid6Column && svar.currentlyGrid ? 102 : 124;
+  const defHeight = svar.currentlyGrid6Column && svar.currentlyGrid ? 147 : 170;
 
-    if (headerUserName) {
-      const currentlyWatchingDiv = create("article", { class: "widget-container left", id: "currently-watching" });
-      currentlyWatchingDiv.innerHTML = htmlTemplate("anime");
-      //Get watching anime data from user's list
-      const html = await fetch("https://myanimelist.net/animelist/" + headerUserName + "?status=1")
-        .then((response) => response.text())
-        .then(async (data) => {
-          var newDocument = new DOMParser().parseFromString(data, "text/html");
-          let list = JSON.parse(newDocument.querySelector("#list-container > div.list-block > div > table").getAttribute("data-items"));
-          if (list) {
-            document.querySelector("#content > div.left-column").prepend(currentlyWatchingDiv);
-            await processList();
-            async function processList() {
-              if (svar.airingDate) {
-                for (const item of list) {
-                  idArray.push(item.anime_id);
-                }
-                //get anime time until airing info from Anilist API
-                const queries = idArray.map((id, index) => `Media${index}: Media(idMal: ${id}, type: ANIME) {nextAiringEpisode {timeUntilAiring episode}}`);
-                const fullQuery = `query {${queries.join("\n")}}`;
-                infoData = await fetchAnimeData();
-                async function fetchAnimeData() {
-                  for (let x = 0; x < 5; x++) {
-                    infoData = await AnilistAPI(fullQuery);
-                    if (infoData) {
-                      return infoData;
-                    }
-                    await delay(1000);
-                  }
-                  // if api error
-                  let d = document.querySelector("#currently-watching > div > div.widget-header");
-                  if (d) {
-                    let e = create("span", { class: "currently-watching-error", style: { float: "right", display: "inline-block" } }, "API Error. Unable to get next episode countdown ");
-                    let r = create("i", { class: "fa-solid fa-rotate-right", style: { cursor: "pointer", color: "var(--color-link)" } });
-                    r.onclick = () => {
-                      currentlyWatchingDiv.remove();
-                      getWatching();
-                    };
-                    e.append(r);
-                    d.append(e);
-                  }
-                }
-              }
-              // if watching anime still airing, add time until airing
-              for (let x = 0; x < list.length; x++) {
-                let currep, nextep;
-                if (svar.airingDate && infoData) {
-                  const media = infoData.data["Media" + x];
-                  ep = media.nextAiringEpisode ? media.nextAiringEpisode.episode : "";
-                  const airing = media.nextAiringEpisode ? media.nextAiringEpisode.timeUntilAiring : "";
-                  left = ep && airing ? "<div id=" + airing + ' class="airingInfo"><div>Ep ' + ep + "</div>" + "<div>" + (await airingTime(airing)) + "</div></div>" : "";
-                  let info = [ep, left];
-                  if (info) {
-                    currep = info[0] && info[0] !== 1 ? await episodesBehind(info[0], list[x].num_watched_episodes) : 0;
-                    nextep = svar.airingDate && info[1] ? info[1] : "";
-                    if (currep) {
-                      nextep += '<span class="epBehind">' + currep + '</span><div class="behindWarn"></div>';
-                    }
-                  }
-                }
-                if (!nextep || !infoData) {
-                  nextep =
-                    '<div id="700000" class="airingInfo" style="padding: 8px 0px"><div style="padding-top:3px">' +
-                    list[x].num_watched_episodes +
-                    (list[x].anime_num_episodes !== 0 ? " / " + list[x].anime_num_episodes : "") +
-                    "</div></div>";
-                }
-                let ib = create("i", { class: "fa fa-pen editCurrently", id: list[x].anime_id });
-                let increaseButton = create("i", { class: "fa fa-plus incButton", id: list[x].anime_id });
-                // create watching anime div
-                let wDiv = create("li", { class: "btn-anime" });
-                wDiv.innerHTML = `<a class="link" href="${list[x].anime_url}">
-                <img width="124" height="170" class="lazyload" src="https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif" data-src="${list[x].anime_image_path}" alt="${
-                  list[x].anime_title
-                }">
-                <span class="title js-color-pc-constant color-pc-constant">${list[x].anime_title}</span>${nextep ? nextep : ""}</a>`;
-                wDiv.appendChild(ib);
-                wDiv.appendChild(increaseButton);
-                document.querySelector("#widget-currently-watching ul").append(wDiv);
-                ib.onclick = async () => {
-                  await editPopup(ib.id);
-                  currentlyWatchingDiv.remove();
-                  getWatching();
-                };
-                increaseButton.onclick = async () => {
-                  const currentTime = new Date().getTime();
-                  if (currentTime - lastClickTime < debounceDelay || (incActive !== 0 && incActive !== ib.id)) {
-                    return;
-                  }
-                  if (incActive === 0) {
-                    incActive = ib.id;
-                  }
-                  lastClickTime = currentTime;
-                  incCount++;
-                  increaseButton.innerText = incCount.toString();
-                  clearTimeout(incTimer);
-                  incTimer = setTimeout(async function () {
-                    await editPopup(ib.id, null, true, incCount);
-                    currentlyWatchingDiv.remove();
-                    getWatching();
-                    incCount = 0;
-                    incActive = 0;
-                  }, 2000);
-                };
-              }
-              // sort by time until airing
-              if (svar.airingDate) {
-                let airingDivs = Array.from(document.querySelectorAll("#widget-currently-watching ul li"));
-                let airingMainDiv = document.querySelector("#widget-currently-watching ul");
-                airingDivs.sort(function (a, b) {
-                  let idA = a.children[0]?.children[2]?.id;
-                  let idB = b.children[0]?.children[2]?.id;
-                  return idA - idB;
-                });
-                airingMainDiv.innerHTML = "";
-                airingDivs.forEach(function (div) {
-                  airingMainDiv.appendChild(div);
-                });
-              }
-              document.querySelector("#currently-watching > div > div.widget-header > i").remove();
-              document.querySelector("#widget-currently-watching > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#currently-right").classList.add("active") : "";
-            }
+  const div = create("article", { class: "widget-container left", id: widgetId });
+  div.innerHTML = htmlTemplate(type);
+  const dataUrl = `https://myanimelist.net/${listType}/${headerUserName}?status=1`;
+  const html = await fetch(dataUrl)
+    .then((response) => response.text())
+    .then(async (data) => {
+      const newDocument = new DOMParser().parseFromString(data, "text/html");
+      const list = JSON.parse(newDocument.querySelector("#list-container > div.list-block > div > table").getAttribute("data-items"));
+      if (!list) return;
 
-            document.querySelector("#widget-currently-watching ul").style.width = 138 * document.querySelectorAll("#widget-currently-watching ul .btn-anime").length + "px";
+      const container = document.querySelector("#content > div.left-column");
+      if (isAnime || !document.querySelector("#currently-watching")) {
+        container.prepend(div);
+      } else {
+        document.querySelector("#currently-watching").insertAdjacentElement("afterend", div);
+      }
 
-            //Currently Watching - Slider Left
-            document.querySelector("#currently-left").addEventListener("click", function () {
-              const slider = document.querySelector(".widget-slide");
-              const slideWidth = slider.children[0].offsetWidth + 12;
-              if (parseInt(slider.style.marginLeft) < 0) {
-                slider.style.marginLeft = parseInt(slider.style.marginLeft) + slideWidth + "px";
-                document.querySelector("#widget-currently-watching > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#currently-right").classList.add("active") : "";
-              }
-              if (parseInt(slider.style.marginLeft) > 0) {
-                slider.style.marginLeft = -slideWidth + "px";
-              }
-              if (parseInt(slider.style.marginLeft) === 0) {
-                document.querySelector("#currently-left").classList.remove("active");
-              }
-            });
-            //Currently Watching - Slider Right
-            document.querySelector("#currently-right").addEventListener("click", function () {
-              const slider = document.querySelector(".widget-slide");
-              const slideWidth = slider.children[0].offsetWidth + 12;
-              if (parseInt(slider.style.marginLeft) > -slideWidth * (slider.children.length - 5)) {
-                slider.style.marginLeft = parseInt(slider.style.marginLeft) - slideWidth + "px";
-                document.querySelector("#currently-left").classList.add("active");
-              }
-              if (parseInt(slider.style.marginLeft) === -slideWidth * (slider.children.length - 5)) {
-                document.querySelector("#currently-right").classList.remove("active");
-              }
-            });
-            if (svar.customCover) {
-              loadCustomCover(1);
-            }
-            if (svar.currentlyGrid) {
-              $("#widget-currently-watching .widget-slide").addClass(`currentlyGrid ${svar.currentlyGrid6Column ? "currentlyGrid6Column" : ""}`);
-              $("#widget-currently-watching #currently-left").remove();
-              $("#widget-currently-watching #currently-right").remove();
-              processGridAccordion("watching");
+      if (svar.airingDate && isAnime) {
+        let ids = list.map((item) => item[idKey]);
+        const queries = ids.map((id, i) => `Media${i}: Media(idMal: ${id}, type: ANIME) {nextAiringEpisode {timeUntilAiring episode}}`);
+        const infoData = await AnilistAPI(`query {${queries.join("\n")}}`);
+        await renderList(list, infoData, defWidth, defHeight);
+      } else {
+        await renderList(list, null, defWidth, defHeight);
+      }
+
+      async function renderList(list, infoData, width, height) {
+        for (let i = 0; i < list.length; i++) {
+          const item = list[i];
+          let progressInfo = "";
+
+          if (isAnime && svar.airingDate && infoData) {
+            const media = infoData.data["Media" + i];
+            const ep = media?.nextAiringEpisode?.episode ?? "";
+            const time = media?.nextAiringEpisode?.timeUntilAiring ?? "";
+
+            const behind = ep && ep !== 1 ? await episodesBehind(ep, item[progressKey]) : 0;
+            const airingText = ep && time ? `<div id="${time}" class="airingInfo"><div>Ep ${ep}</div><div>${await airingTime(time)}</div></div>` : "";
+
+            progressInfo = airingText;
+            if (behind) {
+              progressInfo += `<span class="epBehind">${behind}</span><div class="behindWarn"></div>`;
             }
           }
-        });
-    }
-  }
+
+          if (!progressInfo) {
+            progressInfo = `<div id="700000" class="airingInfo" style="padding: 8px 0px"><div style="padding-top:3px">${item[progressKey]}${
+              item[totalKey] !== 0 ? " / " + item[totalKey] : ""
+            }</div></div>`;
+          }
+
+          const editBtn = create("i", { class: "fa fa-pen editCurrently", id: item[idKey] });
+          const incBtn = create("i", { class: "fa fa-plus incButton", id: item[idKey] });
+          const node = create("li", {
+            class: "btn-anime",
+            style: { ...(svar.currentlyGrid && { margin: 0 }), minHeight: `${height}px`, maxHeight: `${height}px`, minWidth: `${width}px`, maxWidth: `${width}px` },
+          });
+
+          node.innerHTML = `<a class="link" href="${item[urlKey]}">
+              <img width="${width}" height="${height}" style="min-height:${height}px;max-height:${height}px;min-width:${width}px;max-width:${width}px"
+              class="lazyload" src="https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif" data-src="${item[imgKey]}" alt="${item[titleKey]}">
+              <span class="title js-color-pc-constant color-pc-constant">${item[titleKey]}</span>${progressInfo}</a>`;
+          node.appendChild(editBtn);
+          node.appendChild(incBtn);
+          document.querySelector(`${sliderId} ul`).append(node);
+          const loadingIndicator = create("div", { class: "recently-genre-indicator currently-loading-indicator" });
+
+          editBtn.onclick = async () => {
+            await editPopup(item[idKey], isAnime ? null : "manga");
+            div.remove();
+            await createCurrentlyWidget(type);
+          };
+
+          incBtn.onclick = async () => {
+            if (!document.querySelector(".currently-loading-indicator")) {
+              incBtn.parentElement.append(loadingIndicator);
+            }
+            loadingIndicator.style.display = "none";
+            void loadingIndicator.offsetWidth;
+            loadingIndicator.style.display = "block";
+            const currentTime = Date.now();
+            if (currentTime - lastClickTime < debounceDelay || (incActive !== 0 && incActive !== editBtn.id)) {
+              return;
+            }
+            if (incActive === 0) incActive = editBtn.id;
+            lastClickTime = currentTime;
+            incCount++;
+            incBtn.innerText = incCount.toString();
+            clearTimeout(incTimer);
+            incTimer = setTimeout(async function () {
+              loadingIndicator.remove();
+              await editPopup(item[idKey], isAnime ? null : "manga", true, incCount);
+              div.remove();
+              await createCurrentlyWidget(type);
+              incCount = 0;
+              incActive = 0;
+            }, 2000);
+          };
+        }
+        document.querySelector(`${sliderId} ul`).style.width = 138 * list.length + "px";
+        // Sort by time until airing
+        if (svar.airingDate && isAnime) {
+          let airingDivs = Array.from(document.querySelectorAll("#widget-currently-watching ul li"));
+          let airingMainDiv = document.querySelector("#widget-currently-watching ul");
+
+          airingDivs.sort((a, b) => {
+            let idA = Number(a.querySelector(":scope > * > *:nth-child(3)")?.id || 0);
+            let idB = Number(b.querySelector(":scope > * > *:nth-child(3)")?.id || 0);
+            return idA - idB;
+          });
+
+          airingMainDiv.replaceChildren(...airingDivs);
+        }
+        document.querySelector(`#${widgetId} > div > div.widget-header > i`).remove();
+        if (svar.customCover) loadCustomCover(1);
+        if (svar.currentlyGrid) {
+          $(`${sliderId} .widget-slide`).addClass(`currentlyGrid ${svar.currentlyGrid6Column ? "currentlyGrid6Column" : ""}`);
+          $(`${sliderId} .widget-slide`).css("grid-template-columns", svar.currentlyGrid6Column ? "repeat(6, minmax(0, 1fr))" : "repeat(6, minmax(0, 1fr))");
+          $(`${sliderId} .widget-slide`).css("gap", svar.currentlyGrid6Column ? "15px 10px" : "20px 10px");
+          $(`${sliderId} .widget-slide`).css("width", "100%");
+          $(`${sliderId} #${leftBtnId}`).remove();
+          $(`${sliderId} #${rightBtnId}`).remove();
+          processGridAccordion(typeText);
+        } else {
+          // Sliders
+          const slider = document.querySelector(`${sliderId} ul`);
+          let items = Array.from(slider.querySelectorAll(".btn-anime")).filter((el) => el.offsetWidth > 0);
+          const slideWidth = items[0].offsetWidth + 12;
+          const itemsPerScroll = 5;
+          let maxIndex = Math.ceil(items.length / itemsPerScroll) - 1;
+          const leftBtn = document.querySelector(`${sliderId} #${leftBtnId}`);
+          const rightBtn = document.querySelector(`${sliderId} #${rightBtnId}`);
+
+          function updateButtons(index) {
+            if (index <= 0) {
+              leftBtn.classList.remove("active");
+              leftBtn.setAttribute("disabled", "true");
+            } else {
+              leftBtn.classList.add("active");
+              leftBtn.removeAttribute("disabled");
+            }
+
+            if (index >= maxIndex) {
+              rightBtn.classList.remove("active");
+              rightBtn.setAttribute("disabled", "true");
+            } else {
+              rightBtn.classList.add("active");
+              rightBtn.removeAttribute("disabled");
+            }
+          }
+
+          updateButtons(0);
+          rightBtn.addEventListener("click", function () {
+            let index = parseInt(slider.dataset.index || "0");
+
+            if (index < maxIndex) {
+              index++;
+              slider.dataset.index = index;
+              slider.style.marginLeft = `-${index * itemsPerScroll * slideWidth}px`;
+              updateButtons(index);
+            }
+          });
+
+          leftBtn.addEventListener("click", function () {
+            let index = parseInt(slider.dataset.index || "0");
+
+            if (index > 0) {
+              index--;
+              slider.dataset.index = index;
+              slider.style.marginLeft = `-${index * itemsPerScroll * slideWidth}px`;
+              updateButtons(index);
+            }
+          });
+        }
+      }
+    });
 }
 
-//Currently Reading
+if (svar.currentlyWatching && location.pathname === "/") {
+  createCurrentlyWidget("anime");
+}
 if (svar.currentlyReading && location.pathname === "/") {
-  //Create Currently Reading Div
-  getreading();
-  async function getreading() {
-    if (headerUserName) {
-      const currentlyReadingDiv = create("article", { class: "widget-container left", id: "currently-reading" });
-      currentlyReadingDiv.innerHTML = htmlTemplate("manga");
-      //Get reading anime data from user's list
-      const html = await fetch("https://myanimelist.net/mangalist/" + headerUserName + "?status=1")
-        .then((response) => response.text())
-        .then(async (data) => {
-          var newDocument = new DOMParser().parseFromString(data, "text/html");
-          let list = JSON.parse(newDocument.querySelector("#list-container > div.list-block > div > table").getAttribute("data-items"));
-          if (list) {
-            if (document.querySelector("#currently-watching")) {
-              document.querySelector("#currently-watching").insertAdjacentElement("afterend", currentlyReadingDiv);
-            } else {
-              document.querySelector("#content > div.left-column").prepend(currentlyReadingDiv);
-            }
-            await processList();
-            async function processList() {
-              for (let x = 0; x < list.length; x++) {
-                let nextchap =
-                  '<div id="700000" class="airingInfo" style="padding: 8px 0px"><div style="padding-top:3px">' +
-                  list[x].num_read_chapters +
-                  (list[x].manga_num_chapters !== 0 ? " / " + list[x].manga_num_chapters : "") +
-                  "</div></div>";
-                let ib = create("i", { class: "fa fa-pen editCurrently", id: list[x].manga_id });
-                let increaseButton = create("i", { class: "fa fa-plus incButton", id: list[x].anime_id });
-                increaseButton.onclick = async () => {
-                  const currentTime = new Date().getTime();
-                  if (currentTime - lastClickTime < debounceDelay || (incActive !== 0 && incActive !== ib.id)) {
-                    return;
-                  }
-                  if (incActive === 0) {
-                    incActive = ib.id;
-                  }
-                  lastClickTime = currentTime;
-                  incCount++;
-                  increaseButton.innerText = incCount.toString();
-                  clearTimeout(incTimer);
-                  incTimer = setTimeout(async function () {
-                    await editPopup(ib.id, "manga", true, incCount);
-                    currentlyReadingDiv.remove();
-                    getreading();
-                    incCount = 0;
-                    incActive = 0;
-                  }, 2000);
-                };
-                // Create Reading Manga Div
-                let rDiv = create("li", { class: "btn-anime" });
-                rDiv.innerHTML = `<a class="link" href="${list[x].manga_url}">
-                <img width="124" height="170" class="lazyload" src="https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif" data-src="${list[x].manga_image_path}" alt="${list[x].manga_title}" alt="${list[x].manga_title}">
-                <span class="title js-color-pc-constant color-pc-constant">${list[x].manga_title}</span>${nextchap}</a>`;
-                rDiv.appendChild(ib);
-                rDiv.appendChild(increaseButton);
-                document.querySelector("#widget-currently-reading ul").append(rDiv);
-                ib.onclick = async () => {
-                  await editPopup(ib.id, "manga");
-                  currentlyReadingDiv.remove();
-                  getreading();
-                };
-              }
-              document.querySelector("#currently-reading > div > div.widget-header > i").remove();
-              document.querySelector("#widget-currently-reading > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#currently-right-manga").classList.add("active") : "";
-            }
-            document.querySelector("#widget-currently-reading ul").style.width = 138 * document.querySelectorAll("#widget-currently-reading ul .btn-anime").length + "px";
-            //Currently Reading - Slider Left
-            document.querySelector("#currently-left-manga").addEventListener("click", function () {
-              const slider = document.querySelector(".widget-slide.js-widget-slide.manga");
-              const slideWidth = slider.children[0].offsetWidth + 12;
-              if (parseInt(slider.style.marginLeft) < 0) {
-                slider.style.marginLeft = parseInt(slider.style.marginLeft) + slideWidth + "px";
-                document.querySelector("#widget-currently-reading > div.widget-slide-outer > ul").children.length > 5 ? document.querySelector("#currently-right-manga").classList.add("active") : "";
-              }
-              if (parseInt(slider.style.marginLeft) > 0) {
-                slider.style.marginLeft = -slideWidth + "px";
-              }
-              if (parseInt(slider.style.marginLeft) === 0) {
-                document.querySelector("#currently-left-manga").classList.remove("active");
-              }
-            });
-            //Currently Reading - Slider Right
-            document.querySelector("#currently-right-manga").addEventListener("click", function () {
-              const slider = document.querySelector(".widget-slide.js-widget-slide.manga");
-              const slideWidth = slider.children[0].offsetWidth + 12;
-              if (parseInt(slider.style.marginLeft) > -slideWidth * (slider.children.length - 5)) {
-                slider.style.marginLeft = parseInt(slider.style.marginLeft) - slideWidth + "px";
-                document.querySelector("#currently-left-manga").classList.add("active");
-              }
-              if (parseInt(slider.style.marginLeft) === -slideWidth * (slider.children.length - 5)) {
-                document.querySelector("#currently-right-manga").classList.remove("active");
-              }
-            });
-            if (svar.customCover) {
-              loadCustomCover(1);
-            }
-
-            if (svar.currentlyGrid) {
-              $("#widget-currently-reading .widget-slide").addClass(`currentlyGrid ${svar.currentlyGrid6Column ? "currentlyGrid6Column" : ""}`);
-              $("#widget-currently-reading #currently-left-manga").remove();
-              $("#widget-currently-reading #currently-right-manga").remove();
-              processGridAccordion("reading");
-            }
-          }
-        });
-    }
-  }
+  createCurrentlyWidget("manga");
 }

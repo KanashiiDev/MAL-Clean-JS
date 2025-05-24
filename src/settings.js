@@ -55,6 +55,13 @@ let svar = {
   currentlyGridAccordion: true,
   recentlyAddedAnime: true,
   recentlyAddedManga: true,
+  recentlyGrid: false,
+  recentlyGrid6Column: false,
+  recentlyGridAccordion: true,
+  recentlyAnimeFilter: "&genre_ex%5B%5D=12",
+  recentlyMangaFilter: "&genre_ex%5B%5D=12",
+  recentlyAnimeDefault: "TV,Movie",
+  recentlyMangaDefault: "Manga",
   listAiringStatus: true,
   airingDate: true,
   autoAddDate: true,
@@ -73,6 +80,7 @@ let svar = {
   moveBadges: false,
   clubComments: false,
   scrollbarStyle: false,
+  hideNonJapaneseAnime: false,
   currentLanguage: "English"
 };
 

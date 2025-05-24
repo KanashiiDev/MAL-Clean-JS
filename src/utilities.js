@@ -174,7 +174,7 @@ async function editAboutPopup(data, type) {
     const popupClose = create("a", { id: "currently-closePopup", class: "fa-solid fa-xmark", href: "javascript:void(0);", style: { display: "none" } });
     const popupMask = create("div", {
       class: "fancybox-overlay",
-      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "11" },
+      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "99" },
     });
     const popupDataText = create("div", { class: "dataTextDiv" });
     const popupDataTextButton = create("button", { class: "dataTextButton" }, "Copy");
@@ -376,13 +376,13 @@ async function editPopup(id, type, add, addCount, addFg) {
       "div",
       {
         class: "actloading",
-        style: { position: "relative", left: "0px", right: "0px", fontSize: "16px", height: "100%", alignContent: "center", zIndex: "2" },
+        style: { position: "relative", left: "0px", right: "0px", fontSize: "16px", height: "100%", alignContent: "center", zIndex: "100" },
       },
       translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>'
     );
     const popupMask = create("div", {
       class: "fancybox-overlay",
-      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "11" },
+      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "99" },
     });
     const iframe = create("iframe", { style: { opacity: "0" }, src: popupId });
     const close = () => {
@@ -556,7 +556,7 @@ async function blockUser(id) {
     );
     const popupMask = create("div", {
       class: "fancybox-overlay",
-      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "11" },
+      style: { background: "#000000", opacity: "0.3", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "99" },
     });
     const iframe = create("iframe", { style: { opacity: "0" }, src: popupId });
     const close = () => {
@@ -674,10 +674,10 @@ async function aniAPIRequest() {
 }
 
 //  MalClean - Add Loader
-let loadingDiv = create("div", { class: "actloading", id: "loadingDiv", style: { position: "fixed", top: "50%", left: "0", right: "0", fontSize: "16px", zIndex: "12" } });
+let loadingDiv = create("div", { class: "actloading", id: "loadingDiv", style: { position: "fixed", top: "50%", left: "0", right: "0", fontSize: "16px", zIndex: "100" } });
 const loadingDivMask = create("div", {
   class: "fancybox-overlay",
-  style: { background: "var(--color-background)", opacity: "1", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "11" },
+  style: { background: "var(--color-background)", opacity: "1", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "99" },
 });
 
 function addLoading(type = "add", text = translate("$loading"), circle = 1, force = 0) {
@@ -886,7 +886,7 @@ async function airingTime(sec) {
   const days = Math.floor(remainingTime / (24 * 60 * 60));
   const hours = Math.floor((remainingTime % (24 * 60 * 60)) / (60 * 60));
   const minutes = Math.floor((remainingTime % (60 * 60)) / 60);
-  return (days ? days + "d " : "") + (hours ? hours + "h " : "") + (minutes ? minutes + "m" : "");
+  return (days ? days + translate("$daySuffix") : "") + (hours ? hours + translate("$hourSuffix") : "") + (minutes ? minutes + translate("$minuteSuffix") : "");
 }
 
 async function replaceLocalForageDB(instance, newData) {
@@ -903,7 +903,7 @@ async function episodesBehind(c, w) {
     return;
   } else {
     const epBehind = c - 1 - w;
-    return epBehind + " ep behind";
+    return `${epBehind} ${translate("$epBehind")}`;
   }
 }
 
@@ -1554,17 +1554,24 @@ function handleEmptyInfo(divSelector, checkText, mode) {
 //Get Recently Added from MyAnimeList
 async function getRecentlyAdded(type, page) {
   const dataArray = [];
+  const dataType = type;
+  const genreFilter = type ? svar.recentlyMangaFilter : svar.recentlyAnimeFilter;
   try {
     await delay(250);
-    const response = await fetch(`https://myanimelist.net/${type ? "manga" : "anime"}.php?o=9&c%5B0%5D=a&c%5B1%5D=d&cv=2&w=1&genre_ex%5B%5D=12&show=${page ? page : "0"}`);
+    const response = await fetch(`https://myanimelist.net/${type ? "manga" : "anime"}.php?o=9&c%5B0%5D=a&c%5B1%5D=d&cv=2&w=1&${genreFilter}&show=${page ? page : "0"}`);
     const html = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
     const rows = doc.querySelectorAll("div.js-categories-seasonal tr");
-
     rows.forEach((row) => {
       const imgSrc = row.querySelector("td img") ? row.querySelector("td img").getAttribute("data-src").replace("/r/50x70/", "/") : "";
       if (imgSrc) {
+        if (!dataType && svar.hideNonJapaneseAnime) {
+          const isNonJapanese = nonJapaneseIds.some((id) => {
+            return !!row.querySelector(`.title div[id="sarea${id}"]`);
+          });
+          if (isNonJapanese) return;
+        }
         const title = row.querySelector("td strong") ? row.querySelector("td strong").textContent : "";
         const type = row.querySelector('td[width="45"]') ? row.querySelector('td[width="45"]').textContent.trim() : "";
         const url = row.querySelector("td a") ? row.querySelector("td a").href : "";
@@ -1584,13 +1591,16 @@ async function getRecentlyAdded(type, page) {
 }
 
 //Build Recently Added List
-async function buildRecentlyAddedList(list, appLoc) {
+async function buildRecentlyAddedList(list, appLoc, width, height) {
   for (let x = 1; x < list.length; x++) {
-    let rDiv = create("li", { class: "btn-anime" });
+    let rDiv = create("li", {
+      class: "btn-anime",
+      style: { ...(svar.recentlyGrid && { margin: 0 }), minHeight: `${height}px`, maxHeight: `${height}px`, minWidth: `${width}px`, maxWidth: `${width}px` },
+    });
     rDiv.innerHTML = `
       <i class="fa fa-info-circle" style="font-family: 'Font Awesome 6 Pro'; position: absolute; right: 3px; top: 3px; padding: 4px; opacity: 0; transition: 0.4s; z-index: 20;"></i>
       <a class="link" href="${list[x].url}">
-        <img width="124" height="170" class="lazyload" src="https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif" data-src="${list[x].img}">
+        <img width="${width}" height="${height}" class="lazyload" src="https://cdn.myanimelist.net/r/84x124/images/questionmark_23.gif" data-src="${list[x].img}">
         <span class="recently-added-type">${list[x].type}</span>
         <span class="title js-color-pc-constant color-pc-constant">${list[x].title}</span>
       </a>
@@ -1610,177 +1620,168 @@ function addAllRecentlyAdded(main, list) {
 
 //Filter Recently Added List
 function filterRecentlyAdded(items, selectedTypes) {
+  const showAll = selectedTypes.includes("All");
+  const mustAll = selectedTypes.includes("genre%5B%5D=12");
+
   items.forEach((item) => {
-    const type = item.querySelector(".recently-added-type").textContent;
-    if (!selectedTypes.includes(type)) {
-      item.remove();
+    const type = item.querySelector(".recently-added-type")?.textContent;
+    if (mustAll || showAll || (type && selectedTypes.includes(type))) {
+      item.style.display = "";
+    } else {
+      item.style.display = "none";
     }
   });
 }
 
+//Get total width of Div
+function getTotalWidth(element) {
+  const div = typeof element !== "object" ? document.querySelector(element) : element;
+  const style = window.getComputedStyle(div);
+  const width = div.offsetWidth;
+  const marginLeft = parseFloat(style.marginLeft);
+  const marginRight = parseFloat(style.marginRight);
+  return width + marginLeft + marginRight;
+}
+
+//Get total height of Div
+function getTotalHeight(element) {
+  const div = typeof element !== "object" ? document.querySelector(element) : element;
+  const style = window.getComputedStyle(div);
+  const width = div.offsetHeight;
+  const marginLeft = parseFloat(style.marginLeft);
+  const marginRight = parseFloat(style.marginRight);
+  return width + marginLeft + marginRight;
+}
+
 //Create Info Tooltip
 let waitForInfo = 0;
-async function createInfo(clickedSource, mainDiv, type) {
+async function createInfo(clickedSource, mainDiv, type, isGrid) {
   if (!waitForInfo && $(".tooltipBody").length === 0) {
     waitForInfo = 1;
     clickedSource.attr("class", "fa fa-circle-o-notch fa-spin");
+
     let info, isFailed;
-    if (!clickedSource.closest(".btn-anime")[0].getAttribute("details")) {
-      //Get info from Jikan API
-      async function getinfo(id) {
-        const apiUrl = `https://api.jikan.moe/v4/${type ? "manga" : "anime"}/${id}/full`;
-        try {
-          const response = await fetch(apiUrl);
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-          const data = await response.json();
-          info = data.data;
-        } catch (error) {
-          info = '<div class="main">Error: ' + error + "</div>";
-          isFailed = 1;
-        }
+
+    const btnAnime = clickedSource.closest(".btn-anime")[0];
+
+    if (!btnAnime.getAttribute("details")) {
+      const id = clickedSource.next(".link")[0].href.split("/")[4];
+      const apiUrl = `https://api.jikan.moe/v4/${type ? "manga" : "anime"}/${id}/full`;
+
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        const data = await response.json();
+        info = data.data;
+      } catch (error) {
+        info = `<div class="main">Error: ${error}</div>`;
+        isFailed = 1;
       }
-      let id = clickedSource.next(".link")[0].href.split("/")[4];
-      await getinfo(id);
-      if (info.title) {
-        info =
-          '<div class="main">' +
-          (info.title
-            ? '<div class="text" style="position: relative;border-bottom: 1px solid;"><h3 style="max-width: 90%;margin-top: 5px;">' +
-              info.title +
-              "</h3><a id='" +
-              info.mal_id +
-              "' class='addtoList'>Add to List</a></div>"
-            : "") +
-          (info.title_english && info.title_english !== info.title ? '<br><div class="text"><b>English Title</b><br>' + info.title_english + "</div>" : "") +
-          (info.synopsis ? '<br><div class="text"><b>Synopsis</b><br>' + info.synopsis.replace(/(\[Written by MAL Rewrite\]+)/gm, "") + "</div>" : "") +
-          (info.genres && info.genres[0]
-            ? '<br><div class="text"><b>Genres</b><br>' +
-              info.genres
-                .map((node) => "<a href='" + node.url + "'>" + node.name + "</a>")
-                .toString()
-                .split(",")
-                .join(", ") +
-              "</div>"
-            : "") +
-          (info.studios && info.studios[0]
-            ? '<br><div class="text"><b>Studios</b><br>' +
-              info.studios
-                .map((node) => "<a href='" + node.url + "'>" + node.name + "</a>")
-                .toString()
-                .split(",")
-                .join(", ") +
-              "</div>"
-            : "") +
-          (info.authors && info.authors[0]
-            ? '<br><div class="text"><b>Authors</b><br>' +
-              info.authors
-                .map((node) => "<a href='" + node.url + "'>" + node.name + "</a>")
-                .toString()
-                .split(",")
-                .join(", ") +
-              "</div>"
-            : "") +
-          (info.serializations && info.serializations[0]
-            ? '<br><div class="text"><b>Serialization</b><br>' +
-              info.serializations
-                .map((node) => "<a href='" + node.url + "'>" + node.name + "</a>")
-                .toString()
-                .split(",")
-                .join(", ") +
-              "</div>"
-            : "") +
-          (info.themes && info.themes[0]
-            ? '<br><div class="text"><b>Themes</b><br>' +
-              info.themes
-                .map((node) => "<a href='" + node.url + "'>" + node.name + "</a>")
-                .toString()
-                .split(",")
-                .join(", ") +
-              "</div>"
-            : "") +
-          (info.demographics && info.demographics[0]
-            ? '<br><div class="text"><b>Demographics</b><br>' +
-              info.demographics
-                .map((node) => "<a href='" + node.url + "'>" + node.name + "</a>")
-                .toString()
-                .split(",")
-                .join(", ") +
-              "</div>"
-            : "") +
-          (info.type ? '<br><div class="text"><b>Type</b><br>' + info.type + "</div>" : "") +
-          (info.rating ? '<br><div class="text"><b>Rating</b><br>' + info.rating + "</div>" : "") +
-          (info.aired && info.aired.string ? '<br><div class="text"><b>Start Date</b><br>' + info.aired.string.split(" to ?").join("") + "</div>" : "") +
-          (info.broadcast && info.broadcast.string ? '<br><div class="text"><b>Broadcast</b><br>' + info.broadcast.string + "</div>" : "") +
-          (info.episodes ? '<br><div class="text"><b>Episodes</b><br>' + info.episodes + "</div>" : "") +
-          (info.chapters ? '<br><div class="text"><b>Chapters</b><br>' + info.chapters + "</div>" : "") +
-          (info.volumes ? '<br><div class="text"><b>Volumes</b><br>' + info.volumes + "</div>" : "") +
-          (info.trailer && info.trailer.embed_url
-            ? '<br><div class="text"><b>Trailer</b><br>' +
-              '<div class="spoiler">' +
-              '<input type="button" class="button show_button" onclick="this.nextSibling.style.display=\'inline-block\';this.style.display=\'none\';" data-showname="Show Trailer" data-hidename="Hide Trailer" value="Show Trailer">' +
-              '<span class="spoiler_content" style="display:none">' +
-              '<input type="button" class="button hide_button" onclick="this.parentNode.style.display=\'none\';this.parentNode.parentNode.childNodes[0].style.display=\'inline-block\';" value="Hide Trailer">' +
-              "<br>" +
-              '<iframe width="700" height="400" class="movie youtube" frameborder="0" autoplay="0" allow="fullscreen" src="' +
-              info.trailer.embed_url.split("&autoplay=1").join("") +
-              '"></iframe></span></div>' +
-              "</div>"
-            : "") +
-          '<br><div class="text"><b>Forum</b><br>' +
-          "<a href='" +
-          info.url +
-          "/forum" +
-          "'>All</a> | <a href='" +
-          info.url +
-          "/forum?topic=episode" +
-          "'>" +
-          (type ? "Chapters" : "Episodes") +
-          "</a> | <a href='" +
-          info.url +
-          "/forum?topic=other" +
-          "'>Other</a></div>" +
-          (info.external && info.external[0]
-            ? '<br><div class="text"><b>Available At</b><br>' +
-              info.external
-                .map((node) => "<a href='" + node.url + "'>" + node.name + "</a>")
-                .toString()
-                .split(",")
-                .join(" | ") +
-              "</div>"
-            : "");
+
+      if (info?.title) {
+        const renderList = (label, items) => {
+          if (!items) return "";
+          if (Array.isArray(items) && items.length) {
+            return `<br><div class="text"><b>${label}</b><br>${items.map((node) => `<a href="${node.url}">${node.name}</a>`).join(", ")}</div>`;
+          } else if (typeof items === "string" || typeof items === "number") {
+            return `<br><div class="text"><b>${label}</b><br>${items}</div>`;
+          }
+          return "";
+        };
+
+        const trailer = info.trailer?.embed_url
+          ? `
+          <br><div class="text"><b>Trailer</b><br>
+          <div class="spoiler">
+          <input type="button" class="button show_button" onclick="this.style.display='none'; this.parentElement.querySelector('.spoiler_content').style.display='block';" value="Show Trailer">
+          <div class="spoiler_content" style="display: none;"><input type="button" class="button hide_button" onclick="this.closest('.spoiler_content').style.display='none'; this.closest('.spoiler').querySelector('.show_button').style.display='inline-block';" value="Hide Trailer">
+          <br>
+          <iframe width="700" height="400" style="width: 100%;" class="movie youtube" frameborder="0" allowfullscreen src="${info.trailer.embed_url.replace("&autoplay=1", "")}"></iframe>
+          </div>
+          </div>
+          </div>`
+          : "";
+
+        const externalLinks = info.external?.length ? `<br><div class="text"><b>Available At</b><br>${info.external.map((node) => `<a href="${node.url}">${node.name}</a>`).join(" | ")}</div>` : "";
+
+        info = `
+          <div class="main">
+            <div class="text" style="position: relative; border-bottom: 1px solid;">
+              <h3 style="max-width: 90%; margin-top: 5px;">${info.title}</h3>
+              <a id="${info.mal_id}" class="addtoList">${translate("$addToList")}</a>
+            </div>
+            ${info.title_english && info.title_english !== info.title ? renderList("English Title", info.title_english) : ""}
+            ${renderList("Synopsis", info.synopsis).replace(/\[Written by MAL Rewrite\]/g, "")}
+            ${renderList("Genres", info.genres)}
+            ${renderList("Studios", info.studios)}
+            ${renderList("Authors", info.authors)}
+            ${renderList("Serialization", info.serializations)}
+            ${renderList("Themes", info.themes)}
+            ${renderList("Demographics", info.demographics)}
+            ${renderList("Type", info.type)}
+            ${renderList("Rating", info.rating)}
+            ${renderList("Start Date", info.aired?.string).replace(/ to \?$/, "")}
+            ${renderList("Broadcast", info.broadcast?.string)}
+            ${renderList("Episodes", info.episodes)}
+            ${renderList("Chapters", info.chapters)}
+            ${renderList("Volumes", info.volumes)}
+            ${trailer}
+            <br><div class="text"><b>Forum</b><br>
+              <a href="${info.url}/forum">All</a> | 
+              <a href="${info.url}/forum?topic=episode">${type ? "Chapters" : "Episodes"}</a> | 
+              <a href="${info.url}/forum?topic=other">Other</a>
+            </div>
+            ${externalLinks}
+          </div>
+        `;
+
+        if (!isFailed) {
+          btnAnime.setAttribute("details", "true");
+          $('<div class="tooltipDetails"></div>').html(info).appendTo(btnAnime);
+        }
       } else {
         info = '<div class="main">No information found in JikanAPI</div>';
-      }
-      if (!isFailed) {
-        clickedSource.closest(".btn-anime")[0].setAttribute("details", "true");
-        $('<div class="tooltipDetails"></div>').html(info).appendTo(clickedSource.closest(".btn-anime"));
+        $('<div class="tooltipDetails"></div>').html(info).appendTo(btnAnime);
       }
     }
-    var title = await clickedSource.attr("alt");
+
+    const title = await clickedSource.attr("alt");
     clickedSource.data("tooltipTitle", title);
 
-    $(
-      '<div class="tooltipBody">' +
-        ($(".tooltipBody").length === 0 && clickedSource.closest(".btn-anime")[0].children[2] ? clickedSource.closest(".btn-anime")[0].children[2].innerHTML : "") +
-        "</div>"
-    )
-      .appendTo(mainDiv)
-      .slideDown(400);
+    const tooltipContent = btnAnime.children[2]?.innerHTML ?? "";
+    const tooltipMain = $(`<div class="tooltipBody" id="infoTooltip" style="${isGrid ? "position:absolute;" : ""}">${tooltipContent}</div>`);
+    tooltipMain.appendTo(mainDiv).slideDown(400);
+
+    if (isGrid) {
+      const targetDiv = clickedSource.parent()[0];
+      const ttDiv = document.getElementById("infoTooltip");
+      const rect = targetDiv.getBoundingClientRect();
+      const scrollTop = window.scrollY;
+      const top = scrollTop + rect.top - (svar.recentlyGrid6Column ? 20 : 10) - (defaultMal ? 20 : 0) + getTotalHeight(targetDiv) / 2;
+      const width = getTotalWidth(mainDiv) || 720;
+      ttDiv.style.top = `${top}px`;
+      ttDiv.style.minWidth = `${width - 20}px`;
+      ttDiv.style.maxWidth = `${width - 20}px`;
+      ttDiv.style.marginLeft = `${defaultMal ? 0 : 10}px`;
+      ttDiv.classList.add("grid");
+      ttDiv.querySelector(".main").setAttribute("style", "background:var(--color-foreground2)!important");
+      $(ttDiv).slideDown(400);
+    }
+
     $(".tooltipBody .addtoList").on("click", async function () {
-      await editPopup($(this).attr("id"));
+      await editPopup($(this).attr("id"), type ? "manga" : "anime");
     });
+
     clickedSource.attr("class", "fa fa-info-circle");
     waitForInfo = 0;
   }
 }
 
 //Info Tooltip Check Mouse Leave
-async function infoExit(mainDiv, clickedFrom) {
+async function infoExit(clickedFrom) {
   let timeoutId, isElHover, isTTBHover;
   async function handleTooltipHide() {
-    isElHover = clickedFrom.parent().is(":hover");
+    isElHover = $(clickedFrom).parent().is(":hover");
     isTTBHover = $(".tooltipBody:hover").length;
     // Check if neither the tooltip nor the target element is being hovered over
     if (!isTTBHover && !isElHover) {
@@ -1803,28 +1804,35 @@ async function infoExit(mainDiv, clickedFrom) {
 
 //Update Recently Added List Sliders
 function updateRecentlyAddedSliders(slider, leftSlider, rightSlider) {
+  const rightEl = document.querySelector(rightSlider);
+  const leftEl = document.querySelector(leftSlider);
+
   if (slider.childNodes.length > 4) {
-    document.querySelector(rightSlider).classList.add("active");
+    rightEl?.classList.add("active");
   } else {
-    document.querySelector(rightSlider).classList.remove("active");
+    rightEl?.classList.remove("active");
   }
-  document.querySelector(leftSlider).classList.remove("active");
-  $(".widget-container.left.recently-anime i")
-    .on("click", async function () {
-      infoExit(".widget-container.left.recently-anime .anime_suggestions", $(this));
-      createInfo($(this), ".widget-container.left.recently-anime .anime_suggestions");
-    })
-    .on("mouseleave", async function () {
-      infoExit(".widget-container.left.recently-anime .anime_suggestions", $(this));
-    });
-  $(".widget-container.left.recently-manga i")
-    .on("click", async function () {
-      infoExit(".widget-container.left.recently-manga .anime_suggestions", $(this));
-      createInfo($(this), ".widget-container.left.recently-manga .anime_suggestions", 1);
-    })
-    .on("mouseleave", async function () {
-      infoExit(".widget-container.left.recently-manga .anime_suggestions", $(this));
-    });
+
+  // Hide left slider
+  leftEl?.classList.remove("active");
+
+  // Participate Repetitive Events
+  const setupHoverEvents = (containerSelector, index) => {
+    const iconSelector = `${containerSelector} i`;
+    const suggestionSelector = `${containerSelector} .anime_suggestions`;
+
+    $(iconSelector)
+      .off("click mouseleave") //Delete predefined Handler
+      .on("click", function () {
+        infoExit($(this));
+        createInfo($(this), suggestionSelector, index, svar.recentlyGrid);
+      })
+      .on("mouseleave", function () {
+        infoExit($(this));
+      });
+  };
+  setupHoverEvents(".widget-container.left.recently-anime", 0);
+  setupHoverEvents(".widget-container.left.recently-manga", 1);
 }
 
 async function getBlogContent() {
@@ -2030,6 +2038,7 @@ async function processProfilePage(html, regex) {
   return null;
 }
 
+// Decode and Parse Base64
 function decodeAndParseBase64(data, sanitize) {
   if (!data) return null;
   try {
@@ -2064,6 +2073,7 @@ function decodeAndParseBase64(data, sanitize) {
   }
 }
 
+// Encode and Parse Base64
 function encodeAndBase64(data) {
   if (!data) return null;
   try {
@@ -2075,4 +2085,174 @@ function encodeAndBase64(data) {
     console.error(`An error occurred while processing the custom profile data:`, error);
     return null;
   }
+}
+
+// Get Top Anime List
+async function getTopAnimeList(type, ids = [0], page = 1) {
+  const limit = page > 1 ? `?limit=${page * 50}` : "";
+  const listType = type ? `?type=${type}` : "";
+  const response = await fetch("https://myanimelist.net/topanime.php" + listType + limit);
+  const html = await response.text();
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  const animeRows = doc.querySelectorAll("tr.ranking-list");
+  const animeList = [];
+
+  animeRows.forEach((row) => {
+    const titleEl = row.querySelector("td.title .anime_ranking_h3 a.hoverinfo_trigger");
+    const title = titleEl?.textContent.trim();
+    const id = titleEl?.href?.split("/")[4] || 0;
+    if (ids.includes(id)) {
+      return;
+    }
+    const url = titleEl?.href;
+    const scoreEl = row.querySelector("td.score span.score-label");
+    const score = scoreEl?.textContent.trim();
+    const imgEl = row.querySelector("td.title a img");
+    const imageUrl = imgEl?.getAttribute("data-src") || imgEl?.src;
+    const infoEl = row.querySelector("div.information");
+    let info = {
+      type: "",
+      season: "",
+      members: "",
+    };
+
+    if (infoEl) {
+      const lines = infoEl.innerText
+        .trim()
+        .split("\n")
+        .map((line) => line.trim());
+      info.type = lines[0] || "";
+      info.season = lines[1] || "";
+      info.members = lines[2] || "";
+    }
+
+    // Push to list
+    animeList.push({
+      id,
+      title,
+      score,
+      url,
+      imageUrl,
+      information: info,
+    });
+  });
+  return animeList;
+}
+
+// Remove Anime from Top Anime List
+function removeFromTopAnime(ids) {
+  ids.forEach((id) => {
+    const anchor = document.querySelector(`tr.ranking-list a[id="#area${id}"]`);
+    if (anchor) {
+      const rankingList = anchor.closest("tr.ranking-list");
+      if (rankingList) {
+        rankingList.remove();
+      }
+    }
+  });
+  const rankingLists = document.querySelectorAll("tr.ranking-list");
+  const queryString = window.location.search;
+  const urlParams = new URLSearchParams(queryString);
+  const limit = parseInt(urlParams.get("limit") || 0);
+  rankingLists.forEach((list, index) => {
+    const rankSpan = list.querySelector(".rank.ac span");
+    if (rankSpan) {
+      rankSpan.textContent = limit + index + 1;
+    }
+  });
+}
+
+// Remove Anime from Top Anime Widget
+async function removeFromTopAnimeWidget(ids) {
+  const fetchInfoList = await getTopAnimeList("airing", ids);
+  let titles = [];
+  document.querySelectorAll(`.widget.airing_ranking .ranking-unit`).forEach((title) => {
+    const anchor = title.querySelector("div.data a.title");
+    if (anchor && !ids.includes(anchor.href.split("/")[4])) {
+      titles.push(anchor.textContent.trim());
+    }
+  });
+
+  ids.forEach((id) => {
+    const anchor = document.querySelector(`.widget.airing_ranking div.data a.title[href*="${id}"]`);
+    if (anchor) {
+      const rankingList = anchor.closest(".ranking-unit");
+      if (rankingList) {
+        const newAnime = fetchInfoList.find((anime) => !ids.includes(anime.id) && !titles.includes(anime.title));
+        titles.push(newAnime.title);
+
+        if (newAnime) {
+          const widgetTemplate = `
+          <li class="ranking-unit">
+            <span class="rank">0</span>
+            <p class="data-image">
+              <a class="image" href="${newAnime.url}">
+                <img width="50" height="70" alt="${newAnime.title}" data-src="${newAnime.imageUrl}" class=" lazyloaded" src="${newAnime.imageUrl}">
+              </a>
+            </p>
+            <div class="data">
+              <a href="https://myanimelist.net/ownlist/anime/add?selected_series_id=${newAnime.id}&amp;hideLayout=1&amp;click_type=list-add-top" 
+                class="Lightbox_AddEdit button_add ga-click ranking-digest fl-r addtolist">
+                <span class="ga-click ga-impression" data-ga-click-type="list-add-top" data-ga-click-param="aid:${newAnime.id}"
+                data-work-type="anime" data-status="0" style="line-height: unset;" data-ga-impression-type="list-add-button">add</span>
+              </a>
+              <h3 class="h3_side">
+                <a class="title" href="${newAnime.url}">${newAnime.title}</a>
+              </h3>
+              <span class="info pt8">${newAnime.information.type}, scored ${newAnime.score}</span><br>
+              <span class="members pb8">${newAnime.information.members}</span>
+            </div>
+          </li>`;
+
+          const tempContainer = document.createElement("div");
+          tempContainer.innerHTML = widgetTemplate.trim();
+          const newElement = tempContainer.firstElementChild;
+          rankingList.remove();
+          document.querySelector(".widget.airing_ranking .ranking-digest ul").append(newElement);
+        } else {
+          rankingList.remove();
+        }
+      }
+    }
+  });
+
+  document.querySelectorAll(`.widget.airing_ranking .rank`).forEach((rank, index) => {
+    rank.innerText = index + 1;
+    $(".Lightbox_AddEdit").fancybox({
+      width: 1010,
+      height: "85%",
+      overlayShow: false,
+      titleShow: false,
+      type: "iframe",
+    });
+  });
+}
+
+// Remove Anime from Seasonal Anime List
+function removeFromAnimeSeason(ids) {
+  ids.forEach((id) => {
+    const anchor = document.querySelector(`.h2_anime_title a[href*="${id}"]`);
+    if (anchor) {
+      const rankingList = anchor.closest(".seasonal-anime");
+      if (rankingList) {
+        rankingList.remove();
+      }
+    }
+  });
+}
+
+// Remove Anime from Anime Search Page
+function removeFromAnimeSearch(ids) {
+  const rows = document.querySelectorAll("div.js-categories-seasonal tr");
+  rows.forEach((row) => {
+    const isMatch = ids.some((id) => {
+      return !!row.querySelector(`.title div[id="sarea${id}"]`);
+    });
+    if (isMatch) {
+      row.remove();
+    }
+  });
 }
