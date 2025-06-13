@@ -11,7 +11,7 @@ import { glob } from "glob";
   buildModules.sort();
 
   // Modules outside Async
-  const topLevelModules = ["src/settings.js", "src/utilities.js", "src/polyfills.js", "src/css/main.css.js", "src/localization.js", "src/data/nonJapaneseIds.js"];
+  const topLevelModules = ["src/settings.js", "src/data/nonJapaneseIds.js", "src/utilities.js", "src/polyfills.js", "src/css/main.css.js", "src/localization.js"];
 
   const OUTPUT_FILE = "src/build/malclean.user.js";
   const LANGUAGES = [...(await glob("src/data/languages/*.json"))];

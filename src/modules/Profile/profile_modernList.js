@@ -129,11 +129,20 @@ if (svar.replaceList) {
       try {
         const response = await fetchWithRetry(`https://myanimelist.net/${isManga ? "mangalist/" + username : "animelist/" + username}/load.json?offset=${offset}&status=7`);
         const data = await response.json();
-        if (data.length === 0) {
+
+        if (data.errors) {
+          shouldContinue = false;
+          if (data.errors[0]?.message === "invalid request") {
+            return "hidden_List";
+          }
+          console.error("API error:", data.errors);
+          return data.errors[0]?.message;
+        } else if (data.length === 0) {
           shouldContinue = false;
         } else {
           allData = allData.concat(data);
           offset += 300;
+          await delay(333);
         }
       } catch (error) {
         console.error("Fetch error:", error);
@@ -145,8 +154,8 @@ if (svar.replaceList) {
 
   async function getAnimeList(type) {
     let animeDataList = [];
+    let list = [];
     isManga = type;
-    const fetchUrl = isManga ? "https://myanimelist.net/mangalist/" + username + "?status=7" : "https://myanimelist.net/animelist/" + username + "?status=7";
     const listLoading = create(
       "div",
       {
@@ -157,9 +166,9 @@ if (svar.replaceList) {
     );
     const listEntries = create("div", { class: "list-entries" });
     contRight.append(listLoading, listEntries);
-    const html = await fetchAndCombineData().then(async (allData) => {
-      let list = allData;
-      if (list) {
+    await fetchAndCombineData().then(async (allData) => {
+      list = allData;
+      if (Array.isArray(list)) {
         for (let x = 0; x < list.length; x++) {
           if (isManga) {
             animeDataList.push({
@@ -216,6 +225,13 @@ if (svar.replaceList) {
     divs.sort((a, b) => a.id.localeCompare(b.id));
     divs.forEach((div) => container.append(div));
     $(".loadmore").hide();
+    if (!Array.isArray(list)) {
+      if (list === "hidden_List") {
+        listEntries.innerHTML = `<h3>${translate("$privateList")}</h3>`;
+      } else {
+        listEntries.innerHTML = `<h3>Error: ${list}</h3>`;
+      }
+    }
     listLoading.remove();
 
     if (svar.modernLayout) {
@@ -591,7 +607,7 @@ if (svar.replaceList) {
 
     //Compare Button
     if (userNotHeaderUser) {
-      let compareBtn = create("a", { class: "compareBtn" }, "Compare");
+      let compareBtn = create("a", { class: "compareBtn" }, translate("$listCompare"));
       let compareUrl = isManga
         ? "https://myanimelist.net/sharedmanga.php?u1=" + username + "&u2=" + headerUserName
         : "https://myanimelist.net/sharedanime.php?u1=" + username + "&u2=" + headerUserName;

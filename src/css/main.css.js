@@ -651,7 +651,8 @@ input.maljsNativeInput {
     display: block;
     margin-top: 5px;
     cursor: pointer;
-    width: 55px
+    width: auto;
+    display: inline-block
 }
 
 .compareBtn {
