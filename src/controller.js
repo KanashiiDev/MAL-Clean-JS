@@ -1,6 +1,5 @@
 const pageIsForum = /\/(forum)\/.?(topicid|animeid|board)([\w-]+)?\/?/.test(location.href);
 const pageIsForumTopic = /\/forum\/.?topicid([\w-]+)?\/?/.test(location.href);
-const pageIsForumBoard = /\/forum\/.?(topicid|animeid|board)([\w-]+)?\/?/.test(location.href);
 const pageIsAniManga =
   /\/(anime|manga)\/.?([\w-]+)?\/?/.test(current) &&
   !/\/(anime|manga)\/producer|genre|magazine|adapted\/.?([\w-]+)?\/?/.test(current) &&

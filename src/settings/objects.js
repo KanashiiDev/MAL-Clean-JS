@@ -193,7 +193,7 @@ let bgShadowColorValue = "rgba(6,13,34,0)";
 bgShadowColorSelector.addEventListener("input", (event) => {
   const hexColor = event.target.value;
   bgShadowColorValue = hexToRgb(hexColor);
-  $('.banner#shadow')[0].setAttribute(
+  $(".banner#shadow")[0].setAttribute(
     "style",
     `background: linear-gradient(180deg, rgba(${bgShadowColorValue}, 0) 40%, rgba(${bgShadowColorValue}, .6)); height: 100%; left: 0; position: absolute; top: 0; width: 100%;`
   );
@@ -261,7 +261,7 @@ pfRemoveButton.onclick = () => {
 var cssButton = create("button", { class: "mainbtns", id: "customCSS" }, translate("$update"));
 var cssRemoveButton = create("button", { class: "mainbtns fa fa-trash removeButton", id: "customCSSRemove" });
 var cssInfo = create("p", { class: "textpb" }, "");
-let cssInput = create("input", { class: "cssInput", id: "cssInput" });
+let cssInput = create("textarea", { class: "cssInput", id: "cssInput" });
 
 var cssmodernLayout = create("button", { class: "mainbtns", id: "cssmodernLayout", style: { height: "32px", width: "32px", verticalAlign: "middle" } });
 var cssmodernLayoutText = create("h3", { style: { display: "inline" } }, translate("$customCSSModern"));
@@ -294,6 +294,32 @@ cssButton.onclick = () => {
     cssInfo.innerText = "Css empty.";
   }
 };
+//Custom CSS Preview
+const debouncedCustomCSSUpdate = debounce((event) => {
+  cssInfo.innerText = "";
+  const oldStyle = document.getElementById("customCSS");
+  if (oldStyle) oldStyle.remove();
+
+  if (event.target.value.match(/^https?:\/\/.*\.css$/)) {
+    const cssLink = create("link", {
+      rel: "stylesheet",
+      type: "text/css",
+      href: event.target.value,
+    });
+    document.head.appendChild(cssLink);
+  } else if (event.target.value.length < 1e6) {
+    const cleanedCSS = event.target.value
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\s*([{}:;,])\s*/g, "$1")
+      .replace(/\n+/g, "");
+
+    const style = create("style", { id: "customCSS" }, cleanedCSS);
+    document.head.appendChild(style);
+  }
+}, 500);
+
+cssInput.addEventListener("input", debouncedCustomCSSUpdate);
+
 cssRemoveButton.onclick = () => {
   editAboutPopup(`customCSS/...`, "css");
 };
@@ -387,7 +413,7 @@ const colorSelectors = Array.from({ length: customColorLabels.length }, (_, inde
   const colorInput = createColorInput();
   colorInput.value = customColorsDefault[index];
 
-  const debouncedCustomColorUpdate = debounce((event) => {
+  const debouncedCustomColorUpdate = debounce(() => {
     colorValues = colorSelectors.map((selector) => selector.value);
     applyCustomColors(colorValues);
   }, 500);

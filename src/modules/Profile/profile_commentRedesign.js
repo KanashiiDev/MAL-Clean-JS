@@ -8,7 +8,7 @@ async function newProfileComments(profile) {
   let currPage = 1;
   let oldprofileLinkArray = [];
   let addedComCount = 0;
-  const loading = create("div", { class: "user-history-loading actloading" }, translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin malCleanLoader"></i>');
+  const loading = create("div", { class: "user-history-loading actloading" }, translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin malCleanSpinner"></i>');
 
   function parseProfileHTML(html) {
     const parser = new DOMParser();

@@ -156,6 +156,8 @@ async function createDiv() {
       { b: buttons["headerSlideBtn"], t: translate("$autoHideHeader") },
       { b: buttons["scrollbarStyleBtn"], t: translate("$changeScrollbarAppearance") },
       { b: buttons["hideNonJapaneseAnimeBtn"], t: translate("$hideNonJapaneseAnime") },
+      { b: buttons["embedBtn"], t: translate("$modernAnimeMangaLinks") },
+      { b: buttons["editorLivePreviewBtn"], t: translate("$editorLivePreview") },
     ]),
     createListDiv("Anime - Manga", [
       { b: buttons["animeBgBtn"], t: translate("$dynamicBackgroundColor") },
@@ -181,7 +183,6 @@ async function createDiv() {
     ]),
     createListDiv("Club", [{ b: buttons["clubCommentsBtn"], t: translate("$expandClubComments") }]),
     createListDiv("Forum", [
-      { b: buttons["embedBtn"], t: translate("$modernAnimeMangaLinks") },
       { b: buttons["forumDateBtn"], t: translate("$changeDateFormatForum") },
     ]),
     createListDiv("Profile", [
@@ -205,14 +206,17 @@ async function createDiv() {
   document.querySelector("#headerSmall").insertAdjacentElement("beforeend", mainInner);
   listDiv.append(buttons["removeAllCustomBtn"]);
 
-  createSettingDropdown("#replaceListBtn", "option", "listAiringStatus", true, translate("$ddAiringDot"));
-  createSettingDropdown("#moreFavsBtn", "option", "moreFavsMode", true, translate("$ddmoreFavsMode"));
+  createSettingDropdown("#replaceListBtn", "option", "listAiringStatus", true, translate("$addAiringDot"));
+  createSettingDropdown("#moreFavsBtn", "option", "moreFavsMode", true, translate("$addmoreFavsMode"));
+  createSettingDropdown("#embedBtn", "option", "embedForum", true, "Forum");
+  createSettingDropdown("#embedBtn", "option", "embedNews", false, "News");
   createSettingDropdown("#embedBtn", "ttl", "embedTTL", 30, translate("$ddEmbedTTL"));
+  createSettingDropdown("#animeTagBtn", "option", "categorizeTags", false, translate("$categorizeTags"));
   createSettingDropdown("#animeTagBtn", "ttl", "tagTTL", 7, translate("$ddTagTTL"));
   createSettingDropdown("#animeRelationBtn", "ttl", "relationTTL", 7, translate("$ddRelationTTL"));
   createSettingDropdown("#animeRelationBtn", "option", "relationFilter", false, translate("$addRelationFilter"));
   createSettingDropdown("#modernLayoutBtn", "option", "autoModernLayout", false, translate("$ddAutoModernLayout"));
-  createSettingDropdown("#animeBannerBtn", "option", "animeBannerMove", false, translate("$ddAnimeBannerMove"));
+  createSettingDropdown("#animeBannerBtn", "option", "animeBannerMove", false, translate("$addAnimeBannerMove"));
   createSettingDropdown("#currentlyGridBtn", "option", "currentlyGrid6Column", false, translate("$addCurrentlyGrid6Column"));
   createSettingDropdown("#currentlyGridBtn", "option", "currentlyGridAccordion", false, translate("$addCurrentlyGridAccordion"));
   createSettingDropdown("#recentlyGridBtn", "option", "recentlyGrid6Column", false, translate("$addCurrentlyGrid6Column"));
@@ -252,6 +256,7 @@ async function createDiv() {
       }
     }
   });
+
   $("#autoModernLayoutBtn").on("click", async function () {
     svar.modernLayout = !svar.autoModernLayout;
     svar.save();

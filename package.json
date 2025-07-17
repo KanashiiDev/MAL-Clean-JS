@@ -1,6 +1,6 @@
 {
   "name": "mal-clean-js",
-  "version": "1.30.6",
+  "version": "1.30.7",
   "description": "Customizations and fixes for MyAnimeList",
   "author": "KanashiiDev",
   "license": "GPL-3.0-or-later",
@@ -16,11 +16,11 @@
     "build:lint": "eslint --no-ignore src/build/malclean.user.js"
   },
   "devDependencies": {
-    "eslint": "^9.0.0",
-    "@eslint/js": "^9.22.0",
-    "eslint-plugin-compat": "^6.0.0",
-    "glob": "^11.0.2",
-    "globals": "^16.0.0",
-    "nodemon": "^3.1.9"
+    "eslint": "^9.31.0",
+    "@eslint/js": "^9.31.0",
+    "eslint-plugin-compat": "^6.0.2",
+    "glob": "^11.0.3",
+    "globals": "^16.3.0",
+    "nodemon": "^3.1.10"
   }
 }

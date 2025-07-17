@@ -5,6 +5,13 @@ function delay(ms) {
   });
 }
 
+//Timeout
+function timeout(ms) {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error("Timeout")), ms);
+  });
+}
+
 //Debounce Function
 function debounce(func, delay) {
   let timeoutId;
@@ -16,6 +23,53 @@ function debounce(func, delay) {
   };
 }
 
+//Debounce the function after its first call.
+function debounceWithFirstImmediate(fn, delay) {
+  let timer;
+  let firstCall = true;
+  return (...args) => {
+    if (firstCall) {
+      firstCall = false;
+      fn(...args);
+    } else {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        fn(...args);
+      }, delay);
+    }
+  };
+}
+
+//Wait for the element
+function waitForElement(selector, timeout = 5000, options = {}) {
+  return new Promise((resolve, reject) => {
+    const element = document.querySelector(selector);
+    if (element) {
+      resolve(element);
+      return;
+    }
+
+    const observer = new MutationObserver(() => {
+      const el = document.querySelector(selector);
+      if (el) {
+        observer.disconnect();
+        resolve(el);
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    setTimeout(() => {
+      observer.disconnect();
+      if (options.log) {
+        reject(`Element "${selector}" not found.`);
+      } else {
+        resolve(null);
+      }
+    }, timeout);
+  });
+}
+
 //Image Check
 function isImageLoadable(url, callback) {
   const img = new Image();
@@ -25,16 +79,29 @@ function isImageLoadable(url, callback) {
 }
 
 //Simple Create Element Shorthand Function
-function create(e, t, n) {
-  if (!e) throw SyntaxError("'tag' not defined");
-  var r,
-    i,
-    f = document.createElement(e);
-  if (t)
-    for (r in t)
-      if ("style" === r) for (i in t.style) f.style[i] = t.style[i];
-      else t[r] && f.setAttribute(r, t[r]);
-  return n && (f.innerHTML = n), f;
+function create(tag, attrs, innerHTML) {
+  if (!tag) throw new SyntaxError("'tag' not defined");
+
+  const el = document.createElement(tag);
+
+  if (attrs) {
+    for (const key in attrs) {
+      if (key === "style") {
+        const styleVal = attrs.style;
+        if (typeof styleVal === "string") {
+          el.style.cssText = styleVal;
+        } else if (typeof styleVal === "object") {
+          for (const s in styleVal) {
+            el.style[s] = styleVal[s];
+          }
+        }
+      } else {
+        el.setAttribute(key, attrs[key]);
+      }
+    }
+  }
+  if (innerHTML) el.innerHTML = innerHTML;
+  return el;
 }
 
 //Advanced Create Element Shorthand Function
@@ -184,7 +251,7 @@ async function editAboutPopup(data, type) {
         class: "actloading",
         style: { position: "relative", left: "0px", right: "0px", fontSize: "16px", height: "100%", alignContent: "center", zIndex: "2" },
       },
-      translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome;word-break: break-word;"></i>'
+      translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin malCleanSpinner"></i>'
     );
     const iframe = create("iframe", { style: { pointerEvents: "none", opacity: "0" }, src: "https://myanimelist.net/editprofile.php" });
 
@@ -238,7 +305,7 @@ async function editAboutPopup(data, type) {
         moreFavs: /(moreFavs)\/([^\/]+.)/gm,
       };
       let userBlogPage = "https://myanimelist.net/blog/" + headerUserName;
-      popupLoading.innerHTML = translate("$updating") + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
+      popupLoading.innerHTML = translate("$updating") + '<i class="fa fa-circle-o-notch fa-spin malCleanSpinner"></i>';
       $iframeContents.find("body")[0].setAttribute("style", "background:0!important");
       if ($iframeContents.find(".goodresult")[0]) {
         canSubmit = 0;
@@ -378,7 +445,7 @@ async function editPopup(id, type, add, addCount, addFg) {
         class: "actloading",
         style: { position: "relative", left: "0px", right: "0px", fontSize: "16px", height: "100%", alignContent: "center", zIndex: "100" },
       },
-      translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>'
+      translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin malCleanSpinner"></i>'
     );
     const popupMask = create("div", {
       class: "fancybox-overlay",
@@ -411,7 +478,7 @@ async function editPopup(id, type, add, addCount, addFg) {
         popupLoading.remove();
         iframe.style.opacity = 1;
       } else {
-        popupLoading.innerHTML = translate("$updating") + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
+        popupLoading.innerHTML = translate("$updating") + '<i class="fa fa-circle-o-notch fa-spin malCleanSpinner"></i>';
       }
       if (add && $(iframe).contents().find(".goodresult")[0]) {
         close();
@@ -552,7 +619,7 @@ async function blockUser(id) {
         class: "actloading",
         style: { position: "fixed", top: "50%", left: "0", right: "0", fontSize: "16px" },
       },
-      translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>'
+      translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin malCleanSpinner"></i>'
     );
     const popupMask = create("div", {
       class: "fancybox-overlay",
@@ -661,7 +728,7 @@ let AlAPIRequestPromise;
 
 async function aniAPIRequest() {
   if (!AlAPIRequestPromise) {
-    const AlQuery = `query {Media(idMal:${entryId}, type:${entryType}) {bannerImage tags {isMediaSpoiler name rank description}
+    const AlQuery = `query {Media(idMal:${entryId}, type:${entryType}) {bannerImage tags {isMediaSpoiler name rank description category}
     relations {edges {relationType node {status startDate {year} seasonYear type format title {romaji} coverImage {medium large} idMal}}}
     nextAiringEpisode {timeUntilAiring episode}}}`;
     AlAPIRequestPromise = AnilistAPI(AlQuery).then((data) => {
@@ -686,7 +753,7 @@ function addLoading(type = "add", text = translate("$loading"), circle = 1, forc
     if (force) {
       $(loadingDiv).attr("force", force);
     }
-    let spinCircle = '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>';
+    let spinCircle = '<i class="fa fa-circle-o-notch fa-spin malCleanSpinner"></i>';
     if (type === "add") {
       loadingDiv.innerHTML = text + (circle ? spinCircle : "");
       if (!document.querySelector("#loadingDiv")) {
@@ -1939,7 +2006,7 @@ async function getMalBadges(url) {
       class: "actloading",
       style: { position: "relative", left: "0px", right: "0px", fontSize: "14px", height: "120px", alignContent: "center", zIndex: "2" },
     },
-    translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome;word-break: break-word;"></i>'
+    translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin malCleanSpinner"></i>'
   );
   if (!svar.modernLayout) {
     $([badgesIframe, badgesDivIframeInner, badgesDivInner]).addClass("defaultMal");
@@ -2255,4 +2322,248 @@ function removeFromAnimeSearch(ids) {
       row.remove();
     }
   });
+}
+
+// Create Anime/Manga Embed
+async function createEmbed(selectorList) {
+  const embedCache = localforage.createInstance({ name: "MalJS", storeName: "embed" });
+  const options = { cacheTTL: svar.embedTTL ? svar.embedTTL : 2592000000, class: "embed" };
+  let cached;
+  //API Request
+  async function fetchData(url, retry = 0) {
+    try {
+      const response = await fetch(url);
+
+      if (response.status === 429 && retry < 5) {
+        await delay(3000);
+        return fetchData(url, retry + 1);
+      }
+
+      if (!response.ok) {
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Fetch failed:", error);
+      return null;
+    }
+  }
+
+  function getCacheTTL(status) {
+    return status === "Finished Airing" || status === "Finished" ? 15552000000 : svar.embedTTL;
+  }
+
+  function getYear(d, cached, publishedYear, airedYear) {
+    return cached && d.year ? d.year : d.type !== "Anime" && publishedYear ? publishedYear : airedYear || "";
+  }
+
+  function buildDetails(d, cached, publishedYear, airedYear) {
+    const detailsArray = [];
+
+    if (d.type) detailsArray.push(d.type);
+    if (d.status) detailsArray.push(d.status.replace("Currently", ""));
+    if (d.season) detailsArray.push(d.season.charAt(0).toUpperCase() + d.season.slice(1));
+
+    const year = getYear(d, cached, publishedYear, airedYear);
+    if (year) detailsArray.push(year);
+
+    if (d.score) {
+      detailsArray.push(`<span class="score"> · ${Math.floor(d.score * 10)}%</span>`);
+    }
+
+    let result = detailsArray.join(" · ");
+    if (detailsArray.length && detailsArray[detailsArray.length - 1].toString().includes("score")) {
+      const last = detailsArray.pop();
+      result = detailsArray.join(" · ") + last;
+    }
+    return result;
+  }
+
+  function createGenreDiv(genres) {
+    return create(
+      "div",
+      { class: "genres" },
+      genres?.length
+        ? genres
+            .filter((g) => g.name !== "Award Winning")
+            .map((g) => g.name)
+            .join(", ")
+        : ""
+    );
+  }
+
+  async function getEmbedData(id, type) {
+    let apiUrl = `https://api.jikan.moe/v4/${type === "manga" ? "manga" : "anime"}/${id}`;
+
+    try {
+      const cache = (await embedCache.getItem(id)) || { time: 0 };
+      let data = await cache;
+      let d = data.data;
+      cached = true;
+      let imgdata;
+
+      if (d && d.status) {
+        options.cacheTTL = getCacheTTL(d.status);
+      }
+
+      if (cache.time + options.cacheTTL < Date.now()) {
+        data = await fetchData(apiUrl);
+        if (!data) return;
+
+        d = data.data;
+        const publishedYear = d.published?.prop?.from?.year;
+        const airedYear = d.aired?.prop?.from?.year;
+
+        await embedCache.setItem(id, {
+          data: {
+            status: d.status,
+            score: d.score,
+            title: d.title,
+            type: d.type,
+            genres: d.genres,
+            season: d.season,
+            images: d.images,
+            year: d.type !== "Anime" ? publishedYear || airedYear || "" : airedYear || "",
+            url: d.url,
+          },
+          time: Date.now(),
+        });
+
+        imgdata = d.images.jpg.image_url;
+        cached = false;
+      } else {
+        d = data.data;
+        imgdata = d.images.jpg.image_url;
+      }
+
+      if (!imgdata) return;
+
+      const publishedYear = d.published?.prop?.from?.year;
+      const airedYear = d.aired?.prop?.from?.year;
+
+      const genres = createGenreDiv(d.genres);
+      const details = create("div", { class: "details" });
+      details.innerHTML = buildDetails(d, cached, publishedYear, airedYear);
+
+      const container = create("div", { class: "embed-container" }, "<a></a>");
+      const namediv = create("div", { class: "embed-inner" });
+      const name = create("a", { class: "embed-title" }, d.title);
+      name.href = d.url;
+
+      if (["Manga", "Manhwa", "Novel"].includes(d.type)) {
+        name.style = "color: #92d493!important;";
+      }
+
+      const image = create("img", {
+        ["data-src"]: imgdata,
+        class: "embed-image lazyload",
+      });
+
+      if (d.genres.length > 0) {
+        genres.style.display = "block";
+      } else {
+        container.classList.add("no-genre");
+      }
+
+      namediv.append(name, genres, details);
+      container.append(image, namediv);
+
+      return container;
+    } catch (error) {
+      console.error("error:", error);
+    }
+  }
+
+  //Load Embed
+  const forumHeader = document.querySelector("h1.forum_locheader")?.innerText || "";
+  const isPreviewThread = /\w+\s\d{4}\sPreview/gm.test(forumHeader);
+  const containers = selectorList.flatMap((selector) => [...document.querySelectorAll(selector)]);
+
+  for (const container of containers) {
+    let html = container.innerHTML;
+
+    html = html
+      .replace(/(http:\/\/|https:\/\/)(myanimelist\.net\/(anime|manga)\.php\?id=)([0-9]+)/gm, "https://myanimelist.net/$2/$3")
+      .replace(/(<a href="\b(http:\/\/|https:\/\/)(myanimelist\.net\/(anime|manga)\/[0-9]+))/gm, " $1");
+
+    let matches = html.match(/<a href="https:\/\/myanimelist\.net\/(anime|manga)\/([0-9]+)([^"'<]*)".*?>.*?<\/a>/gm);
+    matches = matches?.filter((link) => !link.includes("/video")) || [];
+
+    if (matches.length === 0 || isPreviewThread) continue;
+
+    const uniqueMatches = [...new Set(matches)];
+
+    // Place the placeholder spinner divs
+    uniqueMatches.forEach((match) => {
+      const idMatch = match.match(/myanimelist\.net\/(anime|manga)\/([0-9]+)/);
+      if (!idMatch) return;
+      const id = idMatch[2];
+      if (id.startsWith("0")) return;
+
+      const spinnerDiv = create(
+        "div",
+        {
+          class: "embed-link embed-loading",
+          id: "e-" + id,
+          "data-match": match,
+        },
+        `<div class="embed-container"><a></a><a class="embed-image"></a><div class="embed-inner"><a class="embed-title"></a><div class="spinner"></div></div></div>`
+      );
+
+      // Replace the original link with a placeholder
+      const escapedMatch = match.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+      const reg = new RegExp(`(?<!Div">)(${escapedMatch})`, "gms");
+      html = html.replace(reg, spinnerDiv.outerHTML);
+    });
+
+    container.innerHTML = html;
+
+    // Load the embeds in order
+    for (let i = 0; i < uniqueMatches.length; i++) {
+      const match = uniqueMatches[i];
+      const [, type, id] = match.match(/myanimelist\.net\/(anime|manga|character|people)\/([0-9]+)/) || [];
+      if (!id || id.startsWith("0")) continue;
+
+      const embedContainer = container.querySelector(`.embed-link#e-${id}`);
+      if (!embedContainer) continue;
+
+      try {
+        try {
+          const embedData = await Promise.race([getEmbedData(id, type), timeout(10000)]);
+          if (embedData) {
+            embedContainer.classList.remove("embed-loading");
+            embedContainer.innerHTML = "";
+            embedContainer.appendChild(embedData);
+          } else {
+            const originalLink = embedContainer.getAttribute("data-match");
+            if (originalLink) {
+              embedContainer.outerHTML = originalLink;
+            }
+          }
+        } catch (e) {
+          console.error(`Embed error (ID ${id}):`, e.message);
+          const originalLink = embedContainer.getAttribute("data-match");
+          if (originalLink) {
+            embedContainer.outerHTML = originalLink;
+          }
+        }
+      } catch (e) {
+        console.error(`Embed fetch error for ID ${id}:`, e);
+        const originalLink = embedContainer.getAttribute("data-match");
+        if (originalLink) {
+          embedContainer.outerHTML = originalLink;
+        }
+      }
+
+      const wait = cached ? 33 : uniqueMatches.length > 4 && i % 4 === 0 ? 777 : 333;
+      await delay(wait);
+    }
+
+    if (container.className === "message" && !container.id) {
+      container.remove();
+    }
+
+    await delay(777);
+  }
 }

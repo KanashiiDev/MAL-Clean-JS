@@ -3,13 +3,14 @@ fgColor = tinycolor(fgColor.getPropertyValue("--fg"));
 const fgOpacity = fgColor.setAlpha(0.8).toRgbString();
 
 let styles = `
-.malCleanLoader {
-    top:2px;
-    position:relative;
-    margin-left:5px;
-    font-size:12px;
-    font-family:FontAwesome
+.malCleanSpinner {
+  position: relative;
+  margin-left: 5px;
+  font-size: 12px;
+  font-family: FontAwesome;
+  display: inline-block;
 }
+
 .loadmore,
 .actloading,
 .listLoading {
@@ -1018,7 +1019,8 @@ input.maljsNativeInput {
     margin: 0 !important;
     padding: 0 !important
 }
-
+    
+.aniTagDiv .category-group,
 .aniTagDiv {
     display: -ms-grid;
     display: grid;
@@ -1028,6 +1030,8 @@ input.maljsNativeInput {
 }
 
 .aniTag {
+    position: relative;
+    overflow: visible!important;
     cursor: default;
     display: -webkit-box;
     display: flex;
@@ -1038,6 +1042,7 @@ input.maljsNativeInput {
     justify-content: space-between
 }
 
+.aniTagDiv .category-group.spoiler-group,
 .aniTag.spoiler {
     display: none
 }
@@ -1052,8 +1057,34 @@ input.maljsNativeInput {
     font-weight: 600
 }
 
+.aniTag-category {
+    margin: 10px 0 4px 0;
+}
+
 .aniTag-percent {
     color: var(--color-main-text-light)
+}
+
+.aniTag::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 125%;
+  left: 0;
+  background: var(--color-foreground4);
+  color: var(--color-text);
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-line;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 1000;
+  max-width: 210px;
+}
+
+.aniTag:hover::after {
+  opacity: 1;
 }
 
 #content>table>tbody>tr>td:nth-child(2)>div.rightside.js-scrollfix-bottom-rel>div.h1.edit-info,
@@ -1116,21 +1147,21 @@ input.maljsNativeInput {
     top: -85px
 }
 
+.aniTag,
+.aniTag::after,
+.spaceit-shadow-end,
+.spaceit-shadow-end-div,
 .spaceit-shadow {
     -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
     box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
     border: var(--border) solid var(--border-color);
     -webkit-border-radius: var(--br);
-            border-radius: var(--br)
+    border-radius: var(--br)
 }
 
 .aniTag,
 .spaceit-shadow-end,
-.spaceit-shadow-end-div {
-    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
-    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
-    border: var(--border) solid var(--border-color);
-    border-radius: var(--br);
+.spaceit-shadow-end-div{
     overflow: hidden
 }
 
@@ -1525,6 +1556,40 @@ div#custom-preview-div blockquote.spoiler {
     opacity: 1 !important
 }
 
+.embed-loading {
+  position: relative;
+}
+
+.embed-loading .embed-container{
+    min-width: 240px;
+    max-height: 60px;
+    justify-content: center;
+}
+
+.embed-loading .embed-inner {
+    width: 100%;
+}
+
+#content .embed-loading .embed-image {
+    background: var(--color-foreground4);
+    width: 50px !important;
+    height: 60px !important;
+}
+
+body #content .embed-loading .spinner {
+    width: 15px;
+    height: 15px;
+    border: 3px solid #ccc !important;
+    border-top-color: #666 !important;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 50% auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .embed-link {
     width: max-content;
     line-height: 1.16rem;
@@ -1535,28 +1600,28 @@ div#custom-preview-div blockquote.spoiler {
     user-select: none;
 }
 
-.embed-container.no-genre .genres {
+.embed-link .embed-container.no-genre .genres {
     display: none
 }
 
-.embed-container:not(.no-genre) div {
+.embed-link .embed-container:not(.no-genre) div {
     transition: opacity 0.3s ease-in-out;
 }
 
-.embed-container:not(.no-genre) .genres {
+.embed-link .embed-container:not(.no-genre) .genres {
     margin-bottom: -18.5px;
     opacity: 0
 }
 
-.embed-container:not(.no-genre):hover .genres {
+.embed-link .embed-container:not(.no-genre):hover .genres {
     opacity: 1
 }
 
-.embed-container:not(.no-genre):hover .details {
+.embed-link .embed-container:not(.no-genre):hover .details {
     opacity: 0
 }
 
-.embed-title {
+.embed-link .embed-title {
     font-weight: bold;
     display: block;
     overflow: hidden;
@@ -1569,15 +1634,20 @@ div#custom-preview-div blockquote.spoiler {
     align-self: center;
 }
 
-.embed-image {
-    background-size: cover;
-    height: 58px;
-    width: 41px;
+#content .embed-link .embed-image {
+    width: 40px;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
     margin-right: 10px;
     margin-left: -10px;
+    -webkit-border-top-right-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    -webkit-border-bottom-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important
 }
 
-.embed-container {
+.embed-link .embed-container {
     color: var(--color-text);
     align-items: center;
     text-align: center;
@@ -1729,7 +1799,7 @@ div#custom-preview-div blockquote.spoiler {
 .malCleanMainContainerList .malCleanSettingButtons .removeButton,
 .malCleanMainContainer .malCleanMainHeaderTitle #innerSettingsBtn,
 .malCleanMainContainer .malCleanMainHeaderTitle #reloadbtn,
-.malCleanMainContainer .malCleanMainHeaderTitle #closebtn {
+.malCleanMainContainer .malCleanMainHeaderTitle #closeButton {
     font-family: fontAwesome
 }
 
@@ -1989,14 +2059,24 @@ body .malCleanMainContainerList .malCleanSettingButtons input {
 }
 
 .malCleanMainContainer .malCleanSettingContainer h2 {
+    font-size: 13px!important;
     background: var(--color-foreground2);
     border-radius: var(--br);
     padding: 5px!important
 }
 
 .malCleanMainContainer .malCleanSettingContainer h3 {
-    font-weight: 500
+    font-weight: 500!important
 }
+
+#myanimelist .malCleanMainContainer .malCleanSettingContainer textarea {
+    resize: vertical;
+    height: 18px;
+    min-height: 18px;
+    padding: 10px;
+    background: var(--color-foreground2)!important;
+}
+
 .anisong-accordion-button {
     text-align: right;
     cursor: pointer;
@@ -2037,6 +2117,11 @@ body .malCleanMainContainerList .malCleanSettingButtons input {
 }
 .theme-songs.js-theme-songs.has-video:hover .fa-star {
     opacity: 1
+}
+
+.fa-solid.fa-rotate-right {
+    cursor: pointer;
+    color: var(--color-link);
 }
 
 #badges-iframe {

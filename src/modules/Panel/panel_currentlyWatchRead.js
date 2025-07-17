@@ -11,7 +11,7 @@ function htmlTemplate(type) {
   const typeTranslate = type === "anime" ? translate("$currentlyWatching") : translate("$currentlyReading");
   const text = `<div class="widget anime_suggestions left"><div class="widget-header"><span style="float: right;"></span>
       <h2 class="index_h2_seo"><a href="https://myanimelist.net/${type}list/${headerUserName}?status=1">${typeTranslate}</a></h2>
-      <i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative; margin-left:5px; font-size:12px; font-family:FontAwesome"></i></div>
+      <i class="fa fa-circle-o-notch fa-spin malCleanSpinner"></i></div>
       <div class="widget-content"><div class="mt4"><div class="widget-slide-block" id="widget-currently-${typeText}">
       <div id="currently-left${type === "manga" ? "-manga" : ""}" class="btn-widget-slide-side left" style="left: -40px; opacity: 0;"><span class="btn-inner"></span></div>
       <div id="currently-right${type === "manga" ? "-manga" : ""}" class="btn-widget-slide-side right" style="right: -40px; opacity: 0;"><span class="btn-inner" style="display: none;"></span></div>

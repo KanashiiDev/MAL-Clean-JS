@@ -425,7 +425,7 @@ async function loadAniSong() {
       let aniSongsMainDiv = document.querySelector("div.di-t:has(.anisongs)");
       if (aniSongsMainDiv) {
         let lastCheck = nativeTimeElement(Math.floor(data.time / 1000));
-        let AniSongsReCheck = create("i", { class: "fa-solid fa-rotate-right", style: { cursor: "pointer", color: "var(--color-link)" } });
+        let AniSongsReCheck = create("i", { class: "fa-solid fa-rotate-right" });
         let AniSongsFooter = create(
           "div",
           { class: "anisongs-footer", style: { textAlign: "right", marginRight: "5px" } },

@@ -12,8 +12,11 @@ Made for the <a href="https://userstyles.world/style/10678/myanimelist-clean">My
 <li>Add recently added anime & manga. <a href="https://files.catbox.moe/97witl.png">[IMAGE]</a></li>
 <li>Show currently watching anime & manga. <a href="https://files.catbox.moe/ayx26l.png">[IMAGE]</a></li>
 <li>Auto add start/finish date to watching anime & reading manga.</li>
-<li>Add next episode countdown to currently watching anime.</li><br>
+<li>Add next episode countdown to currently watching anime.</li>
+<li>Modern Anime/Manga Links <a href="https://files.catbox.moe/yvrntr.png">[IMAGE]</a></li>
+<li>Add live preview to the editor.</li><br>
 <b>Anime</b>
+<li>Hide non-Japanese Anime.</li>
 <li>Replace OPs and EDs with animethemes.moe</li><br>
 <b>Anime & Manga</b>
 <li>Custom Cover Image. <a href="https://files.catbox.moe/kdzyv3.png">[IMAGE]</a></li>
@@ -29,7 +32,7 @@ Made for the <a href="https://userstyles.world/style/10678/myanimelist-clean">My
 <b>Character & People</b>
 <li>Change name position.</li><br>
 <b>Forum</b>
-<li>Modern Anime/Manga Links <a href="https://files.catbox.moe/yvrntr.png">[IMAGE]</a></li><br>
+<li>Change date format.</li><br>
 <b>Profile</b>
 <li>Modern Profile Layout <i>(Custom avatar, banner and badge will be visible to users with the script)</i></li>
 <li>Modern Anime/Manga List. <a href="https://files.catbox.moe/f6luis.png">[IMAGE]</a></li>

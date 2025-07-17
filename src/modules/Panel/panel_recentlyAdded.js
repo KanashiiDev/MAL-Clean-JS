@@ -163,7 +163,7 @@ async function createRecentlyAddedWidget(type) {
     let d = document.querySelector(`#${id} > div > div.widget-header`);
     if (d) {
       let e = create("span", { class: "currently-watching-error", style: { float: "right", display: "inline-block" } }, "API Error. Please try again.");
-      let r = create("i", { class: "fa-solid fa-rotate-right", style: { cursor: "pointer", color: "var(--color-link)" } });
+      let r = create("i", { class: "fa-solid fa-rotate-right"});
       r.onclick = () => {
         recentlyAddedDiv.remove();
         createRecentlyAddedWidget(type);

@@ -21,13 +21,13 @@ stButton.onclick = () => {
 };
 
 //MalClean Settings - Close Button
-var closeButton = create("button", { class: "mainbtns fa fa-x", id: "closebtn" });
+var closeButton = create("button", { class: "mainbtns fa fa-x", id: "closeButton", title: "Close" });
 closeButton.onclick = () => {
   closeDiv();
 };
 
 // MalClean Inner Settings
-const innerSettingsButton = create("button", { active: "0", class: "mainbtns fa fa-gear", id: "innerSettingsBtn" });
+const innerSettingsButton = create("button", { active: "0", class: "mainbtns fa fa-gear", id: "innerSettingsBtn", title: "Settings" });
 const settingDiv = create("div", { class: "malCleanSettingInnerSettings malCleanSettingPopup", style: { display: "none" } });
 innerSettingsButton.addEventListener("click", () => {
   const target = document.querySelector("div.malCleanMainHeader > div.malCleanMainHeaderTitle");
@@ -56,7 +56,7 @@ function createSettingSection(title, ...contents) {
 }
 
 //MalClean Settings - Reload Button
-var reloadButton = create("button", { class: "mainbtns fa fa-refresh", id: "reloadbtn" });
+var reloadButton = create("button", { class: "mainbtns fa fa-refresh", id: "reloadbtn", title: "Refresh" });
 reloadButton.onclick = () => {
   window.location.reload();
 };

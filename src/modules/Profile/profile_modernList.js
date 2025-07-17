@@ -108,7 +108,7 @@ if (svar.replaceList) {
         return await fetchWithTimeout(url, timeout);
       } catch (error) {
         if (attempt < retries) {
-          $(".listLoading").html(`Retrying (${attempt}/${retries})... <i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>`);
+          $(".listLoading").html(`Retrying (${attempt}/${retries})... <i class="fa fa-circle-o-notch fa-spin malCleanSpinner"></i>`);
           console.log(`Retrying (${attempt}/${retries})...`);
           await new Promise((res) => {
             setTimeout(() => res(), 1000);
@@ -162,7 +162,7 @@ if (svar.replaceList) {
         class: "listLoading",
         style: { position: "absolute", top: "100%", left: "0", right: "0", fontSize: "16px" },
       },
-      translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin" style="top:2px; position:relative;margin-left:5px;font-family:FontAwesome"></i>'
+      translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin malCleanSpinner"></i>'
     );
     const listEntries = create("div", { class: "list-entries" });
     contRight.append(listLoading, listEntries);
