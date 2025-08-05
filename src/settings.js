@@ -24,6 +24,10 @@ var stButton = create("li", { class: "malCleanSettingButton", id: "malCleanSetti
 //Default Settings (not for userModules)
 let svar = {
   animeBg: true,
+  animeBlurredBg: false,
+  animeBlurredBgBlur: 2.0,
+  animeBlurredBgBrightness: 0.7,
+  animeBlurredBgSaturate: 1.0,
   charBg: true,
   customCover: true,
   customCharacterCover: true,
@@ -84,6 +88,7 @@ let svar = {
   clubComments: false,
   editorLivePreview: false,
   scrollbarStyle: false,
+  scrollbarStyleWidth: 12,
   hideNonJapaneseAnime: false,
   currentLanguage: "English"
 };

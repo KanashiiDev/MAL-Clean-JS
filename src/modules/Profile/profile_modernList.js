@@ -45,7 +45,7 @@ if (svar.replaceList) {
       const airingDot = create("span", { class: "airing-dot" });
       coverDiv.append(airingDot);
     }
-    const editDiv = create("div", { class: "edit fa-pen", id: animeData.id });
+    const editDiv = create("div", { class: "edit fa fa-pen", id: animeData.id });
     editDiv.onclick = async () => {
       isManga ? await editPopup(editDiv.id, "manga", null, null, 1) : await editPopup(editDiv.id, null, null, null, 1);
     };
@@ -56,7 +56,7 @@ if (svar.replaceList) {
     titleDiv.appendChild(titleLink);
     if (animeData.notes) {
       const titleNote = create("div", { class: "user-note" });
-      const titleNoteIcon = create("span", { class: "title-note fa-sticky-note" });
+      const titleNoteIcon = create("span", { class: "title-note fa fa-sticky-note" });
       const titleNoteInner = create("div", { class: "title-note-inner" });
       titleNoteInner.innerHTML = animeData.notes;
       titleNote.append(titleNoteIcon, titleNoteInner);

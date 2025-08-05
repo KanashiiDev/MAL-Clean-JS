@@ -20,6 +20,21 @@ let styles = `
     text-align: center
 }
 
+.actloading {
+    position: relative;
+    left: 0px;
+    right: 0px;
+    font-size: 16px;
+    height: 100%;
+    align-content: center;
+    z-index: 100;
+}
+    
+.malBadgesLoading {
+    height: 120px;
+    font-size: 14px;
+}
+
 .tooltipBody .addtoList {
     position: absolute;
     top: -5px;
@@ -30,6 +45,82 @@ let styles = `
     background: var(--color-foreground2);
     -webkit-border-radius: var(--border-radius);
     border-radius: var(--border-radius)
+}
+
+.tooltipBody.grid .addtoList,
+.tooltipBody.grid .spoiler input,
+.tooltipBody.grid #tooltip-character-list .character-entry {
+   background: var(--color-foreground)!important;
+}
+
+.tooltipBody #tooltip-character-list { 
+    display: -ms-grid;display: grid;
+    -ms-grid-columns: 1fr 20px 1fr;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    max-height: 360px;
+    overflow-y: auto;
+    padding-right: 10px;
+    margin-top: 10px
+}
+
+.tooltipBody #tooltip-character-list .character-entry {
+   display: -webkit-box;
+   display: -webkit-flex;
+   display: flex;
+   padding: 6px;
+   -webkit-box-pack: justify;
+   -webkit-justify-content: space-between;
+    justify-content: space-between;
+   background: var(--color-foreground2);
+   border: var(--border) solid var(--border-color);
+   -webkit-border-radius: var(--border-radius);
+   border-radius: var(--border-radius);
+   -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color);
+   box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)
+}
+
+
+.tooltipBody #tooltip-character-list .character-container,
+.tooltipBody #tooltip-character-list .va-container {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    gap: 8px;
+    max-width: 50%;
+}
+
+.character-name-container,
+.va-name-container {
+    display: -ms-grid;
+    display: grid
+}
+
+.va-name-container {
+   text-align: right
+}
+
+.tooltipBody #tooltip-character-list .va-container  {
+    -webkit-box-orient: horizontal;
+    -webkit-box-direction: reverse;
+    -webkit-flex-direction: row-reverse;
+    flex-direction: row-reverse;
+}
+
+.tooltipBody #tooltip-character-list .character-image,
+.tooltipBody #tooltip-character-list .va-image {
+    width: 42px;
+    aspect-ratio: auto 42 / 62;
+    height: 62px;
+    aspect-ratio: auto 42 / 62;
+}
+
+.tooltipBody #tooltip-character-list .character-name,
+.tooltipBody #tooltip-character-list .va-name {
+    font-weight: bold
 }
 
 .maljsBlogDiv {
@@ -519,6 +610,14 @@ input#year-filter-slider {
     margin-top: -5px
 }
 
+.list-entries .entry {
+    position: relative
+}
+
+.list-entries .entry:hover {
+    background: var(--color-foreground2)
+}
+
 .list-entries .entry .edit {
     height: 40px;
     width: 40px;
@@ -538,8 +637,29 @@ input#year-filter-slider {
     transition: .3s
 }
 
-.list-entries .entry .edit:hover {
+.list-entries .entry:hover .edit {
     opacity: 1
+}
+
+.list-entries .entry:hover .cover .image {
+    display: block;
+    height: 200px;
+    left: -160px;
+    padding: 0;
+    position: absolute;
+    top: -60px;
+    width: 140px;
+    z-index: 1;
+    -webkit-border-radius: var(--border-radius);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    max-width: -webkit-max-content;
+    max-width: -moz-max-content;
+    max-width: max-content;
+    min-width: 0;
+    -webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+    box-shadow: 0 0 var(--shadow-strength) var(--shadow-color) !important;
+    border: 4px solid var(--border-color)
 }
 
 .maljsDisplayBox {
@@ -816,7 +936,8 @@ input.maljsNativeInput {
 .list-entries .title-note-inner {
     display:none;
     position: absolute !important;
-    background: var(--color-foreground2);
+    background: var(--color-background);
+    z-index: 10;
     padding: 10px;
     margin: -26px 0 0 20px;
     max-width: 420px;
@@ -825,6 +946,11 @@ input.maljsNativeInput {
     border: var(--border) solid var(--border-color);
     -webkit-border-radius: var(--border-radius);
             border-radius: var(--border-radius)
+}
+
+.mainbtns.tooltip .title-note-inner, 
+.mainbtns.disabled .title-note-inner {
+    background: var(--color-foreground2);
 }
 
 .mainbtns.disabled .title-note-inner {
@@ -841,6 +967,7 @@ input.maljsNativeInput {
     width: 20px;
     margin: 0 -15px 0 5px
 }
+
 .mainbtns.tooltip:hover .title-note-inner,
 .mainbtns.disabled:hover .title-note-inner,
 .list-entries .user-note:hover .title-note-inner {
@@ -1223,6 +1350,32 @@ input.maljsNativeInput {
     background-color: var(--color-foreground2)
 }
 
+.rec-info-wrapper.btn-anime {
+    display: inline-table;
+    width: 124px;
+    position: relative;
+}
+
+.widget.seasonal.left .btn-anime i,
+.widget.anime_suggestions.left .rec-info-wrapper i,
+.widget.manga_suggestions.left .rec-info-wrapper i {
+    font-family: "Font Awesome 6 Pro";
+    position: absolute;
+    right: 3px;
+    top: 3px;
+    padding: 4px;
+    opacity: 0;
+    transition: 0.4s;
+    z-index: 20;
+    cursor: pointer;
+}
+
+.widget.anime_suggestions.left .rec-info-wrapper i,
+.widget.manga_suggestions.left .rec-info-wrapper i {
+    right: 8px
+}
+
+.rec-info-wrapper.btn-anime:hover i,
 #widget-currently-watching > div.widget-slide-outer > ul > li:hover span.epBehind,
 #recently-added-anime .btn-anime:hover i,
 #recently-added-manga .btn-anime:hover i,
@@ -1234,6 +1387,7 @@ input.maljsNativeInput {
     opacity: .9 !important
 }
 
+.rec-info-wrapper.btn-anime .link,
 #recently-added-anime li.btn-anime .link,
 #recently-added-manga li.btn-anime .link,
 #currently-watching li.btn-anime .link,
@@ -1566,6 +1720,13 @@ div#custom-preview-div blockquote.spoiler {
     justify-content: center;
 }
 
+.embed-placeholder {
+    display: inline-block;
+    height: 100%;
+    width: 0;
+    visibility: hidden;
+}
+
 .embed-loading .embed-inner {
     width: 100%;
 }
@@ -1708,9 +1869,9 @@ body #content .embed-loading .spinner {
     width: 520px;
     height: 86vh;
     margin-right: 10px;
-    -webkit-transition: 0.4s;
-    -o-transition: 0.4s;
-    transition: 0.4s;
+    -webkit-transition: height 0.4s;
+    -o-transition: height 0.4s;
+    transition: height 0.4s;
     position: fixed;
     top: 55px;
     z-index: 100;
@@ -1779,13 +1940,30 @@ body #content .embed-loading .spinner {
 }
 
 .malCleanSettingPopup .settingContainer.slider {
-     display: -webkit-box;
-     display: -webkit-flex;
-     display: flex;
-    -webkit-box-align: center;
-    -webkit-align-items: center;
-    align-items: center;
-    gap: 5px
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.malCleanSettingPopup .settingContainer.slider label {
+  display: block;
+  width: 100%;
+}
+
+.malCleanSettingPopup .settingContainer .sliderRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.malCleanSettingPopup .settingContainer .sliderInput {
+  flex: 1;
+}
+
+.malCleanSettingPopup .settingContainer .sliderValue {
+   min-width: 20px;
+   text-align: left;
 }
 
 .mainListBtnDiv .fa-gear {
@@ -1796,9 +1974,11 @@ body #content .embed-loading .spinner {
     align-content: center
 }
 
+.malCleanLoader,
 .malCleanMainContainerList .malCleanSettingButtons .removeButton,
-.malCleanMainContainer .malCleanMainHeaderTitle #innerSettingsBtn,
-.malCleanMainContainer .malCleanMainHeaderTitle #reloadbtn,
+.malCleanMainContainer .malCleanMainHeaderTitle #dragButton,
+.malCleanMainContainer .malCleanMainHeaderTitle #innerSettingsButton,
+.malCleanMainContainer .malCleanMainHeaderTitle #reloadButton,
 .malCleanMainContainer .malCleanMainHeaderTitle #closeButton {
     font-family: fontAwesome
 }
@@ -1851,8 +2031,8 @@ body #content .embed-loading .spinner {
     width: 100%;
     display: -ms-inline-grid;
     display: inline-grid;
-    -ms-grid-columns: 80% auto auto auto;
-    grid-template-columns: 80% auto auto auto;
+    -ms-grid-columns: 75% auto auto auto auto;
+    grid-template-columns: 75% auto auto auto auto;
     -webkit-box-align: center;
     -webkit-align-items: center;
     -ms-flex-align: center;
@@ -1919,6 +2099,11 @@ body #content .embed-loading .spinner {
 .mainbtns.disabled:before {
     font-family: 'Font Awesome 6 Pro';
     content: "\\f05e"
+}
+
+#myanimelist .malCleanMainContainer .mainListBtnDiv .fa-gear.disabled {
+    pointer-events: none;
+    color: var(--color-main-text-light) !important;
 }
 
 .btn-active-def {
@@ -2265,7 +2450,64 @@ div#badges-iframe-inner.defaultMal {
    text-align: center
 }
 `;
-let colorFromCoverCSS = `
+
+//CSS MyAnimeList - Clean Main Colors
+let defaultColors = `
+:root,
+body {
+  --fg: #181818!important;
+  --color-background: #121212!important;
+  --color-backgroundo: #12121266!important;
+  --color-foreground: #181818!important;
+  --color-foreground2: #242424!important;
+  --color-foreground3: #323232!important;
+  --color-foregroundOP: #181818!important;
+  --color-foregroundOP2: #242424!important;
+  --color-foreground4: #282828!important;
+  --border-color: #222!important;
+  --border-radius: 5px!important;
+  --color-text: #b6b6b6;
+  --color-text-normal: #b6b6b6!important;
+  --color-main-text-normal: #c8c8c8!important;
+  --color-main-text-light: #a5a5a5!important;
+  --color-main-text-op: #ffffff!important;
+  --color-link: #9fadbd;
+  --color-link2: #7992bb!important;
+  --color-text-hover: #cfcfcf!important;
+  --color-link-hover: #cee7ff!important
+  --shadow-color: rgba(0,0, 0, 0.3);
+  --shadow-strength: 3px;
+}`;
+
+let defaultColorsLight = `
+:root,
+body {
+  --fg: #f5f5f5!important;
+  --color-background: #eef1fa!important;
+  --color-backgroundo: #eef1fa66!important;
+  --color-foreground: #f5f5f5!important;
+  --color-foreground2: #eeeeee!important;
+  --color-foreground3: #e3e3e366!important;
+  --color-foregroundOP: #f5f5f5!important;
+  --color-foregroundOP2: #e3e3e3!important;
+  --color-foreground4: #e3e3e3!important;
+  --border-color: #bcbcbc!important;
+  --border-radius: 5px!important;
+  --color-text: #b6b6b6;
+  --color-text-normal: #b6b6b6!important;
+  --color-main-text-normal: #c8c8c8!important;
+  --color-main-text-light: #a5a5a5!important;
+  --color-main-text-op: #ffffff!important;
+  --color-link: 9fadbd;
+  --color-link2: #7992bb!important;
+  --color-text-hover: #cfcfcf!important;
+  --color-link-hover: #cee7ff!important
+  --shadow-color: rgba(0,0, 0, 0.3);
+  --shadow-strength: 3px;
+}`;
+
+let colorFromCoverCSS = `...`;
+const getColorFromCoverCSS = () => `
 .lazyloading {
   opacity: 1 !important;
 }
@@ -2305,64 +2547,16 @@ body:not(.ownlist) {
   box-shadow: 0 0 4px var(--shadow-color) !important
 }
 `;
+colorFromCoverCSS = getColorFromCoverCSS();
 
-//CSS MyAnimeList - Clean Main Colors
-let defaultColors = `
-:root,
-body {
-  --fg: #181818!important;
-  --color-background: #121212!important;
-  --color-backgroundo: #12121266!important;
-  --color-foreground: #181818!important;
-  --color-foreground2: #242424!important;
-  --color-foreground3: #323232!important;
-  --color-foregroundOP: #181818!important;
-  --color-foregroundOP2: #242424!important;
-  --color-foreground4: #282828!important;
-  --border-color: #222!important;
-  --border-radius: 5px!important;
-  --color-text: #b6b6b6;
-  --color-text-normal: #b6b6b6!important;
-  --color-main-text-normal: #c8c8c8!important;
-  --color-main-text-light: #a5a5a5!important;
-  --color-main-text-op: #ffffff!important;
-  --color-link: #9fadbd;
-  --color-link2: #7992bb!important;
-  --color-text-hover: #cfcfcf!important;
-  --color-link-hover: #cee7ff!important
-}`;
-
-let defaultColorsLight = `
-:root,
-body {
-  --fg: #f5f5f5!important;
-  --color-background: #eef1fa!important;
-  --color-backgroundo: #eef1fa66!important;
-  --color-foreground: #f5f5f5!important;
-  --color-foreground2: #eeeeee!important;
-  --color-foreground3: #e3e3e366!important;
-  --color-foregroundOP: #f5f5f5!important;
-  --color-foregroundOP2: #e3e3e3!important;
-  --color-foreground4: #e3e3e3!important;
-  --border-color: #bcbcbc!important;
-  --border-radius: 5px!important;
-  --color-text: #b6b6b6;
-  --color-text-normal: #b6b6b6!important;
-  --color-main-text-normal: #c8c8c8!important;
-  --color-main-text-light: #a5a5a5!important;
-  --color-main-text-op: #ffffff!important;
-  --color-link: 9fadbd;
-  --color-link2: #7992bb!important;
-  --color-text-hover: #cfcfcf!important;
-  --color-link-hover: #cee7ff!important
-}`;
-
-let defaultCSSFixes = `
+let defaultCSSFixes = `...`;
+const getDefaultCSSFixes = () => `
 ${
   svar.scrollbarStyle
     ? `
     ::-webkit-scrollbar {
-        background: 0 0
+        background: 0 0;
+        width: ${svar.scrollbarStyleWidth ?? 12}px;
     }
     ::-webkit-scrollbar-thumb {
         background: var(--color-foreground2);
@@ -2423,6 +2617,25 @@ a.feed-main-button {
     margin: -5px -10px 0 -10px
 }
 `;
+defaultCSSFixes = getDefaultCSSFixes();
+
+let blurredBgCss = `...`;
+const getblurredBgCss = () => `
+.blurred-background-image {
+  width: 110%;
+  left: -5%;
+  top: -5%;
+  height: 110%;
+  position: fixed;
+  background-repeat: no-repeat !important;
+  background-size: cover !important;
+  -webkit-filter: blur(${svar.animeBlurredBgBlur ?? 2}vh) brightness(${svar.animeBlurredBgBrightness ?? 0.7}) saturate(${svar.animeBlurredBgSaturate ?? 1});
+  filter: blur(${svar.animeBlurredBgBlur ?? 2}vh) brightness(${svar.animeBlurredBgBrightness ?? 0.7}) saturate(${svar.animeBlurredBgSaturate ?? 1});
+  background-position: center !important;
+  z-index: -1;
+}
+`;
+blurredBgCss = getblurredBgCss();
 
 // Minify CSS
 const minifyCSS = (css) => {
@@ -2434,14 +2647,17 @@ const minifyCSS = (css) => {
     .replace(/\s*([{}:;,])\s*/g, "$1")
     .replace(/\n+/g, "");
 };
-[styles, colorFromCoverCSS, defaultColors, defaultColorsLight, defaultCSSFixes].forEach((css, i, arr) => {
+[styles, colorFromCoverCSS, defaultColors, defaultColorsLight, defaultCSSFixes, blurredBgCss].forEach((css, i, arr) => {
   arr[i] = minifyCSS(css);
 });
 
 // Create Style Elements
 let styleSheet = create("style", { id: "malCleanMainCSS" });
 let styleSheet2 = create("style", { id: "colorFromCoverCSS" });
+let styleSheet3 = create("style", { id: "blurredBgCss" });
+styleSheet2.innerText = colorFromCoverCSS;
 document.head.appendChild(styleSheet);
+document.head.appendChild(styleSheet3);
 
 // Apply Styles
 const applyTheme = () => {
@@ -2453,5 +2669,17 @@ const applyTheme = () => {
     defaultMal = 1;
   }
   styleSheet.textContent = finalCSS;
+  styleSheet2.textContent = colorFromCoverCSS;
+  styleSheet3.textContent = blurredBgCss;
 };
 applyTheme();
+
+const resetTheme = () => {
+  defaultCSSFixes = getDefaultCSSFixes();
+  colorFromCoverCSS = getColorFromCoverCSS();
+  blurredBgCss = getblurredBgCss();
+  [styles, colorFromCoverCSS, defaultColors, defaultColorsLight, defaultCSSFixes, blurredBgCss].forEach((css, i, arr) => {
+    arr[i] = minifyCSS(css);
+  });
+  applyTheme();
+};

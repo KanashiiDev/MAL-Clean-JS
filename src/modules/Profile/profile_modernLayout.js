@@ -54,7 +54,14 @@ async function applyModernLayout() {
     .favs .btn-fav:hover .favTooltip,.user-badge:hover .favTooltip, .icon-friend:hover .favTooltip{opacity:1}
     .user-profile .user-badges .user-badge:hover,.user-profile .user-friends .icon-friend:hover,.user-profile .user-friends .icon-friend:active{opacity:1!important}
     .dark-mode .user-profile .user-badges .user-badge,.user-profile .user-badges .user-badge {${defaultMal ? "margin:2px!important" : "margin: 4px!important"}}
-    .max{max-height:99999px!important}`;
+    .max{max-height:99999px!important}
+    .icon-friend{text-indent: 0!important}
+    .user-badge:hover:after,.icon-friend:hover:after,.btn-fav:hover:after {opacity: 1}
+    .user-badge:after,.icon-friend:after,.btn-fav::after {content: attr(data-title);position: absolute;bottom: 105%;-webkit-border-radius: var(--border-radius);border-radius: var(--border-radius);
+    border: var(--border) solid var(--border-color);-webkit-box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;box-shadow: 0 0 var(--shadow-strength) var(--shadow-color)!important;
+    width: -webkit-max-content;width: -moz-max-content;width: max-content;background: var(--color-foreground4);color: var(--color-text);padding: 6px 10px;font-size: 12px;line-height: 1.4;white-space: pre-line;
+    opacity: 0;-webkit-transition: opacity 0.2s ease;transition: opacity 0.2s ease;z-index: 1000;text-align: center;text-indent : unset;max-width: 210px;min-width:100%;overflow:hidden;
+}`;
 
     var fixstylesheet = create("style", { id: "modernLayoutCSSFix" }, fixstyle.replace(/\n/g, ""));
     document.head.appendChild(fixstylesheet);
@@ -284,13 +291,6 @@ async function applyModernLayout() {
       if (btnFav.attributes.title) {
         btnFav.setAttribute("data-title", btnFav.attributes.title.textContent);
         btnFav.removeAttribute("title");
-      }
-      let title = btnFav.getAttribute("data-title");
-      if (title) {
-        let tt = create("div", { class: "favTooltip" }, title);
-        btnFav.prepend(tt);
-        btnFav.tagName === "A" || (btnFav.classList[0] && btnFav.classList[0] === "user-badge") ? (tt.style.marginTop = "-5px") : "";
-        tt.style.top = -tt.offsetHeight - 4 + "px";
       }
     }
     if (document.querySelector(".container-right > h2.mb12")) {

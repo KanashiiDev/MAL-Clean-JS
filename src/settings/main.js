@@ -27,8 +27,10 @@ closeButton.onclick = () => {
 };
 
 // MalClean Inner Settings
-const innerSettingsButton = create("button", { active: "0", class: "mainbtns fa fa-gear", id: "innerSettingsBtn", title: "Settings" });
+const innerSettingsButton = create("button", { active: "0", class: "mainbtns fa fa-gear", id: "innerSettingsButton", title: "Settings" });
+const dragButton = create("button", { class: "mainbtns fa fa-arrows", id: "dragButton", title: "Drag" });
 const settingDiv = create("div", { class: "malCleanSettingInnerSettings malCleanSettingPopup", style: { display: "none" } });
+
 innerSettingsButton.addEventListener("click", () => {
   const target = document.querySelector("div.malCleanMainHeader > div.malCleanMainHeaderTitle");
   const isActive = innerSettingsButton.getAttribute("active") === "1";
@@ -56,7 +58,7 @@ function createSettingSection(title, ...contents) {
 }
 
 //MalClean Settings - Reload Button
-var reloadButton = create("button", { class: "mainbtns fa fa-refresh", id: "reloadbtn", title: "Refresh" });
+var reloadButton = create("button", { class: "mainbtns fa fa-refresh", id: "reloadButton", title: "Refresh" });
 reloadButton.onclick = () => {
   window.location.reload();
 };
@@ -74,7 +76,10 @@ function disableButton(button, title) {
     .prop("disabled", true)
     .addClass("disabled")
     .removeClass("btn-active")
-    .append(tooltip);
+    .append(tooltip)
+    .nextAll()
+    .closest(".fa-gear")
+    .addClass("disabled");
 }
 
 //MalClean Settings - Tooltip Buttons
@@ -284,40 +289,56 @@ function createSelectSetting(settingKey, text, options = [], defaultValue) {
   return container;
 }
 
+function getDecimalPlaces(number) {
+  if (!isFinite(number)) return 0;
+  const str = number.toString();
+  if (str.includes(".")) return str.split(".")[1].length;
+  return 0;
+}
+
 // Function to create slider settings
 function createSliderSetting(settingKey, text, options = [], defaultValue) {
-  const [min, max] = options;
+  const [min, max, step = 1] = options;
 
   const sliderWrapper = create("div", { class: "settingContainer slider" });
   const sliderLabel = create("label", { for: settingKey }, text);
+
+  // Slider input
   const sliderInput = create("input", {
     type: "range",
     id: settingKey,
     name: settingKey,
     min: min,
     max: max,
+    step: step,
     value: defaultValue,
     class: "sliderInput",
   });
 
+  // Value display
+  const sliderValueDisplay = create("span", { class: "sliderValue" }, 
+    parseFloat(defaultValue).toFixed(getDecimalPlaces(step))
+  );
+
+  // Row to hold slider + value side by side
+  const sliderRow = create("div", { class: "sliderRow" });
+  sliderRow.append(sliderInput, sliderValueDisplay);
+
+  // Value change listener
+  sliderInput.oninput = function () {
+    const val = parseFloat(sliderInput.value);
+    sliderValueDisplay.textContent = val.toFixed(getDecimalPlaces(step));
+  };
+
+  // Debounced save on change
   const debouncedUpdate = debounce((event) => {
-    svar[settingKey] = event.target.value;
+    const val = parseFloat(event.target.value);
+    svar[settingKey] = val;
     svar.save();
     reloadWarn();
   }, 500);
-
   sliderInput.addEventListener("change", debouncedUpdate);
-
-  const sliderValueDisplay = create("span", { class: "sliderValue" }, defaultValue);
-
-  sliderInput.oninput = function () {
-    sliderValueDisplay.textContent = sliderInput.value;
-  };
-
-  sliderWrapper.append(sliderLabel);
-  sliderWrapper.append(sliderInput);
-  sliderWrapper.append(sliderValueDisplay);
-
+  sliderWrapper.append(sliderLabel, sliderRow);
   return sliderWrapper;
 }
 

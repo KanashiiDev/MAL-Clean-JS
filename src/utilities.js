@@ -248,8 +248,7 @@ async function editAboutPopup(data, type) {
     const popupLoading = create(
       "div",
       {
-        class: "actloading",
-        style: { position: "relative", left: "0px", right: "0px", fontSize: "16px", height: "100%", alignContent: "center", zIndex: "2" },
+        class: "actloading editAboutLoading",
       },
       translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin malCleanSpinner"></i>'
     );
@@ -262,6 +261,12 @@ async function editAboutPopup(data, type) {
       document.body.style.removeProperty("overflow");
       resolve();
     };
+
+    // Timeout for loading
+    const loadTimeout = setTimeout(() => {
+      popupLoading.innerHTML = translate("$loadTimeoutError") || "Loading timed out. Please try again.";
+      popupClose.style.display = "block";
+    }, 25000);
 
     popup.append(popupClose, popupLoading, iframe);
     document.body.append(popup, popupMask);
@@ -277,17 +282,42 @@ async function editAboutPopup(data, type) {
         try {
           await navigator.clipboard.writeText(popupDataText.innerText);
           popupDataTextButton.innerText = "Copied!";
+          setTimeout(() => {
+            popupDataTextButton.innerText = "Copy";
+          }, 2000);
         } catch (err) {
-          console.error("Error:", err);
+          alert("Copy to clipboard failed. Please copy manually.");
+          console.error("Clipboard error:", err);
         }
       });
     }
 
     $(iframe).on("load", async function () {
+      clearTimeout(loadTimeout);
       let $iframeContents = $(iframe).contents();
       let $about = $iframeContents.find("#classic-about-me-textarea");
-      let isClassic = $iframeContents.find("#about_me_setting_2").is(":checked");
+      if (!$about.length) {
+        popupLoading.innerHTML = "Profile textarea not found. MyAnimeList layout may have changed.";
+        popupClose.style.display = "block";
+        return;
+      }
+
+      let isClassic;
+      try {
+        isClassic = $iframeContents.find("#about_me_setting_2").is(":checked");
+      } catch (e) {
+        popupLoading.innerHTML = "Could not determine layout type.";
+        popupClose.style.display = "block";
+        return;
+      }
+
       let $submit = $iframeContents.find('.inputButton[type="submit"]');
+      if (!$submit.length) {
+        popupLoading.innerHTML = "Submit button not found.";
+        popupClose.style.display = "block";
+        return;
+      }
+
       const regexes = {
         match: /(\[url=https:\/\/malcleansettings\/)(.*)(]‎) \[\/url\]/gm,
         add: /(\[url=https:\/\/malcleansettings\/)(.*)(]‎)/gm,
@@ -442,8 +472,7 @@ async function editPopup(id, type, add, addCount, addFg) {
     const popupLoading = create(
       "div",
       {
-        class: "actloading",
-        style: { position: "relative", left: "0px", right: "0px", fontSize: "16px", height: "100%", alignContent: "center", zIndex: "100" },
+        class: "actloading editPopupLoading",
       },
       translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin malCleanSpinner"></i>'
     );
@@ -741,7 +770,7 @@ async function aniAPIRequest() {
 }
 
 //  MalClean - Add Loader
-let loadingDiv = create("div", { class: "actloading", id: "loadingDiv", style: { position: "fixed", top: "50%", left: "0", right: "0", fontSize: "16px", zIndex: "100" } });
+let loadingDiv = create("div", { class: "actloading", id: "loadingDiv", style: { top: "0", position: "fixed" } });
 const loadingDivMask = create("div", {
   class: "fancybox-overlay",
   style: { background: "var(--color-background)", opacity: "1", display: "block", width: "100%", height: "100%", position: "fixed", top: "0", zIndex: "99" },
@@ -1722,6 +1751,9 @@ function getTotalHeight(element) {
 
 //Create Info Tooltip
 let waitForInfo = 0;
+let mouseMoveListener = null;
+let hoverCheckElements = [];
+let hoverTimeoutId = null;
 async function createInfo(clickedSource, mainDiv, type, isGrid) {
   if (!waitForInfo && $(".tooltipBody").length === 0) {
     waitForInfo = 1;
@@ -1734,7 +1766,7 @@ async function createInfo(clickedSource, mainDiv, type, isGrid) {
     if (!btnAnime.getAttribute("details")) {
       const id = clickedSource.next(".link")[0].href.split("/")[4];
       const apiUrl = `https://api.jikan.moe/v4/${type ? "manga" : "anime"}/${id}/full`;
-
+      const apiCharactersUrl = `https://api.jikan.moe/v4/${type ? "manga" : "anime"}/${id}/characters`;
       try {
         const response = await fetch(apiUrl);
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
@@ -1746,6 +1778,67 @@ async function createInfo(clickedSource, mainDiv, type, isGrid) {
       }
 
       if (info?.title) {
+        await delay(333);
+        // Get Characters
+        async function getCharacterHtmlString(apiCharactersUrl) {
+          try {
+            const charactersResponse = await fetch(apiCharactersUrl);
+            if (!charactersResponse.ok) throw new Error(`HTTP error! Status: ${charactersResponse.status}`);
+
+            const charactersData = await charactersResponse.json();
+            if (!charactersData || !Array.isArray(charactersData.data)) throw new Error("Invalid data format");
+
+            const characters = charactersData.data;
+
+            let html = "";
+
+            characters.forEach((item) => {
+              const character = item.character;
+              if (!character) return;
+
+              const charImage = character?.images?.jpg?.image_url || "";
+
+              // By default, the voice actor section will be empty.
+              let vaHtml = "";
+
+              // If there is a voice actor and one that is Japanese is found.
+              if (Array.isArray(item.voice_actors)) {
+                const voiceActor = item.voice_actors.find((va) => va.language === "Japanese");
+                if (voiceActor && voiceActor.person) {
+                  const vaImage = voiceActor.person?.images?.jpg?.image_url || "";
+                  vaHtml = `
+                  <a class="va-container" href="${voiceActor.person.url}">
+                  <img class="va-image lazyload" data-src="${vaImage}" alt="${voiceActor.person.name}">
+                  <div class="va-name-container">
+                  <span class="va-name">${voiceActor.person.name}</span>
+                  <small class="va-language">${voiceActor.language}</small>
+                  </div>
+                  </a>
+                  `;
+                }
+              }
+
+              html += `
+              <div class="character-entry">
+              <a class="character-container" href="${character.url}" ${vaHtml ? "" : 'style="max-width:100%"'}>
+              <img class="character-image lazyload" data-src="${charImage}" alt="${character.name}">
+              <div class="character-name-container">
+              <span class="character-name">${character.name}</span>
+              <small class="character-role">${item.role}</small>
+              </div>
+              </a>
+              ${vaHtml}
+              </div>
+              `;
+            });
+
+            return html || `<div class="text">Character information not found.</div>`;
+          } catch (error) {
+            return `<div class="text">Failed to load characters: ${error.message}</div>`;
+          }
+        }
+
+        const charactersHtml = await getCharacterHtmlString(apiCharactersUrl);
         const renderList = (label, items) => {
           if (!items) return "";
           if (Array.isArray(items) && items.length) {
@@ -1787,6 +1880,7 @@ async function createInfo(clickedSource, mainDiv, type, isGrid) {
             ${renderList("Demographics", info.demographics)}
             ${renderList("Type", info.type)}
             ${renderList("Rating", info.rating)}
+            ${renderList("Duration", info.duration)}
             ${renderList("Start Date", info.aired?.string).replace(/ to \?$/, "")}
             ${renderList("Broadcast", info.broadcast?.string)}
             ${renderList("Episodes", info.episodes)}
@@ -1798,6 +1892,13 @@ async function createInfo(clickedSource, mainDiv, type, isGrid) {
               <a href="${info.url}/forum?topic=episode">${type ? "Chapters" : "Episodes"}</a> | 
               <a href="${info.url}/forum?topic=other">Other</a>
             </div>
+            <br>
+            <div id="tooltip-character-list-container">
+              <b>Characters</b><br>
+              <div id="tooltip-character-list">
+              ${charactersHtml}
+              </div>
+              </div>
             ${externalLinks}
           </div>
         `;
@@ -1817,14 +1918,26 @@ async function createInfo(clickedSource, mainDiv, type, isGrid) {
 
     const tooltipContent = btnAnime.children[2]?.innerHTML ?? "";
     const tooltipMain = $(`<div class="tooltipBody" id="infoTooltip" style="${isGrid ? "position:absolute;" : ""}">${tooltipContent}</div>`);
-    tooltipMain.appendTo(mainDiv).slideDown(400);
+    tooltipMain.css("display", "none").appendTo(mainDiv).slideDown(400);
 
     if (isGrid) {
       const targetDiv = clickedSource.parent()[0];
       const ttDiv = document.getElementById("infoTooltip");
       const rect = targetDiv.getBoundingClientRect();
       const scrollTop = window.scrollY;
-      const top = scrollTop + rect.top - (svar.recentlyGrid6Column ? 20 : 10) - (defaultMal ? 20 : 0) + getTotalHeight(targetDiv) / 2;
+
+      let offset = 15;
+
+      if (defaultMal && svar.recentlyGrid6Column) {
+        offset = 20;
+      } else if (defaultMal && !svar.recentlyGrid6Column) {
+        offset = 10;
+      } else if (svar.recentlyGrid6Column) {
+        offset = 30;
+      }
+
+      const malOffset = defaultMal ? 20 : 0;
+      const top = scrollTop + rect.top - offset - malOffset + getTotalHeight(targetDiv) / 2;
       const width = getTotalWidth(mainDiv) || 720;
       ttDiv.style.top = `${top}px`;
       ttDiv.style.minWidth = `${width - 20}px`;
@@ -1832,7 +1945,7 @@ async function createInfo(clickedSource, mainDiv, type, isGrid) {
       ttDiv.style.marginLeft = `${defaultMal ? 0 : 10}px`;
       ttDiv.classList.add("grid");
       ttDiv.querySelector(".main").setAttribute("style", "background:var(--color-foreground2)!important");
-      $(ttDiv).slideDown(400);
+      $(ttDiv).css("display", "none").slideDown(400);
     }
 
     $(".tooltipBody .addtoList").on("click", async function () {
@@ -1840,33 +1953,56 @@ async function createInfo(clickedSource, mainDiv, type, isGrid) {
     });
 
     clickedSource.attr("class", "fa fa-info-circle");
+    startHoverCheck(clickedSource[0], clickedSource[0].parentElement, tooltipMain[0]);
     waitForInfo = 0;
   }
 }
 
-//Info Tooltip Check Mouse Leave
-async function infoExit(clickedFrom) {
-  let timeoutId, isElHover, isTTBHover;
-  async function handleTooltipHide() {
-    isElHover = $(clickedFrom).parent().is(":hover");
-    isTTBHover = $(".tooltipBody:hover").length;
-    // Check if neither the tooltip nor the target element is being hovered over
-    if (!isTTBHover && !isElHover) {
-      await delay(250);
-      if (!isTTBHover && !isElHover) {
-        // When both elements are not hovered, hide the tooltip
-        $(".tooltipBody").slideUp(400, function () {
-          $(this).remove(); // Remove tooltip
-          clearTimeout(timeoutId);
-        });
-      }
-    } else {
-      // If hovered, keep checking the condition at intervals
-      timeoutId = setTimeout(handleTooltipHide, 400);
-    }
+// Start the hover check for tooltip
+function startHoverCheck(...elements) {
+  if (mouseMoveListener) {
+    return;
   }
-  // Initial check to start the hide process
-  timeoutId = setTimeout(handleTooltipHide, 400);
+  // Clean the previous listeners.
+  if (hoverTimeoutId) {
+    clearTimeout(hoverTimeoutId);
+    hoverTimeoutId = null;
+  }
+  hoverCheckElements = elements;
+
+  function checkHover() {
+    // Is any of the elements in hover state?
+    const isAnyHovered = hoverCheckElements.some((el) => el && el.matches(":hover"));
+
+    if (!isAnyHovered) {
+      // If none of them are hovered, the tooltip can close.
+      $(".tooltipBody")
+        .stop(true, true)
+        .slideUp(400, function () {
+          $(this).remove();
+        });
+      stopHoverCheck();
+    } else {
+      // If hover continues, delay the next check
+      hoverTimeoutId = setTimeout(checkHover, 200);
+    }
+    document.addEventListener("mousemove", mouseMoveListener);
+  }
+
+  checkHover();
+}
+
+// Stop the hover check and remove listeners
+function stopHoverCheck() {
+  if (hoverTimeoutId) {
+    clearTimeout(hoverTimeoutId);
+    hoverTimeoutId = null;
+  }
+  if (mouseMoveListener) {
+    document.removeEventListener("mousemove", mouseMoveListener);
+    mouseMoveListener = null;
+  }
+  hoverCheckElements = [];
 }
 
 //Update Recently Added List Sliders
@@ -1889,13 +2025,9 @@ function updateRecentlyAddedSliders(slider, leftSlider, rightSlider) {
     const suggestionSelector = `${containerSelector} .anime_suggestions`;
 
     $(iconSelector)
-      .off("click mouseleave") //Delete predefined Handler
+      .off("click mouseleave")
       .on("click", function () {
-        infoExit($(this));
         createInfo($(this), suggestionSelector, index, svar.recentlyGrid);
-      })
-      .on("mouseleave", function () {
-        infoExit($(this));
       });
   };
   setupHoverEvents(".widget-container.left.recently-anime", 0);
@@ -2003,8 +2135,7 @@ async function getMalBadges(url) {
   let badgesIframeLoading = create(
     "div",
     {
-      class: "actloading",
-      style: { position: "relative", left: "0px", right: "0px", fontSize: "14px", height: "120px", alignContent: "center", zIndex: "2" },
+      class: "actloading malBadgesLoading",
     },
     translate("$loading") + '<i class="fa fa-circle-o-notch fa-spin malCleanSpinner"></i>'
   );
@@ -2392,6 +2523,14 @@ async function createEmbed(selectorList) {
         : ""
     );
   }
+  function simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0; // 32bit integer
+    }
+    return "h" + Math.abs(hash).toString(36); // base-36 string
+  }
 
   async function getEmbedData(id, type) {
     let apiUrl = `https://api.jikan.moe/v4/${type === "manga" ? "manga" : "anime"}/${id}`;
@@ -2446,7 +2585,7 @@ async function createEmbed(selectorList) {
       const details = create("div", { class: "details" });
       details.innerHTML = buildDetails(d, cached, publishedYear, airedYear);
 
-      const container = create("div", { class: "embed-container" }, "<a></a>");
+      const container = create("div", { class: "embed-container" }, '<a class="embed-placeholder"></a>');
       const namediv = create("div", { class: "embed-inner" });
       const name = create("a", { class: "embed-title" }, d.title);
       name.href = d.url;
@@ -2460,7 +2599,7 @@ async function createEmbed(selectorList) {
         class: "embed-image lazyload",
       });
 
-      if (d.genres.length > 0) {
+      if (Array.isArray(d.genres) && d.genres.length > 0) {
         genres.style.display = "block";
       } else {
         container.classList.add("no-genre");
@@ -2469,7 +2608,7 @@ async function createEmbed(selectorList) {
       namediv.append(name, genres, details);
       container.append(image, namediv);
 
-      return container;
+      return { container, wasCached: cached };
     } catch (error) {
       console.error("error:", error);
     }
@@ -2488,76 +2627,104 @@ async function createEmbed(selectorList) {
       .replace(/(<a href="\b(http:\/\/|https:\/\/)(myanimelist\.net\/(anime|manga)\/[0-9]+))/gm, " $1");
 
     let matches = html.match(/<a href="https:\/\/myanimelist\.net\/(anime|manga)\/([0-9]+)([^"'<]*)".*?>.*?<\/a>/gm);
-    matches = matches?.filter((link) => !link.includes("/video")) || [];
+    const parser = new DOMParser();
+    matches =
+      matches?.filter((link) => {
+        if (link.includes("/video")) return false;
+        const doc = parser.parseFromString(link, "text/html");
+        const aTag = doc.querySelector("a");
+        return aTag?.textContent?.trim().length > 0;
+      }) || [];
 
     if (matches.length === 0 || isPreviewThread) continue;
 
-    const uniqueMatches = [...new Set(matches)];
+    const finalMatches = matches;
 
     // Place the placeholder spinner divs
-    uniqueMatches.forEach((match) => {
+    finalMatches.forEach((match, i) => {
       const idMatch = match.match(/myanimelist\.net\/(anime|manga)\/([0-9]+)/);
       if (!idMatch) return;
       const id = idMatch[2];
       if (id.startsWith("0")) return;
 
+      const hash = simpleHash(match);
+      const uniqueId = `e-${id}-${i}-${hash}`;
+
       const spinnerDiv = create(
         "div",
         {
           class: "embed-link embed-loading",
-          id: "e-" + id,
+          id: uniqueId,
           "data-match": match,
         },
         `<div class="embed-container"><a></a><a class="embed-image"></a><div class="embed-inner"><a class="embed-title"></a><div class="spinner"></div></div></div>`
       );
 
-      // Replace the original link with a placeholder
-      const escapedMatch = match.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
-      const reg = new RegExp(`(?<!Div">)(${escapedMatch})`, "gms");
-      html = html.replace(reg, spinnerDiv.outerHTML);
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = html;
+
+      const linkNodes = [...tempDiv.querySelectorAll('a[href^="https://myanimelist.net/"]')];
+      let replaced = false;
+
+      for (const a of linkNodes) {
+        const href = a.getAttribute("href");
+        if (!href) continue;
+
+        const matchId = href.match(/myanimelist\.net\/(anime|manga)\/(\d+)/);
+        if (!matchId || matchId[2] !== id) continue;
+
+        if (a.outerHTML === match) {
+          a.outerHTML = spinnerDiv.outerHTML;
+          replaced = true;
+          break;
+        }
+      }
+
+      if (!replaced) {
+        // fallback: replace first occurrence
+        html = html.replace(match, spinnerDiv.outerHTML);
+      } else {
+        html = tempDiv.innerHTML;
+      }
     });
 
     container.innerHTML = html;
 
     // Load the embeds in order
-    for (let i = 0; i < uniqueMatches.length; i++) {
-      const match = uniqueMatches[i];
+    for (let i = 0; i < finalMatches.length; i++) {
+      const match = finalMatches[i];
       const [, type, id] = match.match(/myanimelist\.net\/(anime|manga|character|people)\/([0-9]+)/) || [];
       if (!id || id.startsWith("0")) continue;
 
-      const embedContainer = container.querySelector(`.embed-link#e-${id}`);
+      const hash = simpleHash(match);
+      const uniqueId = `e-${id}-${i}-${hash}`;
+      const embedContainer = container.querySelector(`.embed-link#${uniqueId}`);
+
       if (!embedContainer) continue;
 
       try {
-        try {
-          const embedData = await Promise.race([getEmbedData(id, type), timeout(10000)]);
-          if (embedData) {
-            embedContainer.classList.remove("embed-loading");
-            embedContainer.innerHTML = "";
-            embedContainer.appendChild(embedData);
-          } else {
-            const originalLink = embedContainer.getAttribute("data-match");
-            if (originalLink) {
-              embedContainer.outerHTML = originalLink;
-            }
-          }
-        } catch (e) {
-          console.error(`Embed error (ID ${id}):`, e.message);
+        const result = await Promise.race([getEmbedData(id, type), timeout(10000)]);
+        if (result && result.container) {
+          embedContainer.classList.remove("embed-loading");
+          embedContainer.innerHTML = "";
+          embedContainer.appendChild(result.container);
+        } else {
           const originalLink = embedContainer.getAttribute("data-match");
           if (originalLink) {
             embedContainer.outerHTML = originalLink;
           }
         }
+
+        const isThrottled = finalMatches.length > 4 && i !== 0 && i % 4 === 0;
+        const wait = result?.wasCached ? 33 : isThrottled ? 777 : 333;
+        await delay(wait);
       } catch (e) {
-        console.error(`Embed fetch error for ID ${id}:`, e);
+        console.error(`Embed error (ID ${id}):`, e.message);
         const originalLink = embedContainer.getAttribute("data-match");
         if (originalLink) {
           embedContainer.outerHTML = originalLink;
         }
       }
-
-      const wait = cached ? 33 : uniqueMatches.length > 4 && i % 4 === 0 ? 777 : 333;
-      await delay(wait);
     }
 
     if (container.className === "message" && !container.id) {

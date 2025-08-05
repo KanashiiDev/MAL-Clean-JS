@@ -43,7 +43,7 @@ exportModule({
       { value: "option3", label: "Option 3" },
     ]);
     // 🔽 Slider
-      createSettingDropdown("#myFirstModule", "slider", "mySliderSetting", 10, "Choose your select Range:", [0, 100]);
+      createSettingDropdown("#myFirstModule", "slider", "mySliderSetting", 10, "Choose your select Range:", [0, 100, 1]);
   },
 
   css: `

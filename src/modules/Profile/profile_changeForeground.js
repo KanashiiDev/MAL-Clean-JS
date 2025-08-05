@@ -72,6 +72,8 @@ async function changeForeground(color) {
     .dark-mode .page-common #searchBar.searchBar #topSearchValue,.page-common #searchBar.searchBar #topSearchValue,.user-profile .user-button .btn-profile-submit,.dark-mode .page-common .btn-form-submit,
     .page-common .btn-form-submit,.dark-mode .page-common #topSearchText, .page-common #topSearchText
     {background-color: var(--color-foreground2) !important;}
+    .dark-mode body:not(.ownlist) input, .dark-mode body:not(.ownlist) textarea, .dark-mode body:not(.ownlist) select,
+    body:not(.ownlist) input, body:not(.ownlist) textarea, body:not(.ownlist) select,
     html .page-common #top-search-bar.color-pc-constant .incrementalSearchResultList .list.list-bottom,
     .dark-mode .page-common .header-notification-item:hover,.page-common .header-notification-item:hover
     {background-color: var(--color-foreground4) !important;}

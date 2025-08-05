@@ -21,6 +21,7 @@ Made for the <a href="https://userstyles.world/style/10678/myanimelist-clean">My
 <b>Anime & Manga</b>
 <li>Custom Cover Image. <a href="https://files.catbox.moe/kdzyv3.png">[IMAGE]</a></li>
 <li>Dynamic background color based cover art's color palette.</li>
+<li>Use the cover image as the background.</li>
 <li>Add banner image from Anilist.</li>
 <li>Add tags from Anilist.</li>
 <li>Replace relations.</li>

@@ -1,23 +1,42 @@
 if (svar.animeInfo && location.pathname === "/") {
   //Get Seasonal Anime and add info button
   if (document.querySelector(".widget.seasonal.left")) {
-    const i = document.querySelectorAll(".widget.seasonal.left .btn-anime");
-    i.forEach((info) => {
-      let ib = create("i", {
-        class: "fa fa-info-circle",
-        style: { fontFamily: '"Font Awesome 6 Pro"', position: "absolute", right: "3px", top: "3px", padding: "4px", opacity: "0", transition: ".4s", zIndex: "20" },
+    try {
+      const i = document.querySelectorAll(".widget.seasonal.left .btn-anime");
+      i.forEach((info) => {
+        let ib = create("i", {
+          class: "fa more-info-button fa-info-circle",
+        });
+        info.prepend(ib);
       });
-      info.prepend(ib);
-    });
 
-    //info button click event
-    $(".widget.seasonal.left i")
-      .on("click", async function () {
-        infoExit(".widget.seasonal.left", $(this));
+      // info button click event for seasonal anime
+      $(".widget.seasonal.left i").on("click", async function () {
         createInfo($(this), ".widget.seasonal.left");
-      })
-      .on("mouseleave", async function () {
-        infoExit(".widget.seasonal.left", $(this));
       });
+
+      // Add info button to auto recommendations
+      const recDiv = await waitForElement(".js-auto-recommendation .item");
+      if (recDiv) {
+        const i = document.querySelectorAll(".js-auto-recommendation .item");
+        i.forEach((info) => {
+          let ib = create("i", {
+            class: "fa more-info-button fa-info-circle",
+          });
+          $(info).addClass("link");
+          $(info).wrapAll("<div class='rec-info-wrapper btn-anime'></div>").parent().prepend(ib);
+        });
+
+        // info button click event for recommendations
+        $(".widget.anime_suggestions.left .rec-info-wrapper.btn-anime i").on("click", async function () {
+          createInfo($(this), ".widget.anime_suggestions.left", 0);
+        });
+        $(".widget.manga_suggestions.left .rec-info-wrapper.btn-anime i").on("click", async function () {
+          createInfo($(this), ".widget.manga_suggestions.left", 1);
+        });
+      }
+    } catch (error) {
+      console.error("AnimeInfo Error:", error);
+    }
   }
 }

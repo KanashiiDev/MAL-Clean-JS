@@ -141,7 +141,7 @@ async function createDiv() {
     "profile"
   );
 
-  mainInner.querySelector(".malCleanMainHeaderTitle").append(innerSettingsButton, reloadButton, closeButton);
+  mainInner.querySelector(".malCleanMainHeaderTitle").append(dragButton, innerSettingsButton, reloadButton, closeButton);
   listDiv.append(
     createListDiv("My Panel", [
       { b: buttons["animeInfoBtn"], t: translate("$animeInfoSetting") },
@@ -161,6 +161,7 @@ async function createDiv() {
     ]),
     createListDiv("Anime - Manga", [
       { b: buttons["animeBgBtn"], t: translate("$dynamicBackgroundColor") },
+      { b: buttons["animeBlurredBgBtn"], t: translate("$animeBlurredBackground") },
       { b: buttons["animeBannerBtn"], t: translate("$addAnilistBanner") },
       { b: buttons["animeTagBtn"], t: translate("$addAnilistTags") },
       { b: buttons["animeRelationBtn"], t: translate("$replaceRelations") },
@@ -182,9 +183,7 @@ async function createDiv() {
       { b: buttons["blogContentBtn"], t: translate("$autoFetchBlogContent") },
     ]),
     createListDiv("Club", [{ b: buttons["clubCommentsBtn"], t: translate("$expandClubComments") }]),
-    createListDiv("Forum", [
-      { b: buttons["forumDateBtn"], t: translate("$changeDateFormatForum") },
-    ]),
+    createListDiv("Forum", [{ b: buttons["forumDateBtn"], t: translate("$changeDateFormatForum") }]),
     createListDiv("Profile", [
       { b: buttons["modernLayoutBtn"], t: translate("$modernProfileLayout") },
       { b: buttons["replaceListBtn"], t: translate("$modernAnimeMangaList") },
@@ -205,7 +204,10 @@ async function createDiv() {
   buildUserModules(listDiv);
   document.querySelector("#headerSmall").insertAdjacentElement("beforeend", mainInner);
   listDiv.append(buttons["removeAllCustomBtn"]);
-
+  createSettingDropdown("#animeBlurredBgBtn", "slider", "animeBlurredBgBlur", svar.animeBlurredBgBlur, translate("$animeBlurredBackgroundBlur"), [0, 10, 0.1]);
+  createSettingDropdown("#animeBlurredBgBtn", "slider", "animeBlurredBgBrightness", svar.animeBlurredBgBrightness, translate("$animeBlurredBackgroundBrightness"), [0, 10, 0.1]);
+  createSettingDropdown("#animeBlurredBgBtn", "slider", "animeBlurredBgSaturate", svar.animeBlurredBgSaturate, translate("$animeBlurredBackgroundSaturate"), [0, 10, 0.1]);
+  createSettingDropdown("#scrollbarStyleBtn", "slider", "scrollbarStyleWidth", svar.scrollbarStyleWidth, translate("$changeScrollbarWidth"), [2, 100, 1]);
   createSettingDropdown("#replaceListBtn", "option", "listAiringStatus", true, translate("$addAiringDot"));
   createSettingDropdown("#moreFavsBtn", "option", "moreFavsMode", true, translate("$addmoreFavsMode"));
   createSettingDropdown("#embedBtn", "option", "embedForum", true, "Forum");
@@ -223,7 +225,7 @@ async function createDiv() {
   createSettingDropdown("#recentlyGridBtn", "option", "recentlyGridAccordion", false, translate("$addCurrentlyGridAccordion"));
   createSettingDropdown("#recentlyAddedAnimeBtn", "recentlyFilter", "recentlyAnimeFilter", translate("$addCurrentlyGridAccordion"));
   createSettingDropdown("#recentlyAddedMangaBtn", "recentlyFilter", "recentlyMangaFilter", translate("$addCurrentlyGridAccordion"));
-  createSettingDropdown("#recentlyAddedAnimeBtn", "select", "recentlyAnimeDefault",svar.recentlyAnimeDefault, translate("$recentlyAnimeDefault"), [
+  createSettingDropdown("#recentlyAddedAnimeBtn", "select", "recentlyAnimeDefault", svar.recentlyAnimeDefault, translate("$recentlyAnimeDefault"), [
     { value: "All", label: "All" },
     { value: "TV,Movie", label: "TV &amp; Movie" },
     { value: "TV", label: "TV" },
@@ -257,6 +259,13 @@ async function createDiv() {
     }
   });
 
+  // Reset CSS
+  const debouncedResetTheme = debounce(resetTheme, 500);
+  $("#scrollbarStyleWidth").on("change", debouncedResetTheme);
+  $("#animeBlurredBgBlur").on("change", debouncedResetTheme);
+  $("#animeBlurredBgBrightness").on("change", debouncedResetTheme);
+  $("#animeBlurredBgSaturate").on("change", debouncedResetTheme);
+
   $("#autoModernLayoutBtn").on("click", async function () {
     svar.modernLayout = !svar.autoModernLayout;
     svar.save();
@@ -270,6 +279,7 @@ async function createDiv() {
     disableButton("headerOpacityBtn", translate("$mcUserStyleModernWarn"));
   } else {
     disableButton("scrollbarStyleBtn", translate("$activeMcUserStyleWarn"));
+    disableButton("scrollbarStyleWidthBtn", translate("$activeMcUserStyleWarn"));
   }
   if (!svar.modernLayout) {
     disableButton("headerOpacityBtn", translate("$mcUserStyleModernReqWarn"));
@@ -282,6 +292,9 @@ async function createDiv() {
   }
 
   //Add Tooltip to buttons
+  if (svar.animeBlurredBg) {
+    tooltipButton("animeBgBtn", translate("$disableAnimeBlurredBgWarn"));
+  }
   tooltipButton("replaceListBtn", translate("$modernAnimeMangaListWarn"));
   tooltipButton("hideNonJapaneseAnimeBtn", translate("$hideNonJapaneseAnimeWarn"));
 
@@ -312,7 +325,7 @@ async function createDiv() {
         $(hideSetting).slideUp(() => {
           slideControl();
         });
-        document.querySelector("#innerSettingsBtn").setAttribute("active", "0");
+        document.querySelector("#innerSettingsButton").setAttribute("active", "0");
       } else {
         slideControl();
       }
@@ -366,7 +379,7 @@ async function createDiv() {
         $(hideSetting).slideUp(() => {
           highlightControl();
         });
-        document.querySelector("#innerSettingsBtn").setAttribute("active", "0");
+        document.querySelector("#innerSettingsButton").setAttribute("active", "0");
       } else {
         highlightControl();
       }
@@ -380,4 +393,63 @@ async function createDiv() {
 
   listDiv.addEventListener("scroll", debounce(throttledEvent, 50));
   highlightClosestSection();
+
+  // Make Draggable
+  let isDragging = false;
+  let hasMoved = false;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  dragButton.addEventListener("mousedown", function (e) {
+    if (e.target !== dragButton) return;
+    isDragging = true;
+    offsetX = e.clientX - mainInner.offsetLeft;
+    offsetY = e.clientY - mainInner.offsetTop;
+  });
+
+  document.addEventListener("mousemove", function (e) {
+    if (isDragging) {
+      hasMoved = true;
+      moveWithinBounds(e.clientX - offsetX, e.clientY - offsetY);
+    }
+  });
+
+  document.addEventListener("mouseup", function () {
+    isDragging = false;
+  });
+
+  window.addEventListener("resize", function () {
+    if (hasMoved) {
+      keepInsideViewport();
+    } else {
+      // If no movement has been made, stay on the right side.
+      const rect = mainInner.getBoundingClientRect();
+      mainInner.style.left = window.innerWidth - rect.width - 15 + "px";
+      mainInner.style.top = "55px";
+    }
+  });
+
+  function moveWithinBounds(left, top) {
+    const maxLeft = window.innerWidth - mainInner.offsetWidth;
+    const maxTop = window.innerHeight - mainInner.offsetHeight;
+    const minTop = 55;
+
+    const newLeft = Math.max(0, Math.min(left, maxLeft));
+    const newTop = Math.max(minTop, Math.min(top, maxTop));
+
+    mainInner.style.left = newLeft + "px";
+    mainInner.style.top = newTop + "px";
+  }
+
+  function keepInsideViewport() {
+    const currentLeft = parseInt(mainInner.style.left || 0);
+    const currentTop = parseInt(mainInner.style.top || 0);
+    moveWithinBounds(currentLeft, currentTop);
+  }
+
+  // Init position
+  const rect = mainInner.getBoundingClientRect();
+  mainInner.style.left = window.innerWidth - rect.width - 15 + "px";
+  mainInner.style.top = "55px";
+  mainInner.style.right = "";
 }

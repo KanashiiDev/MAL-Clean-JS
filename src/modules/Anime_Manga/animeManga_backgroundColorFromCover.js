@@ -16,13 +16,12 @@ async function colorFromCover() {
       /\/(anime|manga)\/adapted.?([\w-]+)?\/?/.test(current) ||
       /\/(anime.php|manga.php).?([\w-]+)?\/?/.test(current) ||
       (/\/(character)\/?([\w-]+)?\/?/.test(current) && !svar.charBg) ||
-      (/\/(anime|manga)\/?([\w-]+)?\/?/.test(current) && !svar.animeBg)
+      (/\/(anime|manga)\/?([\w-]+)?\/?/.test(current) && !(svar.animeBg || svar.animeBlurredBg))
     ) {
       m = 1;
     }
     if (!m) {
       if (!defaultMal) {
-        styleSheet2.innerText = colorFromCoverCSS;
         document.head.appendChild(styleSheet2);
       }
       const coverLocalForage = localforage.createInstance({ name: "MalJS", storeName: "cover" });
@@ -60,6 +59,7 @@ async function colorFromCover() {
           document.body.style.setProperty("background", `linear-gradient(180deg, ${colors[2]} 0%, ${colors[1]} 50%, ${colors[0]} 100%)`, "important");
         }
       }
+
       async function waitForCoverImage() {
         if (!coverCache) {
           coverCache = await coverLocalForage.getItem(entryId + "-" + entryType);
@@ -74,6 +74,15 @@ async function colorFromCover() {
         }
         if (img && img.src && img.width && img.complete) {
           set(0, img, { sa: { 0: "position: relative;opacity:1!important;" } });
+
+          // Blurred Background Image from Cover Image
+          if (svar.animeBlurredBg) {
+            let blurredBG = create("div", { class: "blurred-background-image" });
+            document.body.prepend(blurredBG);
+            blurredBG.style.setProperty("background-image", `url(${img.src})`);
+            document.body.style.setProperty("background", `0`, "important");
+          }
+
           img2.src = img.src;
           if (!listenerAdded) {
             img.addEventListener("load", function () {
@@ -82,7 +91,7 @@ async function colorFromCover() {
             img2.addEventListener("load", function () {
               paletteFetched = false;
               palette = 0;
-              bgColorFromImage(img2);
+              if (!svar.animeBlurredBg) bgColorFromImage(img2);
             });
             listenerAdded = 1;
           }

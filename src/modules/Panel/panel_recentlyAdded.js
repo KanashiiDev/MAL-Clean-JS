@@ -1,70 +1,74 @@
 async function processRecentlyGridAccordion(type, hide) {
-  if (!svar.recentlyGridAccordion) return;
-  const recentlyCollapsedHeight = svar.recentlyGrid6Column ? 315 : 370;
-  const $container = $(`#widget-recently-added-${type}`);
-  const $main = $(`#recently-added-${type}`);
-  const $div = $container.find(".widget-slide");
-  const $btn = $container.find(".toggle-button");
-  const $icon = $container.find(".toggle-icon");
-  const $loadBtn = $container.find(`#recently-added-${type}-load-more`);
-  const triggered = $loadBtn.attr("data-triggered") === "true";
+  try {
+    if (!svar.recentlyGridAccordion) return;
+    const recentlyCollapsedHeight = svar.recentlyGrid6Column ? 315 : 370;
+    const $container = $(`#widget-recently-added-${type}`);
+    const $main = $(`#recently-added-${type}`);
+    const $div = $container.find(".widget-slide");
+    const $btn = $container.find(".toggle-button");
+    const $icon = $container.find(".toggle-icon");
+    const $loadBtn = $container.find(`#recently-added-${type}-load-more`);
+    const triggered = $loadBtn.attr("data-triggered") === "true";
 
-  if (hide) {
-    $loadBtn.attr("data-triggered", "false");
-  }
+    if (hide) {
+      $loadBtn.attr("data-triggered", "false");
+    }
 
-  const scrollHeight = $div[0].scrollHeight;
-  const isExpandable = scrollHeight > recentlyCollapsedHeight;
+    const scrollHeight = $div[0].scrollHeight;
+    const isExpandable = scrollHeight > recentlyCollapsedHeight;
 
-  $btn.attr("data-expanded", "false");
+    $btn.attr("data-expanded", "false");
 
-  // Check Expand
-  if (isExpandable) {
-    if (!$btn.attr("data-keep-expanded")) {
+    // Check Expand
+    if (isExpandable) {
+      if (!$btn.attr("data-keep-expanded")) {
+        $div.css({
+          "max-height": `${recentlyCollapsedHeight}px`,
+          transition: "max-height 0.4s ease",
+        });
+      }
+      $container.find(".accordion").show();
+    } else {
+      $container.find(".accordion").hide();
+    }
+
+    // Accordion opening conditions
+    if (!hide || triggered) {
       $div.css({
-        "max-height": `${recentlyCollapsedHeight}px`,
+        "max-height": `${scrollHeight}px`,
         transition: "max-height 0.4s ease",
       });
-    }
-    $container.find(".accordion").show();
-  } else {
-    $container.find(".accordion").hide();
-  }
-
-  // Accordion opening conditions
-  if (!hide || triggered) {
-    $div.css({
-      "max-height": `${scrollHeight}px`,
-      transition: "max-height 0.4s ease",
-    });
-    $btn.attr("data-expanded", "true");
-    $icon.css("top", "5px");
-  } else {
-    $icon.css("top", "-35px");
-  }
-
-  // Accordion Click
-  $btn.off("click").on("click", async function () {
-    const isExpanded = $(this).attr("data-expanded") === "true";
-    const currentScrollHeight = $div[0].scrollHeight;
-
-    if (isExpanded) {
-      // Shrink
-      $div.css("max-height", `${recentlyCollapsedHeight}px`);
-      $(this).attr("data-expanded", "false");
-      $icon.css("top", "-35px");
-
-      const offset = !defaultMal ? 55 : 10;
-      const top = $main[0].getBoundingClientRect().top + window.pageYOffset - offset;
-      await delay(400);
-      window.scrollTo({ top, behavior: "smooth" });
-    } else {
-      // Expand
-      $div.css("max-height", `${currentScrollHeight}px`);
-      $(this).attr("data-expanded", "true");
+      $btn.attr("data-expanded", "true");
       $icon.css("top", "5px");
+    } else {
+      $icon.css("top", "-35px");
     }
-  });
+
+    // Accordion Click
+    $btn.off("click").on("click", async function () {
+      const isExpanded = $(this).attr("data-expanded") === "true";
+      const currentScrollHeight = $div[0].scrollHeight;
+
+      if (isExpanded) {
+        // Shrink
+        $div.css("max-height", `${recentlyCollapsedHeight}px`);
+        $(this).attr("data-expanded", "false");
+        $icon.css("top", "-35px");
+
+        const offset = !defaultMal ? 55 : 10;
+        const top = $main[0].getBoundingClientRect().top + window.pageYOffset - offset;
+        await delay(400);
+        window.scrollTo({ top, behavior: "smooth" });
+      } else {
+        // Expand
+        $div.css("max-height", `${currentScrollHeight}px`);
+        $(this).attr("data-expanded", "true");
+        $icon.css("top", "5px");
+      }
+    });
+  } catch (error) {
+    console.error("Error process recently grid accordion:", error);
+  }
 }
 
 function recentlyHtmlTemplate(type) {
@@ -132,216 +136,220 @@ function recentlyHtmlTemplate(type) {
 }
 
 async function createRecentlyAddedWidget(type) {
-  $(`#recently-added-${type}`).remove();
-  const isAnime = type === "anime";
-  const mediaType = isAnime ? 0 : 1;
-  const id = `recently-added-${type}`;
-  const containerClass = `widget-container left recently-${type}`;
-  const widgetSelector = `#widget-recently-added-${type}`;
-  const sliderSelector = `.widget-slide.js-widget-slide.recent-${type}`;
-  const typeFilterId = isAnime ? "typeFilter" : "typeFilterManga";
-  const leftBtnId = `#currently-left-recently-added-${type}`;
-  const rightBtnId = `#currently-right-recently-added-${type}`;
-  const loadMoreText = translate("$loadMore");
-  const recentlyLoadMoreWidth = svar.recentlyGrid6Column && svar.recentlyGrid ? 102 : 124;
-  const recentlyLoadMoreHeight = svar.recentlyGrid6Column && svar.recentlyGrid ? 147 : 170;
-  let btnAnimeWidth;
+  try {
+    $(`#recently-added-${type}`).remove();
+    const isAnime = type === "anime";
+    const mediaType = isAnime ? 0 : 1;
+    const id = `recently-added-${type}`;
+    const containerClass = `widget-container left recently-${type}`;
+    const widgetSelector = `#widget-recently-added-${type}`;
+    const sliderSelector = `.widget-slide.js-widget-slide.recent-${type}`;
+    const typeFilterId = isAnime ? "typeFilter" : "typeFilterManga";
+    const leftBtnId = `#currently-left-recently-added-${type}`;
+    const rightBtnId = `#currently-right-recently-added-${type}`;
+    const loadMoreText = translate("$loadMore");
+    const recentlyLoadMoreWidth = svar.recentlyGrid6Column && svar.recentlyGrid ? 102 : 124;
+    const recentlyLoadMoreHeight = svar.recentlyGrid6Column && svar.recentlyGrid ? 147 : 170;
+    let btnAnimeWidth;
 
-  let user = headerUserName;
-  if (!user) return;
+    let user = headerUserName;
+    if (!user) return;
 
-  const recentlyAddedDiv = create("article", { class: containerClass, id: id, page: "0" });
-  recentlyAddedDiv.innerHTML = recentlyHtmlTemplate(type);
+    const recentlyAddedDiv = create("article", { class: containerClass, id: id, page: "0" });
+    recentlyAddedDiv.innerHTML = recentlyHtmlTemplate(type);
 
-  let list = await getList();
-  async function getList() {
-    for (let x = 0; x < 5; x++) {
-      const data = await getRecentlyAdded(mediaType);
-      if (data) return data;
-      await delay(1000);
-    }
-    let d = document.querySelector(`#${id} > div > div.widget-header`);
-    if (d) {
-      let e = create("span", { class: "currently-watching-error", style: { float: "right", display: "inline-block" } }, "API Error. Please try again.");
-      let r = create("i", { class: "fa-solid fa-rotate-right"});
-      r.onclick = () => {
-        recentlyAddedDiv.remove();
-        createRecentlyAddedWidget(type);
-      };
-      e.append(r);
-      d.append(e);
-    }
-  }
-
-  if (!list) return;
-
-  // Insert widget to DOM
-  const refEl = document.querySelector("#recently-added-anime") || document.querySelector("#currently-reading") || document.querySelector("#currently-watching");
-  if (refEl) {
-    refEl.insertAdjacentElement("afterend", recentlyAddedDiv);
-  } else {
-    document.querySelector("#content > div.left-column").prepend(recentlyAddedDiv);
-  }
-
-  buildRecentlyAddedList(list, `${widgetSelector} ul`, recentlyLoadMoreWidth, recentlyLoadMoreHeight);
-  document.querySelector(`${widgetSelector} > div.widget-slide-outer > ul`).children.length > 5 ? document.querySelector(rightBtnId)?.classList.add("active") : "";
-
-  let itemBackup = Array.from(document.querySelectorAll(`${widgetSelector} ul .btn-anime`));
-  btnAnimeWidth = getTotalWidth(`${widgetSelector} ul .btn-anime`);
-  if (!svar.recentlyGrid) {
-    document.querySelector(`${widgetSelector} ul`).style.width =
-      btnAnimeWidth * Array.from(document.querySelectorAll(`${widgetSelector} ul .btn-anime`)).filter((el) => el.offsetWidth > 0).length + btnAnimeWidth + recentlyLoadMoreWidth + "px";
-  }
-  // Load More Button
-  const loadMoreButton = create("a", { class: "btn-load-more", id: `${id}-load-more` }, loadMoreText);
-  loadMoreButton.style.width = recentlyLoadMoreWidth + "px";
-  loadMoreButton.style.height = recentlyLoadMoreHeight + "px";
-  const slider = document.querySelector(sliderSelector);
-  slider.append(loadMoreButton);
-  const genreFilter = type === "anime" ? svar.recentlyAnimeFilter : svar.recentlyMangaFilter;
-  const animeSelected = svar.recentlyAnimeDefault ? (genreFilter.includes("genre%5B%5D=12") ? "All" : svar.recentlyAnimeDefault) : "All";
-  const mangaSelected = svar.recentlyMangaDefault ? (genreFilter.includes("genre%5B%5D=12") ? "All" : svar.recentlyMangaDefault) : "All";
-  filterRecentlyAdded(itemBackup, isAnime ? animeSelected : mangaSelected);
-  updateRecentlyAddedSliders(slider, leftBtnId, rightBtnId);
-
-  loadMoreButton.addEventListener("click", async function () {
-    if (loadMoreButton.innerHTML === loadMoreText) {
-      let retries = 5;
-      let delayMs = 1000;
-      loadMoreButton.style.pointerEvents = "none";
-      document.getElementById(typeFilterId).disabled = true;
-      async function tryLoadMore() {
-        loadMoreButton.innerHTML = '<i class="fa fa-circle-o-notch fa-spin malCleanLoader"></i>';
-        const selectedType = document.getElementById(typeFilterId).value.split(",");
-        const prevCount = Array.from(document.querySelectorAll(`${widgetSelector} ul .btn-anime`)).filter((el) => el.offsetWidth > 0).length;
-
-        let pageCount = parseInt(document.getElementById(id).getAttribute("page")) + 50;
-        let moreList = await getRecentlyAdded(mediaType, pageCount);
-        list = list.concat(moreList);
-        buildRecentlyAddedList(moreList, `${widgetSelector} ul`, recentlyLoadMoreWidth, recentlyLoadMoreHeight);
-
-        document.getElementById(id).setAttribute("page", pageCount);
-        const newItems = Array.from(document.querySelectorAll(`${widgetSelector} ul .btn-anime`)).slice(-moreList.length);
-        itemBackup.push(...newItems);
-
-        filterRecentlyAdded(itemBackup, selectedType);
-        updateRecentlyAddedSliders(slider, leftBtnId, rightBtnId);
-        slider.append(loadMoreButton);
-        if (!svar.recentlyGrid) {
-          document.querySelector(`${widgetSelector} ul`).style.width =
-            btnAnimeWidth * Array.from(document.querySelectorAll(`${widgetSelector} ul .btn-anime`)).filter((el) => el.offsetWidth > 0).length + btnAnimeWidth + recentlyLoadMoreWidth + "px";
-        }
-        loadMoreButton.setAttribute("data-triggered", "true");
-        refreshSlider();
-
-        if (svar.recentlyGrid) {
-          processRecentlyGridAccordion(type, 1);
-        }
-
-        const newCount = Array.from(document.querySelectorAll(`${widgetSelector} ul .btn-anime`)).filter((el) => el.offsetWidth > 0).length;
-
-        if (newCount === prevCount && retries > 0) {
-          retries--;
-          await delay(delayMs);
-          await tryLoadMore();
-        } else {
-          loadMoreButton.innerHTML = loadMoreText;
-        }
+    let list = await getList();
+    async function getList() {
+      for (let x = 0; x < 5; x++) {
+        const data = await getRecentlyAdded(mediaType);
+        if (data) return data;
+        await delay(1000);
       }
-
-      await tryLoadMore();
-      loadMoreButton.style.pointerEvents = "";
-      document.getElementById(typeFilterId).disabled = false;
+      let d = document.querySelector(`#${id} > div > div.widget-header`);
+      if (d) {
+        let e = create("span", { class: "currently-watching-error", style: { float: "right", display: "inline-block" } }, "API Error. Please try again.");
+        let r = create("i", { class: "fa-solid fa-rotate-right" });
+        r.onclick = () => {
+          recentlyAddedDiv.remove();
+          createRecentlyAddedWidget(type);
+        };
+        e.append(r);
+        d.append(e);
+      }
     }
-  });
 
-  // Type Filter Change
-  document.getElementById(typeFilterId).addEventListener("change", function (e) {
-    slider.style.marginLeft = 0;
-    const listNode = document.querySelector(`${widgetSelector} ul`);
-    listNode.innerHTML = "";
-    addAllRecentlyAdded(itemBackup, listNode);
-    const selectedType = e.target.value.split(",");
-    filterRecentlyAdded(itemBackup, selectedType);
+    if (!list) return;
+
+    // Insert widget to DOM
+    const refEl = document.querySelector("#recently-added-anime") || document.querySelector("#currently-reading") || document.querySelector("#currently-watching");
+    if (refEl) {
+      refEl.insertAdjacentElement("afterend", recentlyAddedDiv);
+    } else {
+      document.querySelector("#content > div.left-column").prepend(recentlyAddedDiv);
+    }
+
+    buildRecentlyAddedList(list, `${widgetSelector} ul`, recentlyLoadMoreWidth, recentlyLoadMoreHeight);
+    document.querySelector(`${widgetSelector} > div.widget-slide-outer > ul`).children.length > 5 ? document.querySelector(rightBtnId)?.classList.add("active") : "";
+
+    let itemBackup = Array.from(document.querySelectorAll(`${widgetSelector} ul .btn-anime`));
+    btnAnimeWidth = getTotalWidth(`${widgetSelector} ul .btn-anime`);
     if (!svar.recentlyGrid) {
       document.querySelector(`${widgetSelector} ul`).style.width =
         btnAnimeWidth * Array.from(document.querySelectorAll(`${widgetSelector} ul .btn-anime`)).filter((el) => el.offsetWidth > 0).length + btnAnimeWidth + recentlyLoadMoreWidth + "px";
     }
-    updateRecentlyAddedSliders(slider, leftBtnId, rightBtnId);
+    // Load More Button
+    const loadMoreButton = create("a", { class: "btn-load-more", id: `${id}-load-more` }, loadMoreText);
+    loadMoreButton.style.width = recentlyLoadMoreWidth + "px";
+    loadMoreButton.style.height = recentlyLoadMoreHeight + "px";
+    const slider = document.querySelector(sliderSelector);
     slider.append(loadMoreButton);
-    refreshSlider(1);
+    const genreFilter = type === "anime" ? svar.recentlyAnimeFilter : svar.recentlyMangaFilter;
+    const animeSelected = svar.recentlyAnimeDefault ? (genreFilter.includes("genre%5B%5D=12") ? "All" : svar.recentlyAnimeDefault) : "All";
+    const mangaSelected = svar.recentlyMangaDefault ? (genreFilter.includes("genre%5B%5D=12") ? "All" : svar.recentlyMangaDefault) : "All";
+    filterRecentlyAdded(itemBackup, isAnime ? animeSelected : mangaSelected);
+    updateRecentlyAddedSliders(slider, leftBtnId, rightBtnId);
+
+    loadMoreButton.addEventListener("click", async function () {
+      if (loadMoreButton.innerHTML === loadMoreText) {
+        let retries = 5;
+        let delayMs = 1000;
+        loadMoreButton.style.pointerEvents = "none";
+        document.getElementById(typeFilterId).disabled = true;
+        async function tryLoadMore() {
+          loadMoreButton.innerHTML = '<i class="fa fa-circle-o-notch fa-spin malCleanLoader"></i>';
+          const selectedType = document.getElementById(typeFilterId).value.split(",");
+          const prevCount = Array.from(document.querySelectorAll(`${widgetSelector} ul .btn-anime`)).filter((el) => el.offsetWidth > 0).length;
+
+          let pageCount = parseInt(document.getElementById(id).getAttribute("page")) + 50;
+          let moreList = await getRecentlyAdded(mediaType, pageCount);
+          list = list.concat(moreList);
+          buildRecentlyAddedList(moreList, `${widgetSelector} ul`, recentlyLoadMoreWidth, recentlyLoadMoreHeight);
+
+          document.getElementById(id).setAttribute("page", pageCount);
+          const newItems = Array.from(document.querySelectorAll(`${widgetSelector} ul .btn-anime`)).slice(-moreList.length);
+          itemBackup.push(...newItems);
+
+          filterRecentlyAdded(itemBackup, selectedType);
+          updateRecentlyAddedSliders(slider, leftBtnId, rightBtnId);
+          slider.append(loadMoreButton);
+          if (!svar.recentlyGrid) {
+            document.querySelector(`${widgetSelector} ul`).style.width =
+              btnAnimeWidth * Array.from(document.querySelectorAll(`${widgetSelector} ul .btn-anime`)).filter((el) => el.offsetWidth > 0).length + btnAnimeWidth + recentlyLoadMoreWidth + "px";
+          }
+          loadMoreButton.setAttribute("data-triggered", "true");
+          refreshSlider();
+
+          if (svar.recentlyGrid) {
+            processRecentlyGridAccordion(type, 1);
+          }
+
+          const newCount = Array.from(document.querySelectorAll(`${widgetSelector} ul .btn-anime`)).filter((el) => el.offsetWidth > 0).length;
+
+          if (newCount === prevCount && retries > 0) {
+            retries--;
+            await delay(delayMs);
+            await tryLoadMore();
+          } else {
+            loadMoreButton.innerHTML = loadMoreText;
+          }
+        }
+
+        await tryLoadMore();
+        loadMoreButton.style.pointerEvents = "";
+        document.getElementById(typeFilterId).disabled = false;
+      }
+    });
+
+    // Type Filter Change
+    document.getElementById(typeFilterId).addEventListener("change", function (e) {
+      slider.style.marginLeft = 0;
+      const listNode = document.querySelector(`${widgetSelector} ul`);
+      listNode.innerHTML = "";
+      addAllRecentlyAdded(itemBackup, listNode);
+      const selectedType = e.target.value.split(",");
+      filterRecentlyAdded(itemBackup, selectedType);
+      if (!svar.recentlyGrid) {
+        document.querySelector(`${widgetSelector} ul`).style.width =
+          btnAnimeWidth * Array.from(document.querySelectorAll(`${widgetSelector} ul .btn-anime`)).filter((el) => el.offsetWidth > 0).length + btnAnimeWidth + recentlyLoadMoreWidth + "px";
+      }
+      updateRecentlyAddedSliders(slider, leftBtnId, rightBtnId);
+      slider.append(loadMoreButton);
+      refreshSlider(1);
+      if (svar.recentlyGrid) {
+        processRecentlyGridAccordion(type, 1);
+      }
+    });
+
+    // Sliders
+    let items = Array.from(slider.querySelectorAll(".btn-anime,.btn-load-more")).filter((el) => el.offsetWidth > 0);
+    const slideWidth = getTotalWidth(items[0]);
+    const itemsPerScroll = 5;
+    let maxIndex = Math.ceil(items.length / itemsPerScroll) - 1;
+    const leftBtn = document.querySelector(leftBtnId);
+    const rightBtn = document.querySelector(rightBtnId);
+
+    function refreshSlider(reset) {
+      items.length = 0;
+      items = Array.from(slider.querySelectorAll(".btn-anime,.btn-load-more")).filter((el) => el.offsetWidth > 0);
+      maxIndex = Math.ceil(items.length / itemsPerScroll) - 1;
+      if (reset) slider.setAttribute("data-index", "0");
+      updateButtons(reset ? 0 : parseInt(slider.dataset.index || "0"));
+    }
+
+    function updateButtons(index) {
+      if (index <= 0) {
+        leftBtn.classList.remove("active");
+        leftBtn.setAttribute("disabled", "true");
+      } else {
+        leftBtn.classList.add("active");
+        leftBtn.removeAttribute("disabled");
+      }
+
+      if (index >= maxIndex) {
+        rightBtn.classList.remove("active");
+        rightBtn.setAttribute("disabled", "true");
+      } else {
+        rightBtn.classList.add("active");
+        rightBtn.removeAttribute("disabled");
+      }
+    }
+
+    document.querySelector(`#${id} > div > div.widget-header > i`).remove();
     if (svar.recentlyGrid) {
+      $(`${widgetSelector} .widget-slide`).addClass(`recentlyGrid ${svar.recentlyGrid6Column ? "recentlyGrid6Column" : ""}`);
+      $(`${widgetSelector} .widget-slide`).css("grid-template-columns", svar.recentlyGrid6Column ? "repeat(6, minmax(0, 1fr))" : "repeat(5, minmax(0, 1fr))");
+      $(`${widgetSelector} .widget-slide`).css("gap", svar.recentlyGrid6Column ? "15px 10px" : "20px 10px");
+      $(`${widgetSelector} .widget-slide`).css("width", "100%");
+      $(`${widgetSelector} ${leftBtnId}`).remove();
+      $(`${widgetSelector} ${rightBtnId}`).remove();
       processRecentlyGridAccordion(type, 1);
-    }
-  });
-
-  // Sliders
-  let items = Array.from(slider.querySelectorAll(".btn-anime,.btn-load-more")).filter((el) => el.offsetWidth > 0);
-  const slideWidth = getTotalWidth(items[0]);
-  const itemsPerScroll = 5;
-  let maxIndex = Math.ceil(items.length / itemsPerScroll) - 1;
-  const leftBtn = document.querySelector(leftBtnId);
-  const rightBtn = document.querySelector(rightBtnId);
-
-  function refreshSlider(reset) {
-    items.length = 0;
-    items = Array.from(slider.querySelectorAll(".btn-anime,.btn-load-more")).filter((el) => el.offsetWidth > 0);
-    maxIndex = Math.ceil(items.length / itemsPerScroll) - 1;
-    if (reset) slider.setAttribute("data-index", "0");
-    updateButtons(reset ? 0 : parseInt(slider.dataset.index || "0"));
-  }
-
-  function updateButtons(index) {
-    if (index <= 0) {
-      leftBtn.classList.remove("active");
-      leftBtn.setAttribute("disabled", "true");
     } else {
-      leftBtn.classList.add("active");
-      leftBtn.removeAttribute("disabled");
+      updateButtons(0);
+
+      rightBtn.addEventListener("click", function () {
+        let index = parseInt(slider.dataset.index || "0");
+
+        if (index < maxIndex) {
+          index++;
+          slider.dataset.index = index;
+          slider.style.marginLeft = `-${index * itemsPerScroll * slideWidth}px`;
+          updateButtons(index);
+        }
+      });
+
+      leftBtn.addEventListener("click", function () {
+        let index = parseInt(slider.dataset.index || "0");
+
+        if (index > 0) {
+          index--;
+          slider.dataset.index = index;
+          slider.style.marginLeft = `-${index * itemsPerScroll * slideWidth}px`;
+          updateButtons(index);
+        }
+      });
     }
-
-    if (index >= maxIndex) {
-      rightBtn.classList.remove("active");
-      rightBtn.setAttribute("disabled", "true");
-    } else {
-      rightBtn.classList.add("active");
-      rightBtn.removeAttribute("disabled");
-    }
-  }
-
-  document.querySelector(`#${id} > div > div.widget-header > i`).remove();
-  if (svar.recentlyGrid) {
-    $(`${widgetSelector} .widget-slide`).addClass(`recentlyGrid ${svar.recentlyGrid6Column ? "recentlyGrid6Column" : ""}`);
-    $(`${widgetSelector} .widget-slide`).css("grid-template-columns", svar.recentlyGrid6Column ? "repeat(6, minmax(0, 1fr))" : "repeat(5, minmax(0, 1fr))");
-    $(`${widgetSelector} .widget-slide`).css("gap", svar.recentlyGrid6Column ? "15px 10px" : "20px 10px");
-    $(`${widgetSelector} .widget-slide`).css("width", "100%");
-    $(`${widgetSelector} ${leftBtnId}`).remove();
-    $(`${widgetSelector} ${rightBtnId}`).remove();
-    processRecentlyGridAccordion(type, 1);
-  } else {
-    updateButtons(0);
-
-    rightBtn.addEventListener("click", function () {
-      let index = parseInt(slider.dataset.index || "0");
-
-      if (index < maxIndex) {
-        index++;
-        slider.dataset.index = index;
-        slider.style.marginLeft = `-${index * itemsPerScroll * slideWidth}px`;
-        updateButtons(index);
-      }
-    });
-
-    leftBtn.addEventListener("click", function () {
-      let index = parseInt(slider.dataset.index || "0");
-
-      if (index > 0) {
-        index--;
-        slider.dataset.index = index;
-        slider.style.marginLeft = `-${index * itemsPerScroll * slideWidth}px`;
-        updateButtons(index);
-      }
-    });
+  } catch (error) {
+    console.error(`Error creating recently added widget for ${type}:`, error);
   }
 }
 
