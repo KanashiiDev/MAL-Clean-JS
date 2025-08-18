@@ -2734,3 +2734,124 @@ async function createEmbed(selectorList) {
     await delay(777);
   }
 }
+
+async function updateAniMangaEntry(id, type, status, score, numWatchedEpisodes, numReadVolumes) {
+  const url = `https://myanimelist.net/ownlist/${type ? type : "anime"}/edit.json`;
+  const csrfToken = document.querySelector('meta[name="csrf_token"]')?.content;
+  if (!csrfToken) throw new Error("CSRF token not found.");
+  const payload = {
+    [type ? "manga_id" : "anime_id"]: id,
+    status: status,
+    score: score,
+    [type ? "num_read_chapters" : "num_watched_episodes"]: numWatchedEpisodes,
+    csrf_token: csrfToken,
+  };
+
+  if (type) {
+    payload.num_read_volumes = numReadVolumes || 0;
+  }
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status code: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Request error:", error);
+    throw error;
+  }
+}
+
+function compareUserLists() {
+  const rows = document.querySelectorAll("table.shared-table tbody tr");
+  const diffs = [];
+
+  rows.forEach((row) => {
+    const cells = row.querySelectorAll("td");
+    if (cells.length >= 4) {
+      const userScore = parseFloat(cells[1].innerText);
+      const myScore = parseFloat(cells[2].innerText);
+
+      if (!isNaN(userScore) && !isNaN(myScore)) {
+        const diff = Math.abs(userScore - myScore);
+        diffs.push(diff);
+      }
+    }
+  });
+
+  const n = diffs.length;
+  if (n === 0) return null;
+
+  const avgDiff = diffs.reduce((a, b) => a + b, 0) / n;
+  const result = { avgDiff, count: n };
+  const header = document.querySelector("#content > h2:nth-child(2)");
+  const resultSpan = create("span", { id: "compare-result" });
+  const resultSpanScore = create("span", { id: "compare-result-score" });
+
+  if (result && !document.getElementById("compare-result")) {
+    $(header).after(resultSpanScore, resultSpan);
+    const color = getColorByStdDev(result.avgDiff);
+    resultSpanScore.textContent = `${result.avgDiff.toFixed(2)}`;
+    resultSpanScore.style.color = color;
+    resultSpan.textContent = ` based on ${result.count} shared entries. Lower is better. 1.0 - 1.5 is common`;
+  }
+
+  function getColorByStdDev(avgDiff) {
+    if (avgDiff <= 1.0) {
+      return "#4CAF50";
+    } else if (avgDiff <= 1.5) {
+      return "#FFC107";
+    } else {
+      return "#F44336";
+    }
+  }
+}
+
+function compareUserListSortDiff() {
+  const table = document.querySelector(".shared-table");
+  const headerRow = table.querySelector("tbody tr:first-child");
+  const meanRow = Array.from(table.querySelectorAll("tbody tr")).find((row) => row.textContent.includes("Mean Values"));
+  const topRow = Array.from(table.querySelectorAll("tbody tr")).find((row) => row.textContent.includes("Top"));
+  const headerCells = headerRow.querySelectorAll("td, th");
+
+  // Diff Click
+  $(headerCells[3]).children().wrap("<a></a>");
+  headerCells[3].style.cursor = "pointer";
+  headerCells[3].addEventListener("click", () => {
+    const rows = Array.from(table.querySelectorAll("tbody tr")).filter((row) => row !== headerRow && row !== meanRow && row !== topRow); // sabit satırları çıkar
+
+    const desc = headerCells[3].dataset.sortOrder !== "desc";
+    headerCells[3].dataset.sortOrder = desc ? "desc" : "asc";
+
+    rows.sort((a, b) => {
+      const diffA = parseFloat(a.cells[3].textContent);
+      const diffB = parseFloat(b.cells[3].textContent);
+
+      const isNaA = isNaN(diffA);
+      const isNaB = isNaN(diffB);
+
+      //Always put null/NaN values at the end.
+      if (isNaA && !isNaB) return 1;
+      if (!isNaA && isNaB) return -1;
+      if (isNaA && isNaB) return 0;
+
+      return desc ? diffB - diffA : diffA - diffB;
+    });
+
+    const tbody = table.querySelector("tbody");
+    tbody.innerHTML = "";
+    tbody.appendChild(headerRow);
+    rows.forEach((row) => tbody.appendChild(row));
+    if (meanRow) tbody.appendChild(meanRow);
+    if (topRow) tbody.appendChild(topRow);
+  });
+}

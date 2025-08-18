@@ -77,6 +77,9 @@ async function createCurrentlyWidget(type) {
     const urlKey = isAnime ? "anime_url" : "manga_url";
     const progressKey = isAnime ? "num_watched_episodes" : "num_read_chapters";
     const totalKey = isAnime ? "anime_num_episodes" : "manga_num_chapters";
+    const readVolumes = isAnime ? null : "num_read_volumes";
+    const score = isAnime ? "score" : "score";
+    const status = isAnime ? "status" : "status";
     const widgetId = `currently-${typeText}`;
     const sliderId = `#widget-currently-${typeText}`;
     const leftBtnId = `currently-left${isAnime ? "" : "-manga"}`;
@@ -174,7 +177,21 @@ async function createCurrentlyWidget(type) {
           clearTimeout(incTimer);
           incTimer = setTimeout(async function () {
             loadingIndicator.remove();
-            await editPopup(item[idKey], isAnime ? null : "manga", true, incCount);
+            const currentProgress = item[progressKey];
+            const totalProgress = item[totalKey];
+
+            // Status check
+            let shouldUseEditPopup = svar.autoAddDate && (currentProgress === 0 || currentProgress === totalProgress);
+            if (shouldUseEditPopup) {
+              await editPopup(item[idKey], isAnime ? null : "manga", true, incCount);
+            } else {
+              try {
+                await updateAniMangaEntry(item[idKey], isAnime ? null : "manga", item[status], item[score], currentProgress + incCount, item[readVolumes]);
+              } catch (err) {
+                await editPopup(item[idKey], isAnime ? null : "manga", true, incCount);
+              }
+            }
+
             div.remove();
             await createCurrentlyWidget(type);
             incCount = 0;

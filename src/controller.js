@@ -15,6 +15,7 @@ const pageIsCompany = /(anime|manga)\/(producer)\/.?([\w-]+)?\/?/.test(current);
 const pageIsTopAnime = /(topanime.php)/.test(current);
 const pageIsAnimeSeason = /(\/anime\/season)/.test(current);
 const pageIsAnimeGenre = /(\/anime\/genre\/)/.test(current);
+const pageIsCompare = /(shared.php)/.test(current);
 let blockU = create("i", { class: "fa fa-ban mt4 ml12 blockUserIcon" });
 blockU.onclick = () => {
   blockUser(username);
@@ -74,6 +75,11 @@ if (pageIsProfile) {
   if (isMainProfilePage && userNotHeaderUser && headerUserName !== "" && headerUserName !== "MALnewbie") {
     $("a.header-right").after(blockU);
   }
+}
+
+if (pageIsCompare) {
+  compareUserLists();
+  compareUserListSortDiff();
 }
 
 if (svar.newComments && location.href.includes("https://myanimelist.net/comments.php")) {

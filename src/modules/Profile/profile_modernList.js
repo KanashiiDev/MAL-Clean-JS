@@ -469,8 +469,8 @@ if (svar.replaceList) {
       "$listSelectFinishDate"
     )}</option>
   ${isManga ? "" : `<option value="createdat">${translate("$listSelectLastAdded")}</option> <option value="updatedat">${translate("$listSelectLastUpdated")}</option>`}</select>
-  <button class="fa fa-arrow-up" id="sort-asc" style="font-family: FontAwesome; width:33px; margin-top:0"></button>
-  <button class="fa fa-arrow-down" id="sort-desc" style="font-family: FontAwesome; width:33px; margin-top:0"></button></div>`;
+  <button class="fa fa-arrow-up" id="sort-asc" title="Ascending" style="font-family: FontAwesome; width:33px; margin-top:0"></button>
+  <button class="fa fa-arrow-down" id="sort-desc" title="Descending" style="font-family: FontAwesome; width:33px; margin-top:0"></button></div>`;
     listFilter.appendChild(sortFilter);
     const sortSelect = document.getElementById("sort-select");
     const sortAsc = document.getElementById("sort-asc");
