@@ -1,112 +1,146 @@
-# MAL-Clean-JS
-Customizations and fixes for MyAnimeList!
-<p align="left">
-Made for the <a href="https://userstyles.world/style/10678/myanimelist-clean">MyAnimeList - Clean</a> userstyle, but users without it can also use it.
-<br><br><a href="https://greasyfork.org/en/scripts/480965-mal-clean-js"><img src="https://shields.io/badge/GreasyFork-Install%20Userscript-ddd" alt="Get Userscript"/></a><br>
-<h6><b><a href="https://files.catbox.moe/srlz3y.png">How to Open Settings</a></b></h6>
-</p>
-<p align="left">
-<details><summary>Features</summary>
-<b>Panel</b>
-<li>Add more info to seasonal anime. <a href="https://files.catbox.moe/sn9rt6.png">[IMAGE]</a></li>
-<li>Add recently added anime & manga. <a href="https://files.catbox.moe/97witl.png">[IMAGE]</a></li>
-<li>Show currently watching anime & manga. <a href="https://files.catbox.moe/ayx26l.png">[IMAGE]</a></li>
-<li>Auto add start/finish date to watching anime & reading manga.</li>
-<li>Add next episode countdown to currently watching anime.</li>
-<li>Modern Anime/Manga Links <a href="https://files.catbox.moe/yvrntr.png">[IMAGE]</a></li>
-<li>Add live preview to the editor.</li><br>
-<b>Anime</b>
-<li>Hide non-Japanese Anime.</li>
-<li>Replace OPs and EDs with animethemes.moe</li><br>
-<b>Anime & Manga</b>
-<li>Custom Cover Image. <a href="https://files.catbox.moe/kdzyv3.png">[IMAGE]</a></li>
-<li>Dynamic background color based cover art's color palette.</li>
-<li>Use the cover image as the background.</li>
-<li>Add banner image from Anilist.</li>
-<li>Add tags from Anilist.</li>
-<li>Replace relations.</li>
-<li>Change title position.</li><br>
-<b>Character</b>
-<li>Dynamic background color based cover art's color palette.</li>
-<li>Custom Character Image.</li>
-<li>Show alternative name.</li><br>
-<b>Character & People</b>
-<li>Change name position.</li><br>
-<b>Forum</b>
-<li>Change date format.</li><br>
-<b>Profile</b>
-<li>Modern Profile Layout <i>(Custom avatar, banner and badge will be visible to users with the script)</i></li>
-<li>Modern Anime/Manga List. <a href="https://files.catbox.moe/f6luis.png">[IMAGE]</a></li>
-<li>Make profile private.</li>
-<li>Add custom profile elements <i>(This will be visible to users with the script)</i> <a href="https://files.catbox.moe/l5mvra.png">[IMAGE]</a></li>
-<li>Hide profile elements <i>(This will also apply to users with the script)</i></li>
-<li>Show mutual friends.</li>
-<li>Add anime themes (openings and endings) to your profile (This will be visible to users with the script) <a href="https://files.catbox.moe/y1a0oc.png">[IMAGE]</a></li>
-<li>Custom profile colors <i>(This will be visible to users with the script)</i></li>
-<li>Custom CSS <i>(This will be visible to users with the script)</i></li>
-<li>Add more than 10 favorites <i>(This will be visible to users with the script)</i></li>
-<li>Add Activity History <a href="https://files.catbox.moe/ywq9dy.png">[IMAGE]</a></li>
-<li>Redesign Profile Comments <a href="https://files.catbox.moe/k45hbx.png">[IMAGE]</a></li></details></p>
+# <img align="center" src="https://myanimelist.net/favicon.ico" alt="Mal Icon" width="48" height="48"> MAL-Clean-JS
+<a href="https://greasyfork.org/en/scripts/480965-mal-clean-js">
+  <img src="https://shields.io/badge/GreasyFork-Install%20Userscript-ddd" alt="Get Userscript"/>
+</a>
+<br>
 
-# Build from Source
-Follow these steps to build the project from source:
+**The ultimate power-up for MyAnimeList — cleaner, smarter, and way more stylish!**
 
-1. **Install Dependencies**: Make sure all required dependencies are installed by running the following command in your terminal: `npm install`
+If you’ve ever thought:
 
-2. **Start the Build Process**: To begin the build process, run the following command: `npm run build`. This will compile the project and place the output in the `src/build/` directory.
+* “MAL feels a bit… old.”
+* “I wish my profile actually looked cool.”
+* “Why don’t anime pages show more useful stuff?”
+  Then congratulations — **you just unlocked the solution.** 🎉
 
-3. **Output**: After the build is complete, the userscript will be available in the `src/build/` folder.
+**MAL-Clean-JS** transforms MyAnimeList into a modern, customizable, feature-packed platform.
+Fancy panels, auto-updating info, modern profile layouts, banners, custom covers, Anilist integration… you name it — it’s here.
+
+### 🔧 Recommended Userstyle
+For the best visual experience, use this script together with:  
+👉 **[MyAnimeList - Clean](https://userstyles.world/style/10678/myanimelist-clean)**
 
 ---
 
-# Adding a New Language
+# 🚀 What Can MAL-Clean-JS Do?
 
-To add a new language to **MAL-Clean-JS**, follow these steps:
+*(Short answer: A LOT — and we’ve got screenshots to prove it.)*
 
-1. **Create a Language File**: In the `src/data/languages/` folder, create a new `.json` file based on the structure of `English.json`.
+<details>
+<summary><b>📌 Panel Upgrades</b></summary>
 
-2. **Build the Script**: After creating your language file, run the `npm run build` script to bundle your changes and create the updated userscript.
+* **Adds extra info to seasonal anime**
+  👉 [Screenshot](https://files.catbox.moe/sn9rt6.png)
+* **Shows recently added anime & manga**
+  👉 [Screenshot](https://files.catbox.moe/97witl.png)
+* **Displays your currently watching anime & manga**
+  👉 [Screenshot](https://files.catbox.moe/ayx26l.png)
+* **Auto add start/finish dates** when you begin watching/reading
+* **Next episode countdown** for currently watching anime
+* **Modern anime/manga links**
+  👉 [Screenshot](https://files.catbox.moe/yvrntr.png)
+* **Live preview in the editor**
 
-3. **Test Your Language File**: Make sure to test your language file locally to verify it works as expected.
+</details>
 
-4. **Submit a Pull Request**: If you would like to contribute your language file back to the project, feel free to submit a pull request!
+<details>
+<summary><b>🎬 Anime Improvements</b></summary>
+
+* Hide non-Japanese anime
+* Replace OP/ED lists with AnimeThemes.moe
+
+</details>
+
+<details>
+<summary><b>📚 Anime & Manga Enhancements</b></summary>
+
+* **Custom cover images**
+  👉 [Screenshot](https://files.catbox.moe/kdzyv3.png)
+* Dynamic background colors from cover palette
+* Use cover art as the page background
+* Add Anilist banner images
+* Add Anilist tags
+* Replace relations with a cleaner layout
+* Change title position
+
+</details>
+
+<details>
+<summary><b>🧑‍🎤 Characters & People</b></summary>
+
+* Dynamic background colors
+* Custom character images
+* Show alternative names
+* Change name position
+
+</details>
+
+<details>
+<summary><b>💬 Forum Upgrades</b></summary>
+
+* Custom date format
+
+</details>
+
+<details>
+<summary><b>👤 Profile Superpowers</b></summary>
+
+* **Modern profile layout** (custom avatar, banner, badge visible to users with the script)
+* **Modern anime/manga list**
+  👉 [Screenshot](https://files.catbox.moe/f6luis.png)
+* Make profile private
+* **Add custom profile elements**
+  👉 [Screenshot](https://files.catbox.moe/l5mvra.png)
+* Hide profile elements
+* Show mutual friends
+* **Add anime themes (OP/ED) to your profile**
+  👉 [Screenshot](https://files.catbox.moe/y1a0oc.png)
+* Custom profile colors
+* Custom CSS
+* Add more than 10 favorites
+* **Activity History**
+  👉 [Screenshot](https://files.catbox.moe/ywq9dy.png)
+* **Redesigned profile comments**
+  👉 [Screenshot](https://files.catbox.moe/k45hbx.png)
+
+</details>
 
 ---
 
-# Adding a New Module
+# ⚡ Build From Source
 
-To add your own custom user module to **MAL-Clean-JS**, please follow the instructions in the detailed guide linked below:
-
-### Steps to Add a Custom User Module
-
-1. **Read the Guide**: Start by visiting our detailed guide on how to add a user module:
-   [How to Add User Module](https://github.com/KanashiiDev/MAL-Clean-JS/blob/main/src/howToAddUserModule.js).
-
-2. **Create Your Module**: After reviewing the guide, you can create your own custom module. A user module might include any functionality that you want to enhance or extend within the script.
-
-3. **Test Your Module**: Make sure to test your module locally to verify it works as expected.
-
-4. **Build the Script**: After adding your custom module, run the `npm run build` script to bundle your changes and create the updated userscript.
-
-5. **Submit a Pull Request**: If you'd like to contribute your module back to the project, feel free to submit a pull request!
-
-By following the steps in the guide, you can easily integrate your user module into **MAL-Clean-JS**.
+1. Install dependencies:
+   `npm install`
+2. Build the script:
+   `npm run build`
+3. Find the output in:
+   `src/build/`
 
 ---
 
-# Copyright
+# 🌍 Adding a New Language
 
-Copyright (C) 2023-2025 KanashiiDev and the Mal-Clean-JS contributors
+1. Create a new JSON file in `src/data/languages/` (copy from `English.json`)
+2. Run `npm run build`
+3. Test it locally
+4. Submit a PR if you'd like to contribute!
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+---
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
+# 🧩 Adding a Custom User Module
 
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
+You can extend MAL-Clean-JS with your own modules!
+
+1. Read the guide:
+   **“[How to Add User Module](https://github.com/KanashiiDev/MAL-Clean-JS/blob/main/src/howToAddUserModule.js)”**
+2. Create your module
+3. Test it
+4. Build (`npm run build`)
+5. Submit a PR if you want to share it
+
+---
+
+# 📜 License
+
+Copyright © 2023–2025
+Released under the **GNU GPL v3** — free, open source and customizable!
